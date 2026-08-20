@@ -1,0 +1,6 @@
+[
+ {"q": "why did i pick X instead of Y", "kind": "buried", "gold": ["the exact phrase from your file that answers it"]},
+ {"q": "what is my commit style", "kind": "pref", "gold": ["Conventional commits"]},
+ {"q": "how do i deploy the portfolio", "kind": "multi", "gold": ["npm run build"]},
+ {"q": "do i use jenkins or github actions", "kind": "absent", "gold": ["__ABSENT__"]}
+]

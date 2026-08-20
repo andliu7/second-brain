@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* dark-first: a retrieval console reads best on a warm black. Light is the
+   redefinition, matching the OS home page's paper. */
+:root{
+  --bg:#12110e; --card:#1b1a16; --sunk:#0e0d0a; --edge:#2d2b24; --edge2:#3a372e;
+  --ink:#efece5; --dim:#9b958a; --faint:#6b665c;
+  --mark:#f0793a; --mark-dim:#b45524;
+  --go:#5fbf92; --warn:#e0a052; --stop:#e0705c;
+  --fd:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --fb:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --fm:"IBM Plex Mono",Consolas,ui-monospace,monospace;
+  --node:#f0793a; --link:rgba(240,121,58,.16);
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --sunk:#f2efe9; --edge:#e2ddd3; --edge2:#cfc9bc;
+    --ink:#1b1a18; --dim:#6b675f; --faint:#9c968b;
+    --mark:#d4541f; --mark-dim:#a8451c;
+    --go:#2f7d5f; --warn:#a86a18; --stop:#a8402f;
+    --node:#d4541f; --link:rgba(212,84,31,.13);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--fb);
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+#field{position:fixed; inset:0; z-index:0; pointer-events:none}
+.shell{position:relative; z-index:1; max-width:1240px; margin:0 auto; padding:0 26px 80px}
+
+/* ── header ── */
+header{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:22px 0 6px;
+}
+.word{display:flex; align-items:baseline; gap:10px}
+.word h1{font-family:var(--fd); font-weight:700; font-size:21px; letter-spacing:-.02em; margin:0}
+.word span{font-family:var(--fm); font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--mark)}
+.stats{display:flex; gap:16px; margin-left:auto; font-family:var(--fm);
+  font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums; flex-wrap:wrap}
+.stats b{color:var(--ink); font-weight:500}
+button{
+  font-family:var(--fm); font-size:11.5px; letter-spacing:.06em; cursor:pointer;
+  color:var(--dim); background:var(--card); border:1px solid var(--edge);
+  border-radius:8px; padding:7px 12px;
+  transition:color .15s,border-color .15s,transform .1s;
+}
+button:hover{color:var(--ink); border-color:var(--edge2)}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--mark); outline-offset:2px}
+button.primary{color:#fff; background:var(--mark); border-color:var(--mark); font-weight:500}
+button.primary:hover{background:var(--mark-dim); border-color:var(--mark-dim); color:#fff}
+button:disabled{opacity:.55; cursor:wait}
+
+/* ── layout ── */
+.grid{display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:18px; margin-top:18px}
+@media (max-width:980px){ .grid{grid-template-columns:1fr} }
+.card{background:var(--card); border:1px solid var(--edge); border-radius:14px}
+.pad{padding:16px 18px}
+h2{font-family:var(--fm); font-size:10.5px; font-weight:400; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 12px;
+  display:flex; align-items:center; gap:8px}
+h2 .key{margin-left:auto; border:1px solid var(--edge); border-radius:4px;
+  padding:0 5px; font-size:10px; color:var(--faint)}
+
+/* ── ask ── */
+.ask{position:relative}
+.ask textarea{
+  width:100%; resize:none; background:transparent; border:0; color:var(--ink);
+  font-family:var(--fb); font-size:19px; line-height:1.45; padding:18px 130px 6px 18px;
+  min-height:64px; outline:none;
+}
+.ask textarea::placeholder{color:var(--faint)}
+.askrow{display:flex; align-items:center; gap:8px; padding:6px 12px 12px; flex-wrap:wrap}
+select{
+  font-family:var(--fm); font-size:11.5px; color:var(--dim); background:var(--sunk);
+  border:1px solid var(--edge); border-radius:8px; padding:6px 8px; outline:none;
+}
+select:focus-visible{outline:2px solid var(--mark); outline-offset:2px}
+label.tog{display:inline-flex; align-items:center; gap:6px; font-family:var(--fm);
+  font-size:11.5px; color:var(--dim); cursor:pointer; padding:6px 8px;
+  border:1px solid var(--edge); border-radius:8px; background:var(--sunk)}
+label.tog:has(input:checked){color:var(--mark); border-color:var(--mark)}
+label.tog input{accent-color:var(--mark); margin:0}
+#go{position:absolute; top:14px; right:14px; min-width:92px; height:38px;
+  font-size:12.5px}
+#go .ring{display:none; vertical-align:-3px; margin-right:6px}
+#go.busy .ring{display:inline-block}
+#go .ring circle{fill:none; stroke:#fff; stroke-width:2.5; stroke-linecap:round;
+  stroke-dasharray:38; animation:draw 1.4s ease-in-out infinite}
+@keyframes draw{0%{stroke-dashoffset:38}50%{stroke-dashoffset:0}100%{stroke-dashoffset:-38}}
+
+/* ── results ── */
+#out{display:flex; flex-direction:column; gap:14px; margin-top:14px}
+.res .head{display:flex; align-items:center; gap:10px; padding:13px 16px 0; flex-wrap:wrap}
+.badge{font-family:var(--fm); font-size:10.5px; font-weight:500; letter-spacing:.05em;
+  padding:2px 8px; border-radius:5px; border:1px solid currentColor}
+.badge.E{color:var(--go)} .badge.I{color:var(--warn)} .badge.A{color:var(--stop)}
+.crumb{font-family:var(--fm); font-size:11.5px; color:var(--dim); overflow-wrap:anywhere}
+.crumb b{color:var(--ink); font-weight:500}
+.scorebit{margin-left:auto; font-family:var(--fm); font-size:11px; color:var(--faint);
+  font-variant-numeric:tabular-nums; white-space:nowrap}
+.res pre{
+  margin:10px 16px 15px; padding:13px 15px; overflow-x:auto;
+  background:var(--sunk); border:1px solid var(--edge); border-radius:10px;
+  font-family:var(--fm); font-size:12.6px; line-height:1.62; color:var(--ink);
+  white-space:pre-wrap; overflow-wrap:anywhere;
+}
+.res .note{margin:0 16px; padding:0 0 4px; font-size:12.5px; color:var(--warn);
+  font-family:var(--fm)}
+.res.hopcard{border-left:3px solid var(--mark)}
+.honest{border-left:3px solid var(--warn)}
+.honest pre{background:transparent; border:0; color:var(--dim); margin-top:4px}
+
+/* runners: magnitude bars — one hue, direct labels, 4px rounded end */
+.runners{padding:4px 16px 14px}
+.runner{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 12px;
+  padding:7px 0; border-top:1px solid var(--edge); cursor:pointer}
+.runner:hover .rlabel{color:var(--mark)}
+.rlabel{font-family:var(--fm); font-size:11.5px; color:var(--dim);
+  overflow-wrap:anywhere; transition:color .12s}
+.rscore{font-family:var(--fm); font-size:11px; color:var(--faint);
+  font-variant-numeric:tabular-nums; align-self:center}
+.rbar{grid-column:1/-1; height:4px; border-radius:0 4px 4px 0;
+  background:var(--mark); opacity:.65; transform-origin:left;
+  animation:grow .5s ease-out both}
+@keyframes grow{from{transform:scaleX(0)}}
+
+/* ── rail ── */
+.rail{display:flex; flex-direction:column; gap:18px}
+.rail textarea{
+  width:100%; resize:vertical; min-height:74px; background:var(--sunk);
+  border:1px solid var(--edge); border-radius:10px; color:var(--ink);
+  font-family:var(--fb); font-size:14px; padding:10px 12px; outline:none;
+}
+.rail textarea:focus-visible{border-color:var(--mark)}
+.kinds{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0}
+.kinds button{padding:7px 2px; font-size:11px; border-radius:8px}
+.kinds button[aria-pressed="true"]{color:var(--mark); border-color:var(--mark); font-weight:500}
+input[type=text]{
+  width:100%; background:var(--sunk); border:1px solid var(--edge); border-radius:8px;
+  color:var(--ink); font-family:var(--fm); font-size:12px; padding:8px 11px; outline:none;
+}
+input[type=text]:focus-visible{border-color:var(--mark)}
+.saverow{display:flex; align-items:center; gap:10px; margin-top:10px}
+#savedmsg{font-family:var(--fm); font-size:11px; color:var(--go); opacity:0;
+  transition:opacity .3s}
+#savedmsg.show{opacity:1}
+
+/* cortex bars — magnitude, single hue, direct labels in ink tokens */
+.bar{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1px 10px; padding:5px 0}
+.bar .n{font-family:var(--fm); font-size:11.5px; color:var(--dim)}
+.bar .v{font-family:var(--fm); font-size:11px; color:var(--ink);
+  font-variant-numeric:tabular-nums; align-self:center}
+.bar i{grid-column:1/-1; display:block; height:4px; background:var(--mark);
+  border-radius:0 4px 4px 0; opacity:.7}
+.memline{display:flex; gap:8px; padding:6px 0; border-top:1px solid var(--edge);
+  font-size:12.5px; align-items:baseline}
+.memline:first-of-type{border-top:0}
+.memline .k{font-family:var(--fm); font-size:9.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--mark); flex:none; width:52px}
+.memline .t{color:var(--dim); overflow-wrap:anywhere}
+.memline .d{margin-left:auto; font-family:var(--fm); font-size:10px;
+  color:var(--faint); flex:none}
+.mini{font-family:var(--fm); font-size:11px; color:var(--faint); margin-top:8px}
+
+/* surprise */
+#randcard .body{max-height:220px; overflow:auto}
+
+/* install state */
+.install{border-left:3px solid var(--mark); margin-top:14px}
+.install pre{margin:10px 16px 16px; background:var(--sunk); border:1px solid var(--edge);
+  border-radius:10px; padding:13px 15px; font-family:var(--fm); font-size:12.5px;
+  overflow-x:auto; color:var(--ink)}
+.install p{margin:0; padding:13px 16px 0; color:var(--dim); font-size:14px}
+
+#ridx-out{display:none; margin-top:10px}
+#ridx-out.show{display:block}
+#ridx-out pre{margin:0; background:var(--sunk); border:1px solid var(--edge);
+  border-radius:10px; padding:11px 13px; font-family:var(--fm); font-size:11.5px;
+  color:var(--dim); overflow-x:auto; white-space:pre-wrap}
+
+.fade{animation:fade .35s ease-out both}
+@keyframes fade{from{opacity:0; transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important; transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<canvas id="field" aria-hidden="true"></canvas>
+<div class="shell">
+
+<header>
+  <div class="word"><h1>Second brain</h1><span>console</span></div>
+  <div class="stats" id="stats"></div>
+  <button id="ridx">reindex</button>
+</header>
+<div id="ridx-out"><pre></pre></div>
+
+<div class="card ask">
+  <textarea id="q" rows="2" placeholder="Ask your files anything…  (press / to focus)"
+    aria-label="Question"></textarea>
+  <button id="go" class="primary">
+    <svg class="ring" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/></svg>Ask</button>
+  <div class="askrow">
+    <select id="scope" aria-label="Scope"><option value="">everywhere</option></select>
+    <label class="tog"><input type="checkbox" id="full">full code</label>
+    <label class="tog"><input type="checkbox" id="wide">wide cap</label>
+  </div>
+</div>
+
+<div class="grid">
+  <div>
+    <div id="out"></div>
+  </div>
+
+  <div class="rail">
+    <div class="card pad">
+      <h2>Remember <span class="key">m</span></h2>
+      <textarea id="mem" placeholder="A decision, a preference, a gotcha — written so it is still true after the refactor."></textarea>
+      <div class="kinds" role="group" aria-label="Kind">
+        <button data-kind="decision" aria-pressed="false">decision</button>
+        <button data-kind="pref" aria-pressed="false">pref</button>
+        <button data-kind="gotcha" aria-pressed="false">gotcha</button>
+        <button data-kind="fact" aria-pressed="true">fact</button>
+      </div>
+      <input type="text" id="tags" placeholder="tags, comma,separated (optional)">
+      <div class="saverow">
+        <button id="save" class="primary">Save it</button>
+        <span id="savedmsg"></span>
+      </div>
+    </div>
+
+    <div class="card pad" id="randcard">
+      <h2>Surprise me <span class="key">s</span></h2>
+      <p class="mini" style="margin:0 0 10px">Fire a random synapse — one section, anywhere in the index. Rediscovery is half the point of keeping notes.</p>
+      <button id="rand">Pull one</button>
+      <div class="body" id="randbody"></div>
+    </div>
+
+    <div class="card pad">
+      <h2>Cortex</h2>
+      <div id="cortex"></div>
+    </div>
+
+    <div class="card pad">
+      <h2>Recent memories</h2>
+      <div id="mems"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const api = (r, body) => fetch('/api/' + r, body
+  ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}
+  : undefined).then(x => x.json());
+
+/* ── synapse field: the index, ambient. Interactive: cursor gravity, click spark;
+      events in the UI fire pulses. Wrap, never bounce. ── */
+const field = (() => {
+  const cv = $('#field'), cx = cv.getContext('2d');
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, pts = [], pulses = [], raf = 0, mouse = null, linkDist = 110;
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  function size(){
+    const d = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function seed(n){
+    n = Math.max(18, Math.min(64, n));
+    pts = Array.from({length: n}, () => ({
+      x: Math.random()*W, y: Math.random()*H,
+      vx:(Math.random()-.5)*.16, vy:(Math.random()-.5)*.16,
+      r: 1.3 + Math.random()*1.9,
+    }));
+  }
+  function frame(){
+    cx.clearRect(0,0,W,H);
+    const node = css('--node'), link = css('--link');
+    for (const p of pts){
+      if (mouse){                                   // lean toward the cursor
+        const dx = mouse.x-p.x, dy = mouse.y-p.y, d = Math.hypot(dx,dy);
+        if (d > 30 && d < 260){ p.vx += dx/d*.004; p.vy += dy/d*.004; }
+      }
+      for (const pu of pulses){                     // pulses push outward
+        const dx = p.x-pu.x, dy = p.y-pu.y, d = Math.hypot(dx,dy)||1;
+        if (Math.abs(d - pu.r) < 42){ p.vx += dx/d*.5*pu.a; p.vy += dy/d*.5*pu.a; }
+      }
+      const sp = Math.hypot(p.vx,p.vy);             // drag back to drift speed
+      if (sp > .3){ p.vx *= .96; p.vy *= .96; }
+      p.x += p.vx; p.y += p.vy;
+      if (p.x<-12) p.x=W+12; if (p.x>W+12) p.x=-12; // wrap, never bounce
+      if (p.y<-12) p.y=H+12; if (p.y>H+12) p.y=-12;
+    }
+    cx.lineWidth = 1; cx.strokeStyle = link;
+    for (let i=0;i<pts.length;i++) for (let j=i+1;j<pts.length;j++){
+      const a=pts[i], b=pts[j], d=Math.hypot(a.x-b.x,a.y-b.y);
+      if (d < linkDist){
+        cx.globalAlpha = 1 - d/linkDist;
+        cx.beginPath(); cx.moveTo(a.x,a.y); cx.lineTo(b.x,b.y); cx.stroke();
+      }
+    }
+    cx.globalAlpha = .8; cx.fillStyle = node;
+    for (const p of pts){ cx.beginPath(); cx.arc(p.x,p.y,p.r,0,6.284); cx.fill(); }
+    cx.globalAlpha = 1;
+    for (const pu of pulses){
+      pu.r += 3.4; pu.a *= .955;
+      cx.globalAlpha = pu.a; cx.strokeStyle = pu.c || node; cx.lineWidth = 1.5;
+      cx.beginPath(); cx.arc(pu.x,pu.y,pu.r,0,6.284); cx.stroke();
+    }
+    cx.globalAlpha = 1;
+    pulses = pulses.filter(p => p.a > .02);
+    raf = requestAnimationFrame(frame);
+  }
+  const start = () => { if (!raf && !REDUCED) raf = requestAnimationFrame(frame); };
+  const stop  = () => { cancelAnimationFrame(raf); raf = 0; };
+  size(); seed(30);
+  if (REDUCED){ frame(); stop(); }
+  else start();
+  addEventListener('resize', () => { size(); });
+  addEventListener('mousemove', e => { mouse = {x:e.clientX, y:e.clientY}; });
+  addEventListener('mouseleave', () => { mouse = null; });
+  addEventListener('click', e => {
+    if (e.target.closest('.card,button,header')) return;
+    pulses.push({x:e.clientX, y:e.clientY, r:4, a:.7});
+  });
+  document.addEventListener('visibilitychange',
+    () => document.hidden ? stop() : start());
+  return {
+    seed,
+    pulse(el, color){
+      const r = el ? el.getBoundingClientRect() : {left:W/2, top:H/2, width:0, height:0};
+      pulses.push({x:r.left+r.width/2, y:r.top+r.height/2, r:6, a:.85, c:color});
+      start();
+    },
+    burst(el, color){
+      const r = el.getBoundingClientRect();
+      const x = r.left+r.width/2, y = r.top+r.height/2;
+      for (let i=0;i<3;i++)
+        setTimeout(() => { pulses.push({x, y, r:4+i*8, a:.8, c:color}); start(); }, i*90);
+    },
+  };
+})();
+
+/* ── state ── */
+let installed = false;
+async function loadState(){
+  const s = await api('state');
+  installed = s.installed;
+  if (!installed){
+    $('#stats').innerHTML = '<span style="color:var(--warn)">brain not installed</span>';
+    $('#out').innerHTML = `
+      <div class="card install fade">
+        <p><b style="color:var(--ink)">One step left.</b> The interface is ready but the
+        index does not exist yet. In PowerShell, natively (not over a network mount):</p>
+        <pre>cd C:\\Users\\zeusa\\Downloads\\Projects\\second-brain\\second-brain
+python install.py --dry-run
+python install.py
+python serve.py</pre>
+        <p style="padding-bottom:14px">Then reload this page. Everything lights up from the real index.</p>
+      </div>`;
+    ['#go','#save','#rand','#ridx'].forEach(x => $(x).disabled = true);
+    return;
+  }
+  ['#go','#save','#rand','#ridx'].forEach(x => $(x).disabled = false);
+  $('#stats').innerHTML =
+    `<span><b>${s.sections.toLocaleString()}</b> sections</span>` +
+    `<span><b>${s.memories.length ? s.memories.length + '+' : s.memory_rows}</b> memories</span>` +
+    `<span><b>${s.index_kb}</b> KB index</span>` +
+    `<span id="lastms"></span>`;
+  const sc = $('#scope');
+  sc.length = 1;
+  for (const r of s.roots){
+    const name = r.path.replace(/\\/g,'/').split('/').filter(Boolean).pop();
+    const o = document.createElement('option');
+    o.value = name; o.textContent = `scope: ${name}`;
+    sc.appendChild(o);
+  }
+  const kmax = Math.max(1, ...Object.values(s.kinds));
+  const fmax = Math.max(1, ...s.folders.map(f => f.n));
+  $('#cortex').innerHTML =
+    Object.entries(s.kinds).sort((a,b)=>b[1]-a[1]).map(([k,v]) =>
+      `<div class="bar"><span class="n">${esc(k)}</span><span class="v">${v}</span>` +
+      `<i style="width:${Math.max(3, v/kmax*100)}%"></i></div>`).join('') +
+    `<div class="mini" style="margin:12px 0 4px">top folders</div>` +
+    s.folders.map(f =>
+      `<div class="bar"><span class="n">${esc(f.name)}</span><span class="v">${f.n}</span>` +
+      `<i style="width:${Math.max(3, f.n/fmax*100)}%; opacity:.45"></i></div>`).join('');
+  $('#mems').innerHTML = s.memories.length
+    ? s.memories.map(m =>
+        `<div class="memline"><span class="k">${esc(m.kind)}</span>` +
+        `<span class="t">${esc(m.title)}</span><span class="d">${esc(m.date.slice(5))}</span></div>`).join('')
+    : '<p class="mini" style="margin:0">Nothing yet. The first one is one box away. &#8593;</p>';
+  field.seed(Math.round(Math.sqrt(s.sections) * 4));
+}
+
+/* ── ask ── */
+function confBadge(conf, widened, kind){
+  const c = (conf || 'A')[0];
+  const label = {E:'extracted', I:'inferred', A:'ambiguous'}[c] || c;
+  return `<span class="badge ${c}">${c} ${label}${widened ? ' · W' : ''}</span>` +
+         (kind && kind !== 'text' ? `<span class="badge" style="color:var(--faint)">${esc(kind)}</span>` : '');
+}
+function crumb(path, heading){
+  const short = path.replace(/\\/g,'/').split('/').slice(-2).join('/');
+  return `<span class="crumb" title="${esc(path)}">${esc(short)}<b>#${esc(heading)}</b></span>`;
+}
+async function ask(){
+  const q = $('#q').value.trim();
+  if (!q || !installed) return;
+  const go = $('#go');
+  go.disabled = true; go.classList.add('busy');
+  try{
+    const d = await api('query', {
+      q, full: $('#full').checked,
+      cap: $('#wide').checked ? 'wide' : null,
+      scope: $('#scope').value || null,
+    });
+    const out = $('#out');
+    if (d.status === 'ok'){
+      const w = d.winner;
+      let h = `<div class="card res fade"><div class="head">` +
+        confBadge(w.confidence, w.widened_sections, w.kind) + crumb(w.path, w.heading) +
+        `<span class="scorebit">${w.score} · ${d.ms} ms</span></div>`;
+      if (w.context_note) h += `<p class="note">~ ${esc(w.context_note)}</p>`;
+      h += `<pre>${esc(d.evidence)}</pre>`;
+      if (w.truncated) h += `<p class="note" style="padding-bottom:10px">~ cut at cap — re-ask with wide cap for more</p>`;
+      h += `</div>`;
+      if (d.hop) h += `<div class="card res hopcard fade"><div class="head">` +
+        `<span class="badge" style="color:var(--mark)">hop</span>` +
+        crumb(d.hop.path, d.hop.heading) + `</div><pre>${esc(d.hop.evidence)}</pre></div>`;
+      if (d.runners_up?.length){
+        const mx = Math.max(w.score, ...d.runners_up.map(r => r.score));
+        h += `<div class="card fade"><div class="runners"><h2 style="margin:10px 0 2px">runners-up · click to scope</h2>` +
+          d.runners_up.map(r =>
+            `<div class="runner" data-label="${esc(r.label)}" tabindex="0" role="button">` +
+            `<span class="rlabel">${esc(r.label)}</span>` +
+            `<span class="rscore">${r.score}</span>` +
+            `<div class="rbar" style="width:${Math.max(2, r.score/mx*100)}%"></div></div>`).join('') +
+          `</div></div>`;
+      }
+      out.innerHTML = h;
+      $('#lastms') && ($('#lastms').innerHTML = `<b>${d.ms}</b> ms`);
+      field.pulse($('.res'), null);
+      out.querySelectorAll('.runner').forEach(el => {
+        const act = () => {
+          const seg = el.dataset.label.split('#')[0].replace(/\\/g,'/').split('/');
+          $('#scope').value = '';
+          const opt = [...$('#scope').options].find(o => o.value && seg.includes(o.value));
+          if (opt) $('#scope').value = opt.value;
+          ask();
+        };
+        el.addEventListener('click', act);
+        el.addEventListener('keydown', e => { if (e.key === 'Enter') act(); });
+      });
+    } else {
+      out.innerHTML = `<div class="card res honest fade"><div class="head">` +
+        `<span class="badge" style="color:var(--warn)">${d.status === 'refused' ? 'the brain refuses' : 'brain'}</span>` +
+        `</div><pre>${esc(d.text)}</pre></div>`;
+    }
+  } catch(e){
+    $('#out').innerHTML = `<div class="card res honest fade"><pre>Could not reach serve.py — is it still running?</pre></div>`;
+  } finally {
+    go.disabled = false; go.classList.remove('busy');
+  }
+}
+
+/* ── remember ── */
+let kind = 'fact';
+document.querySelectorAll('.kinds button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.kinds button').forEach(x => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); kind = b.dataset.kind;
+}));
+async function save(){
+  const text = $('#mem').value.trim();
+  if (!text || !installed) return;
+  const btn = $('#save'); btn.disabled = true;
+  try{
+    const d = await api('remember', {text, kind, tags: $('#tags').value});
+    const msg = $('#savedmsg');
+    if (d.ok){
+      msg.textContent = `+1 row · ${d.total_rows ?? '?'} total`;
+      msg.style.color = 'var(--go)';
+      $('#mem').value = ''; $('#tags').value = '';
+      field.burst(btn, getComputedStyle(document.documentElement).getPropertyValue('--go').trim());
+      loadState();                       // the new memory appears in the list
+    } else {
+      msg.textContent = d.error; msg.style.color = 'var(--stop)';
+    }
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 3200);
+  } finally { btn.disabled = false; }
+}
+
+/* ── surprise ── */
+async function surprise(){
+  if (!installed) return;
+  const d = await api('surprise');
+  const el = $('#randbody');
+  if (!d.ok){ el.innerHTML = `<p class="mini">${esc(d.error)}</p>`; return; }
+  el.innerHTML = `<div class="fade" style="margin-top:10px">` +
+    `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">` +
+    confBadge(d.confidence, 0, d.kind) + crumb(d.path, d.heading) + `</div>` +
+    `<pre style="margin:8px 0 0;padding:10px 12px;background:var(--sunk);border:1px solid var(--edge);` +
+    `border-radius:8px;font-family:var(--fm);font-size:11.8px;white-space:pre-wrap;` +
+    `overflow-wrap:anywhere;color:var(--dim)">${esc(d.body)}</pre></div>`;
+  field.pulse($('#randcard'), null);
+}
+
+/* ── reindex ── */
+async function reindex(){
+  const b = $('#ridx'); b.disabled = true; b.textContent = 'reindexing…';
+  try{
+    const d = await api('reindex', {});
+    const box = $('#ridx-out');
+    box.querySelector('pre').textContent = d.ok ? d.output : (d.error || 'failed');
+    box.classList.add('show');
+    setTimeout(() => box.classList.remove('show'), 12000);
+    loadState();
+  } finally { b.disabled = false; b.textContent = 'reindex'; }
+}
+
+/* ── wiring ── */
+$('#go').addEventListener('click', ask);
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ask(); }
+});
+$('#save').addEventListener('click', save);
+$('#rand').addEventListener('click', surprise);
+$('#ridx').addEventListener('click', reindex);
+addEventListener('keydown', e => {
+  if (e.target.matches('textarea,input,select')) return;
+  if (e.key === '/'){ e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'm'){ e.preventDefault(); $('#mem').focus(); }
+  if (e.key === 's'){ e.preventDefault(); surprise(); }
+});
+loadState();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# machine state — regenerable or personal, never committed
+second-brain/index.tsv
+second-brain/brain.json
+second-brain/log.md
+second-brain/memories/*.md
+OS/HOME.html
+OS/_to_delete/
+
+# python
+__pycache__/
+*.pyc
+
+# the guide PDFs are RoboNuggets' copyrighted material
+*.pdf
+
+# local env
+.env
+
+# personal state — re-include OS/memory only if this repo stays private
+second-brain/index.cache
+OS/memory/
+OS/MEMORY.md
