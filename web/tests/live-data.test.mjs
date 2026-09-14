@@ -104,7 +104,12 @@ test('brain search returns q.py evidence for a query, and a plain no-match for n
   assert.equal(hit.status, 200);
   assert.equal(hit.body.status, 'ok');
   assert.match(hit.body.winner.path, /OS\/memory\/decisions\.md$/);
-  assert.match(hit.body.evidence, /One front door/);
+  // The section that mentions the front door, read from disk, since the memory is rewritten as
+  // decisions change: the evidence must be that section, heading and all.
+  const decisions = text(path.join(projectRoot, 'OS', 'memory', 'decisions.md'));
+  const heading = decisions.split('\n').find(line => line.startsWith('## ') && /front door/i.test(line));
+  assert.ok(heading, 'decisions.md has a section heading that mentions the front door');
+  assert.ok(hit.body.evidence.includes(heading), `evidence starts at "${heading}"`);
 
   const miss = await apiRequest('brain?q=' + encodeURIComponent('zzqqxx jenkinsfoo quuxbarbaz'));
   assert.equal(miss.status, 200);
