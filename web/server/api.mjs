@@ -26,9 +26,12 @@ export async function handleApi(req,res,{local=false}={}) {
   if (required && !tokenMatches(req.headers.authorization, 'Bearer ' + process.env.APP_ACCESS_TOKEN)) return send(res,401,{error:'Unlock the API in Settings with your workspace access token.'});
   try {
     if (route === 'sources' && req.method === 'GET') { if (!local) return send(res,404,{error:'Local libraries are available only when running the app on your computer.'}); const {listSources} = await import('./library.mjs'); return send(res,200,{sources:await listSources()}); }
+    // Skill runs shell out to claude on this machine, so they exist only locally, never on a hosted deploy.
+    if (route === 'tasks' && req.method === 'GET') { if (!local) return send(res,404,{error:'Skill runs are available only when running the app on your computer.'}); const {listTasks} = await import('./runner.mjs'); return send(res,200,{tasks:listTasks()}); }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
     if (route === 'source') { if (!local) return send(res,404,{error:'Local file access is disabled on hosted deployments.'}); const {readSource} = await import('./library.mjs'); return send(res,200,await readSource(body?.id)); }
+    if (route === 'run') { if (!local) return send(res,404,{error:'Skill runs are available only when running the app on your computer.'}); const {startRun} = await import('./runner.mjs'); startRun(String(body?.id || '')); return send(res,202,{ok:true}); }
     if (!['chat','generate','generation-status'].includes(route)) return send(res,404,{error:'API route not found.'});
     if (route !== 'generation-status') {
       const key = route; const record = limits.get(key); const time = Date.now();

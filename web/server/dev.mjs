@@ -11,7 +11,12 @@ const production = process.argv.includes('--production');
 const vite = production ? null : await (await import('vite')).createServer({root,server:{middlewareMode:true},appType:'spa'});
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.json':'application/json','.woff2':'font/woff2','.png':'image/png'};
 const server = http.createServer(async(req,res)=>{
-  if (!validateOrigin(req,true)) { res.writeHead(403); return res.end('Forbidden origin'); }
+  // The API keeps the full origin check, since an API request can act. Pages only need the
+  // Host check (it stops DNS rebinding): a cross-site check here blocked every link into
+  // the app from another page, HOME.html included, and protected nothing.
+  const pageHostOk = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.host || '');
+  const allowed = (req.url||'').startsWith('/api/') ? validateOrigin(req,true) : pageHostOk;
+  if (!allowed) { res.writeHead(403); return res.end('Forbidden origin'); }
   res.setHeader('X-Content-Type-Options','nosniff'); res.setHeader('Referrer-Policy','no-referrer'); res.setHeader('X-Frame-Options','DENY');
   if ((req.url||'').startsWith('/api/')) return handleApi(req,res,{local:true});
   if (vite) return vite.middlewares(req,res);
