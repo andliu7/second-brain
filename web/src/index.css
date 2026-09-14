@@ -1,0 +1,103 @@
+/* Keep the existing app reset; importing Preflight would reset every legacy page. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+@import "./styles.css" layer(components);
+@source "./components";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root { --destructive-foreground: hsl(0 0% 100%); }
+.dark { --destructive-foreground: hsl(0 0% 0%); }
+
+/* Scoped tokens avoid changing the legacy --muted and --border app colors. */
+.prompt-input, .prompt-demo, .prompt-gallery {
+  color-scheme: light;
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(240 6% 10%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: hsl(240 6% 10%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(240 5% 96%);
+  --secondary-foreground: var(--foreground);
+  --muted: hsl(240 5% 96%);
+  --muted-foreground: hsl(240 4% 43%);
+  --accent: hsl(240 5% 94%);
+  --accent-foreground: var(--foreground);
+  --destructive: hsl(0 72% 45%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(240 6% 88%);
+  --input: var(--border);
+  --ring: hsl(240 5% 55%);
+}
+.dark.prompt-input, .dark .prompt-input, .dark.prompt-demo, .dark.prompt-gallery {
+  color-scheme: dark;
+  --background: hsl(225 12% 8%);
+  --foreground: hsl(0 0% 94%);
+  --card: hsl(225 10% 12%);
+  --primary: hsl(23 53% 71%);
+  --primary-foreground: hsl(23 28% 10%);
+  --secondary: hsl(225 8% 18%);
+  --muted: hsl(225 8% 17%);
+  --muted-foreground: hsl(240 5% 67%);
+  --accent: hsl(225 8% 22%);
+  --destructive: hsl(0 75% 72%);
+  --destructive-foreground: hsl(0 0% 0%);
+  --border: hsl(225 8% 25%);
+  --ring: hsl(23 53% 71%);
+}
+@layer components {
+  .prompt-input *, .prompt-gallery * { border-style: solid; }
+  .prompt-input button, .prompt-gallery button { padding: 0; background: transparent; border-width: 0; }
+  .prompt-input textarea { border: 0; border-radius: 24px; min-height: 0; }
+  .prompt-input button:focus-visible, .prompt-gallery button:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+  .prompt-input textarea:focus { outline: none; }
+  .prompt-scrollbar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .prompt-scrollbar:hover { scrollbar-color: var(--muted-foreground) transparent; }
+  .prompt-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .prompt-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+  .prompt-scrollbar:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted-foreground) 30%, transparent); }
+  .chat-prompt-composer { margin: 13px 22px 0; }
+  .chat-prompt-composer .composer-controls { padding: 14px 0 0; }
+  .chat-prompt-composer .attached-context:empty { display: none; }
+  .chat-prompt-composer .prompt-input { margin-inline: auto; }
+  .prompt-gallery { margin: 0; padding: 0; border: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: transparent; overflow: hidden; }
+  .prompt-gallery::backdrop { background: transparent; }
+}
+@media (max-width: 500px) {
+  .chat-prompt-composer { margin-inline: 12px; }
+  .prompt-input textarea { font-size: 16px; }
+}
+@media (pointer: coarse) {
+  .prompt-input .prompt-tool { min-height: 44px; }
+  .prompt-input .prompt-icon-tool { min-width: 44px; }
+  .prompt-input .prompt-remove { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prompt-input *, .prompt-input, .prompt-gallery * { animation: none !important; transition: none !important; }
+}
