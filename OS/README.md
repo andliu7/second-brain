@@ -13,7 +13,8 @@ OS/
 ├── memory/              six notes -- profile, environment, projects, decisions, budgets, envs
 ├── routines/            four routines, written and reviewable
 ├── skills/              policy only. Real skills live where they can auto-trigger
-└── apps/                launcher (skill buttons), clean-up, dashboard
+└── apps/                launcher (skill buttons), clean-up, and dashboard (the old one,
+                         superseded by Projects/dashboard and ported there in its Phase 4)
 ```
 
 Plus, one level up: **`Projects/CLAUDE.md`** — the always-loaded cross-project layer. It is
