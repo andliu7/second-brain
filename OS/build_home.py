@@ -44,6 +44,7 @@ REPOS = [
     ("Pibble", "Checkout bot + Electron shell", False),
     ("Portfolio", "Next.js + react-three-fiber", False),
     ("second-brain", "This OS: engine, console, launcher, home page", False),
+    ("dashboard", "Life app: notes, food, workouts, goals, tasks", False),
 ]
 
 
@@ -668,10 +669,15 @@ def main():
     SKIP_GIT = a.no_git
     # Each git call is a filesystem round trip, and they are independent, so run them
     # together. Trivial locally; the difference between usable and not over a mount.
+    # REPOS gives each repo its line. Any other git repo directly under Projects/ is listed too,
+    # without one, so a repo started since REPOS was last edited never goes missing from the page.
+    listed = {rel for rel, _, _ in REPOS}
+    found = [(d.name, "", False) for d in sorted(PROJECTS.iterdir(), key=lambda d: d.name.lower())
+             if d.name not in listed and (d / ".git").is_dir()]
     with ThreadPoolExecutor(max_workers=4) as pool:
-        states = list(pool.map(lambda r: repo_state(r[0]), REPOS))
+        states = list(pool.map(lambda r: repo_state(r[0]), REPOS + found))
     repos = []
-    for (rel, desc, _), st in zip(REPOS, states):
+    for (rel, desc, _), st in zip(REPOS + found, states):
         if st:
             st["desc"] = desc
             repos.append(st)

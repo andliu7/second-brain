@@ -6,7 +6,8 @@ The first version is a working personal workspace that lives alongside the exist
 
 | Page | Responsibility |
 | --- | --- |
-| Overview | Actual saved counts, quick capture, pinned notes, goal focus, recent activity |
+| Today | The front page: repos with uncommitted work, course projects and their git state, Blueberry's newest STATUS.md entry, skill runs, pinned items, quick capture |
+| Projects | Every repo and course project with branch, last commit and uncommitted count; each opens to its details |
 | Network | Color-coded 3D nodes, directed relationships, topic hubs, neighborhood focus, portable agent context retrieval |
 | Files | Notes and imported files; search, tags, pins, preview, download; local source discovery |
 | Skills | Installed Claude instructions and editable workspace copies; explicit chat attachment |

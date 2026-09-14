@@ -4,7 +4,8 @@ const MiB = 1024 * 1024;
 const MAX_ASSET_BYTES = 25 * MiB;
 const MAX_EMBEDDED_BYTES = 160 * MiB;
 const MAX_TEXT_CHARS = 220 * MiB;
-const PAGES = ['overview', 'files', 'skills', 'goals', 'network', 'chat', 'generate', 'settings'];
+// 'overview' was the front page before Today; workspaces and backups from then still carry it in their activity.
+const PAGES = ['today', 'projects', 'overview', 'files', 'skills', 'goals', 'network', 'chat', 'generate', 'settings'];
 const RASTER_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif', 'image/bmp']);
 const MIME = /^[a-z0-9][a-z0-9!#$&^_.+\-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+\-]{0,126}$/i;
 

@@ -1,4 +1,4 @@
-export type Page = 'overview' | 'files' | 'skills' | 'goals' | 'network' | 'chat' | 'generate' | 'settings';
+export type Page = 'today' | 'projects' | 'files' | 'skills' | 'goals' | 'network' | 'chat' | 'generate' | 'settings';
 export type Doc = { id: string; name: string; content: string; kind: 'note' | 'file' | 'skill'; tags: string[]; pinned: boolean; created: string; updated: string; mime?: string; data?: string; size?: number; source?: string };
 export type Goal = { id: string; title: string; description: string; category: string; due: string; archived: boolean; milestones: {id: string; title: string; done: boolean}[]; created: string };
 export type Message = { id: string; role: 'user' | 'assistant'; content: string; created: string; provider?: string; model?: string };

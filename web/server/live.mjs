@@ -38,7 +38,8 @@ export async function listSkills() {
 
 export async function listProjects() {
   const { repos, courses, blueberry, routines } = await homeData([]);
-  return { repos, courses, blueberry, routines };
+  // rootPath is the Projects folder on this computer, so a project page can give its full path.
+  return { repos, courses, blueberry, routines, rootPath: path.dirname(projectRoot) };
 }
 
 export async function searchBrain(query) {

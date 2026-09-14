@@ -23,7 +23,9 @@ npm run test:ui
 
 ## Use
 
-**Files** creates notes and imports files up to 20 MB each. Text is editable and searchable; raster images and PDFs have previews, while other formats remain downloadable. Pin items for the Overview. “Browse library” discovers root documentation, OS/memory, OS/routines and second-brain/memories. Saving a source creates a personal copy. The original source is never edited.
+**Today** is the front page. It reads /api/projects and /api/tasks live on each visit: repos with uncommitted work, each course's projects with their git state, Blueberry's newest STATUS.md entry, and the skills that run on this computer with their last run, beside pinned items and quick capture. **Projects** lists every repo and course project with branch, last commit and uncommitted count; each opens at #projects/<folder>.
+
+**Files** creates notes and imports files up to 20 MB each. Text is editable and searchable; raster images and PDFs have previews, while other formats remain downloadable. Pin items for Today. “Browse library” discovers root documentation, OS/memory, OS/routines and second-brain/memories. Saving a source creates a personal copy. The original source is never edited.
 
 **Skills** lists every skill installed in ~/.claude/skills, read live from /api/skills on each visit, plus skills you write here, marked Personal. Each skill opens as its own page at #skills/<folder> (#skills/personal/<id> for yours): README.md and SKILL.md as tabs when a skill has both (a lone SKILL.md shows without a tab bar, its path above it), frontmatter as labels, Use in Chat (sends SKILL.md as context held in memory, nothing saved), and Duplicate to edit for a personal copy. Skills listed in server/runner.mjs also get a Run control and their output on that page. The app does not execute scripts inside skills or synchronize your Claude account.
 

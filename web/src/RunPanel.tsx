@@ -10,9 +10,9 @@ import { Loader2, Play, TerminalSquare } from 'lucide-react';
 import { api } from './lib/api';
 
 type Run = { status: 'running' | 'done' | 'failed'; started: string; finished: string | null; exit: number | null; output: string };
-type Task = { id: string; label: string; blurb: string; command: string; missing: string | null; run: Run | null };
+export type Task = { id: string; label: string; blurb: string; command: string; missing: string | null; run: Run | null };
 
-function statusText(task: Task) {
+export function statusText(task: Task) {
   if (task.missing) return `${task.missing} is not installed, so this is off`;
   const run = task.run;
   if (!run) return 'Not run yet';

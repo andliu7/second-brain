@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-14T14:44:26.918Z",
+  "updated": "2026-09-14T16:57:39.466Z",
   "phase": "Two gauntlets: the dashboard's Phases 3-4, and second-brain web to an A",
   "bar": "Linear (My Issues, Inbox, the app shots on linear.app) for looks, contrast, structure and ease. Obsidian on the Projects folder for how much real work the site reaches",
   "checks": [
@@ -15,13 +15,13 @@
     },
     {
       "label": "P2 Skills, live",
-      "status": "working",
-      "detail": "round 2: per-item chat context cap 40k to 120k so Use in Chat works on ui-ux-pro-max; check sends it through the real UI (stubbed, unbilled) and validates every SKILL.md; 64/64"
+      "status": "complete",
+      "detail": "Every installed skill opens as its own page with docs, Use in Chat and Run; check.mjs run4-2 gives 64 of 64 (was 62), commit a96cd1c"
     },
     {
       "label": "P3 Today, Projects and navigation",
-      "status": "pending",
-      "detail": "One front door: Today page, Projects page, Settings always visible."
+      "status": "working",
+      "detail": "round 2: Back to the bare address returns to Today; cold open, Capture and Ctrl+K open with the caret in their field; footer slogan gone; every git repo under Projects/ listed (dashboard); project page has Copy folder path; check 47/47"
     },
     {
       "label": "D1 Capture core",
@@ -31,12 +31,12 @@
     {
       "label": "D2 Capture panel",
       "status": "working",
-      "detail": "round 1: capture panel in the header (Ctrl+K, /) parses, runs the ladder, previews editable grouped items with guessed ones marked, saves; 10 tests, 3 preview screens, 0 contrast failures"
+      "detail": "round 6: card fills the height in every state, text box fills its column with Parse and Save on one footer line, muted meal totals, no orange in the empty state"
     },
     {
       "label": "D3 Notes",
       "status": "pending",
-      "detail": "Fast capture first, search and tags second."
+      "detail": "Now modelled on memos: a composer on top, a timeline of notes with tags and checklists, a month calendar, search, and one journal entry per day"
     },
     {
       "label": "D4 Food",
@@ -81,12 +81,12 @@
     {
       "label": "P6 Retire the launcher",
       "status": "pending",
-      "detail": "Every launcher action lives on the site, then the launcher's duplicate files go; HOME stays"
+      "detail": "Dropped: the launcher stays (decisions.md, 2026-09-14: features that need this PC stay local, and the plan to retire the launcher into web/ is dropped)"
     },
     {
       "label": "P7 Network live",
       "status": "pending",
-      "detail": "The map fills itself from skills, courses, repos and memory notes"
+      "detail": "Every file (about 9,500) Obsidian-style: folders, key links from the files themselves, skills in Claude orange, image and PDF previews on hover, a summary panel on click; find the Mobbin folder in two actions. Queued after P8"
     },
     {
       "label": "P9 Contrast",
@@ -102,6 +102,16 @@
       "label": "P11 No dead ends",
       "status": "pending",
       "detail": "Every disabled control and error says what to do; all ten tasks in one final run"
+    },
+    {
+      "label": "P2b Skills grid, list and side panel",
+      "status": "pending",
+      "detail": "Linkwarden-style: a card grid or a vertical list with a view switch; a skill opens in a panel on the right; #skills/<name> still deep-links. Runs after P3, before P8"
+    },
+    {
+      "label": "P12 Journal link",
+      "status": "pending",
+      "detail": "Second-brain keeps quick capture and links out to the dashboard journal once D3 is live"
     }
   ]
 }

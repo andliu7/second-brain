@@ -1,0 +1,52 @@
+/* Today and Projects (Today.tsx, Projects.tsx). Imported by Projects.tsx, like skills.css by
+   Skills.tsx, so these rules sit outside the cascade layer index.css puts styles.css in. */
+.project-back{display:inline-flex;margin:0 0 8px;font-size:14px;text-decoration:none}
+.project-list{overflow:hidden}
+/* One band per group, as on the Skills list: the group's name, then its count */
+.project-group{display:flex;align-items:center;gap:8px;margin:0;padding:14px 16px 6px;background:#1b1e23;border-top:1px solid var(--border);font:600 12px/1.5 'DM Sans Variable',sans-serif;color:var(--text)}
+.project-list>section:first-child .project-group{border-top:0}
+.project-group>span{font-weight:400;color:var(--muted)}
+/* Name and description, then branch, last commit and git state in fixed columns, so the eye can
+   run down any one of them */
+.project-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,190px) 88px 118px;align-items:center;gap:4px 18px;min-height:44px;padding:9px 16px;border-top:1px solid var(--border);color:var(--text);text-decoration:none}
+.project-row:hover{background:var(--panel-raised)}
+.project-row:hover strong{color:var(--copper-bright)}
+.project-name{display:flex;flex-direction:column;min-width:0}
+.project-name strong{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-name small{font-size:12.5px;line-height:1.5;color:#9b9ba5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-branch{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;color:var(--muted);overflow:hidden;white-space:nowrap}
+.project-branch svg{flex-shrink:0}
+.project-last{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.project-state{font-size:13px;white-space:nowrap;text-align:right;color:var(--muted)}
+.project-state.dirty{color:var(--copper-bright)}
+.project-state.clean{color:var(--green)}
+.project-empty{display:flex;align-items:center;gap:10px;margin:0;padding:14px 16px;font-size:14px;color:var(--muted)}
+.project-lede{font-size:15px;color:var(--muted);margin:-8px 0 20px;max-width:720px}
+.project-facts{margin:0;max-width:720px}
+.project-facts>div{display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;padding:12px 18px;border-top:1px solid var(--border);font-size:14px}
+.project-facts>div:first-child{border-top:0}
+.project-facts dt{color:var(--muted)}
+.project-facts dd{margin:0;text-align:left;overflow-wrap:anywhere}
+
+/* Today: what needs attention on the left, the things done here most on the right */
+.today-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;align-items:start}
+.today-column{display:flex;flex-direction:column;gap:20px;min-width:0}
+.today-course h3{margin:0;padding:12px 16px 4px;font-size:13px;font-weight:500;color:var(--muted)}
+.today-course+.today-course{border-top:1px solid var(--border)}
+.today-course .project-row:first-of-type{border-top:0}
+.today-note{display:flex;align-items:center;gap:8px;margin:0;padding:12px 16px;font-size:14px;color:var(--muted)}
+.today-status-body{padding:14px 20px 18px}
+.today-status-body h3{margin:0;font-size:16px;font-weight:600}
+.today-status-body>.today-note{padding:2px 0 8px}
+.today-status .markdown{max-height:none;overflow:visible;padding-right:0;font-size:14px!important;line-height:1.65}
+.today-run{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:9px 16px;border-top:1px solid var(--border);color:var(--text);text-decoration:none}
+.today-run:first-of-type{border-top:0}
+.today-run:hover{background:var(--panel-raised)}
+.today-run strong{font-size:14px;font-weight:500}
+.today-run-state{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:4px 12px}
+.today-run-state time{font-size:13px;white-space:nowrap}
+.today-grid .section-heading+.project-row{border-top:0}
+.today-grid .section-heading>.muted{font-size:13px}
+.today-grid .pinned-item{padding:12px 16px}
+@media (max-width:1100px){.today-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.project-row{grid-template-columns:minmax(0,1fr) auto;padding:10px 14px}.project-branch,.project-last{grid-row:2}.project-last{text-align:right}.project-state{grid-row:1;grid-column:2}.project-facts>div{grid-template-columns:1fr;gap:2px}}

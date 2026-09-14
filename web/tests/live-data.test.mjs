@@ -108,6 +108,16 @@ test('projects reports repos, every school course with each project\'s git state
   assert.deepEqual(body.routines.map(routine => routine.file), routines);
 });
 
+test('projects lists every git repo directly under Projects/, not only the ones build_home.py names', async () => {
+  // Projects/dashboard went missing from Today once, because the list was hand-kept.
+  const { body } = await apiRequest('projects');
+  const onDisk = fs.readdirSync(projectsDir, { withFileTypes: true }).filter(d => d.isDirectory() && fs.existsSync(path.join(projectsDir, d.name, '.git'))).map(d => d.name);
+  assert.ok(onDisk.length > 0, 'git repos found under Projects/');
+  for (const name of onDisk) assert.ok(body.repos.some(repo => repo.path === name), name + ' is listed');
+  // The Projects folder itself, so a project page can show and copy a full path.
+  assert.equal(body.rootPath, projectsDir);
+});
+
 test('brain search returns q.py evidence for a query, and a plain no-match for nonsense', async () => {
   const hit = await apiRequest('brain?q=' + encodeURIComponent('one front door'));
   assert.equal(hit.status, 200);

@@ -139,7 +139,7 @@ function SkillList({ installed, error, personal, newSkill }: Props) {
     { key: 'installed', title: 'Installed', rows: shown.filter(row => !row.runs && !row.personal) },
   ].filter(group => group.rows.length);
   return <>
-    <div className="page-heading skill-list-heading"><div><h1>Skills</h1><p>{installed ? `${installed.length} installed in ~/.claude/skills, read live, plus ${personal.length} you wrote here.` : 'Reading ~/.claude/skills…'}</p></div><div className="heading-actions"><label className="inline-search"><Search size={15}/><input aria-label="Search skills" placeholder="Search skills…" value={query} onChange={event => setQuery(event.target.value)}/></label><button className="button" onClick={newSkill}><Plus size={16}/>New skill</button></div></div>
+    <div className="page-heading skill-list-heading"><div><h1>Skills</h1></div><div className="heading-actions"><label className="inline-search"><Search size={15}/><input aria-label="Search skills" placeholder="Search skills…" value={query} onChange={event => setQuery(event.target.value)}/></label><button className="button" onClick={newSkill}><Plus size={16}/>New skill</button></div></div>
     {error && <div className="error-banner" role="alert"><p>{error}</p></div>}
     <div className="panel skill-list" ref={list}>
       {installed === null && !shown.length && <div className="skill-empty"><Loader2 className="spin" size={16}/>Reading ~/.claude/skills…</div>}
