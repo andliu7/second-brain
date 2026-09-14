@@ -6,12 +6,13 @@ Open `HOME.html` first each morning.
 ```
 OS/
 ├── HOME.html            the front page. Regenerated, never hand-edited
-├── build_home.py        reads git + STATUS.md + these notes, rewrites HOME.html
+├── SKILLS.html          every installed skill with its docs, click to read. Regenerated too
+├── build_home.py        reads git + STATUS.md + school/ + skills + these notes, rewrites both
 ├── MEMORY.md            the index: one line per note
 ├── memory/              six notes -- profile, environment, projects, decisions, budgets, envs
-├── routines/            three routines, written and reviewable. None scheduled yet
+├── routines/            four routines, written and reviewable
 ├── skills/              policy only. Real skills live where they can auto-trigger
-└── apps/                additional tools, as they earn a page
+└── apps/                launcher (skill buttons), clean-up, dashboard
 ```
 
 Plus, one level up: **`Projects/CLAUDE.md`** — the always-loaded cross-project layer. It is

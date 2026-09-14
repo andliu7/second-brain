@@ -10,11 +10,17 @@ makes about its index.
     python build_home.py --open     # ...and opens it
 
 Standard library only. Run it natively in PowerShell, not over a network mount.
+
+Visual system: Dala (dark void + Electric Iris violet + Saffron Spark amber).
+PPNeueMontreal is not a licensable web font, so Inter stands in for it per the
+reference guide's own fallback note -- weight 200 body / weight 400 display are
+kept, which is the part of the system that actually carries the identity.
 """
 
 import argparse
 import html
 import json
+import random
 import re
 import subprocess
 import sys
@@ -26,13 +32,17 @@ from pathlib import Path
 OS_DIR = Path(__file__).resolve().parent
 BRAIN = OS_DIR.parent / "second-brain"
 PROJECTS = OS_DIR.parent.parent            # ...\Downloads\Projects
+SCHOOL = PROJECTS / "school"
+SKILLS_DIR = Path.home() / ".claude" / "skills"
+BLUEBERRY_STATUS = PROJECTS / "grignard" / "grignard-app-source" / "documentation" / "STATUS.md"
 
 REPOS = [
-    ("blueberry_game", "Chemistry learning platform", True),
-    ("grignard/grignard-app-source", "Flashcard study guides, shipped", False),
+    ("grignard/grignard-app-source", "Blueberry: the site and the learning game, live", True),
+    ("blueberry_game", "Frozen reference: design images and the gauntlet harness", False),
     ("mechanism_trainer", "Mechanism practice, standalone", False),
     ("Pibble", "Checkout bot + Electron shell", False),
     ("Portfolio", "Next.js + react-three-fiber", False),
+    ("second-brain", "This OS: engine, console, launcher, home page", False),
 ]
 
 
@@ -100,43 +110,24 @@ def repo_state(rel: str):
     }
 
 
-def blueberry_phase():
-    """Pull the live phase row and the Phase 1 numbers out of STATUS.md."""
-    f = PROJECTS / "blueberry_game" / "STATUS.md"
-    out = {"phase": None, "mode": None, "state": None, "numbers": [], "updated": None}
-    if not f.is_file():
-        return out
-    txt = f.read_text(encoding="utf-8", errors="replace")
+def blueberry_status(limit=4):
+    """The newest dated headings in Blueberry's STATUS.md.
 
+    Since the 2026-09-08 merge the live STATUS.md has no phase table: it is a stack of
+    sections headed "## <what happened>, YYYY-MM-DD", newest first. So the page shows
+    those headings, which is what the file itself leads with.
+    """
+    out = {"updated": None, "entries": [], "found": BLUEBERRY_STATUS.is_file()}
+    if not out["found"]:
+        return out
+    txt = BLUEBERRY_STATUS.read_text(encoding="utf-8", errors="replace")
     m = re.search(r"Updated\s+(\d{4}-\d{2}-\d{2})", txt)
     if m:
         out["updated"] = m.group(1)
-
-    # the phase table row whose state is not DONE / Not started
-    for row in re.findall(r"^\|\s*(\d+[^|]*)\|([^|]*)\|([^|]*)\|", txt, re.M):
-        phase, mode, state = (c.strip() for c in row)
-        if "IN PROGRESS" in state.upper():
-            out.update(phase=phase, mode=mode, state=state)
+    for m in re.finditer(r"^##\s+(.+?),\s*(\d{4}-\d{2}-\d{2})\s*$", txt, re.M):
+        out["entries"].append({"what": m.group(1).strip(), "date": m.group(2)})
+        if len(out["entries"]) >= limit:
             break
-
-    for label, pat in (
-        ("Checks", r"checks run:\s*(\d+)\s+passed:\s*(\d+)\s+failed:\s*(\d+)"),
-        ("Fixtures", r"FIXTURE COUNT:\s*(\d+)"),
-        ("Mutation score", r"([\d.]+)\s*percent killed"),
-        ("Named causes", r"(\d+)\s+of\s+(\d+)\s+defined"),
-    ):
-        m = re.search(pat, txt)
-        if not m:
-            continue
-        g = m.groups()
-        if label == "Checks":
-            out["numbers"].append((label, f"{g[1]}/{g[0]} passed", g[2] == "0"))
-        elif label == "Mutation score":
-            out["numbers"].append((label, f"{g[0]}%", float(g[0]) >= 80))
-        elif label == "Named causes":
-            out["numbers"].append((label, f"{g[0]} of {g[1]}", int(g[0]) >= 12))
-        else:
-            out["numbers"].append((label, g[0], True))
     return out
 
 
@@ -195,8 +186,89 @@ def generations():
     return None
 
 
+def courses():
+    """One entry per folder in Projects/school, one project per folder inside it.
+
+    Nothing is listed by hand: a new project shows up here the next time the page is
+    rebuilt, because the folder is the registration.
+    """
+    out = []
+    if not SCHOOL.is_dir():
+        return out
+    for c in sorted(p for p in SCHOOL.iterdir() if p.is_dir() and not p.name.startswith(".")):
+        title = ""
+        md = c / "CLAUDE.md"
+        if md.is_file():
+            m = re.search(r"^#\s+(.+)$", md.read_text(encoding="utf-8", errors="replace"), re.M)
+            title = m.group(1).strip() if m else ""
+        projects = []
+        for p in sorted(x for x in c.iterdir() if x.is_dir() and not x.name.startswith(".")):
+            st = repo_state(f"school/{c.name}/{p.name}")
+            if st:
+                st["desc"] = ""
+                projects.append(st)
+        out.append({"name": c.name, "title": title, "projects": projects})
+    return out
+
+
+def _frontmatter_field(text, key):
+    """Read one field from a SKILL.md YAML header without a YAML library.
+
+    Handles the three shapes the installed skills use: `key: value`, a quoted value,
+    and a `|` or `>` block whose lines are indented below the key.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return ""
+    for i, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            break
+        if not line.startswith(key + ":"):
+            continue
+        value = line[len(key) + 1:].strip()
+        if value in ("", "|", ">", "|-", ">-"):
+            block = []
+            for nxt in lines[i + 1:]:
+                if nxt.strip() == "---" or (nxt and not nxt[0].isspace()):
+                    break
+                block.append(nxt.strip())
+            value = " ".join(b for b in block if b)
+        return value.strip().strip("'\"")
+    return ""
+
+
+def skills():
+    """Every skill installed on this machine, with the text of its docs.
+
+    Account skills on claude.ai are not on disk, so they cannot be listed here.
+    """
+    out = []
+    if not SKILLS_DIR.is_dir():
+        return out
+    for d in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir()):
+        main = d / "SKILL.md"
+        if not main.is_file():
+            continue
+        text = main.read_text(encoding="utf-8", errors="replace")
+        docs = [("SKILL.md", text)]
+        readme = d / "README.md"
+        if readme.is_file():
+            docs.append(("README.md", readme.read_text(encoding="utf-8", errors="replace")))
+        files = sorted(str(f.relative_to(d)).replace("\\", "/")
+                       for f in d.rglob("*") if f.is_file())
+        out.append({
+            "name": _frontmatter_field(text, "name") or d.name,
+            "slug": d.name,
+            "desc": _frontmatter_field(text, "description"),
+            "dir": d,
+            "docs": docs,
+            "files": files,
+        })
+    return out
+
+
 # ── the ARMS checklist, computed rather than asserted ──────────────────────────
-def arms_status(repos, notes, rts, brain, gens):
+def arms_status(repos, notes, rts, brain, gens, sks):
     apps = len(list((OS_DIR / "apps").glob("*.html"))) + 1        # + HOME itself
     return [
         ("A", "Applications", "One home page open every morning; every weekly tool one click away",
@@ -207,192 +279,373 @@ def arms_status(repos, notes, rts, brain, gens):
          len(notes) >= 5 and (PROJECTS / "CLAUDE.md").is_file(),
          f"{len(notes)} notes, auto-loaded"),
         ("S", "Skills", "One line gets a full deliverable, the same way every time",
-         True, "generate, gauntlet-loop"),
+         bool(sks), f"{len(sks)} installed"),
     ]
 
 
+# ── Dala tokens: void black, Electric Iris violet, Saffron Spark amber ─────────
 CSS = """
-:root{--bg:#faf8f5;--card:#fff;--sunk:#f2efe9;--edge:#e2ddd3;--ink:#1b1a18;--dim:#6b675f;
---faint:#9c968b;--go:#2f7d5f;--warn:#b5721a;--stop:#a8402f;--mark:#d4541f;
---fd:"Bricolage Grotesque",Segoe UI,system-ui,sans-serif;
---fb:"IBM Plex Sans",Segoe UI,system-ui,sans-serif;
---fm:"IBM Plex Mono",Consolas,ui-monospace,monospace}
-@media(prefers-color-scheme:dark){:root{--bg:#14130f;--card:#1c1b17;--sunk:#100f0c;
---edge:#2c2a24;--ink:#efece5;--dim:#9b958a;--faint:#6b665c;--go:#5fbf92;--warn:#e0a052;
---stop:#e0705c;--mark:#f0793a}}
+:root{
+  --void:#000000;
+  --white:#ffffff;
+  --ash:#9a9a9a;
+  --silver:#bdbdbd;
+  --iris:#8052ff;
+  --iris-soft:#a98bff;
+  --amber:#ffb829;
+  --verdant:#15846e;
+  --verdant-soft:#5fd6b8;
+  --stop:#ff5470;
+  --ff:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --fm:"IBM Plex Mono",Consolas,ui-monospace,monospace;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:15px;
+html,body{margin:0;background:var(--void)}
+body{color:var(--white);font-family:var(--ff);font-weight:200;font-size:17px;
 line-height:1.6;-webkit-font-smoothing:antialiased}
-.w{max-width:1100px;margin:0 auto;padding:0 26px}
-header{padding:40px 0 8px}
-.eyebrow{font-family:var(--fm);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-color:var(--mark);margin:0 0 10px}
-h1{font-family:var(--fd);font-size:36px;letter-spacing:-.025em;margin:0 0 6px;font-weight:700}
-.sub{color:var(--dim);margin:0;font-size:14.5px}
-h2{font-family:var(--fm);font-size:11px;letter-spacing:.15em;text-transform:uppercase;
-color:var(--faint);margin:38px 0 14px;display:flex;align-items:center;gap:13px}
-h2::after{content:"";flex:1;height:1px;background:var(--edge)}
-.grid{display:grid;gap:13px}
-.g4{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
-.card{background:var(--card);border:1px solid var(--edge);border-radius:13px;padding:15px 17px}
-.arms{display:flex;gap:13px;align-items:flex-start}
-.letter{font-family:var(--fd);font-size:26px;font-weight:700;color:var(--mark);
-line-height:1;width:22px;flex:none}
-.arms h3{margin:0 0 3px;font-size:15px;font-family:var(--fd);font-weight:700}
-.arms p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.45}
-.tick{margin-left:auto;font-size:17px;line-height:1;flex:none}
-.ok{color:var(--go)}.no{color:var(--faint)}
-.note{font-family:var(--fm);font-size:11px;color:var(--faint);margin-top:7px;display:block}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{text-align:left;font-family:var(--fm);font-size:10px;letter-spacing:.11em;
-text-transform:uppercase;color:var(--faint);font-weight:400;padding:0 12px 8px 0;
-border-bottom:1px solid var(--edge)}
-td{padding:10px 12px 10px 0;border-bottom:1px solid var(--edge);vertical-align:top}
-tr:last-child td{border-bottom:0}
-.mono{font-family:var(--fm);font-size:12.5px;font-variant-numeric:tabular-nums}
-.pill{display:inline-block;font-family:var(--fm);font-size:10.5px;padding:2px 7px;
-border-radius:5px;border:1px solid var(--edge);background:var(--sunk);color:var(--dim)}
-.pill.go{color:var(--go);border-color:currentColor}
-.pill.warn{color:var(--warn);border-color:currentColor}
-.pill.stop{color:var(--stop);border-color:currentColor}
-.tw{overflow-x:auto}
-a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--edge)}
-a:hover{border-bottom-color:var(--mark);color:var(--mark)}
-.kind{font-family:var(--fm);font-size:10px;text-transform:uppercase;letter-spacing:.08em;
-color:var(--mark)}
-.big{font-family:var(--fm);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
-.lede{background:var(--sunk);border:1px solid var(--edge);border-left:3px solid var(--mark);
-border-radius:0 11px 11px 0;padding:14px 17px;margin:22px 0 0;font-size:14px;color:var(--dim)}
-.lede b{color:var(--ink);font-weight:600}
-footer{margin:56px 0 60px;padding-top:18px;border-top:1px solid var(--edge);
-color:var(--faint);font-family:var(--fm);font-size:11.5px}
+code{font-family:var(--fm);color:var(--silver);font-size:.92em}
+.w{max-width:1200px;margin:0 auto;padding:0 32px}
+a{color:var(--white);text-decoration:none;transition:color .15s ease}
+a:hover{color:var(--iris-soft)}
+.eyebrow{font-family:var(--ff);font-weight:600;font-size:13px;letter-spacing:.16em;
+text-transform:uppercase;color:var(--amber);margin:0 0 16px}
+.hero{position:relative;padding:84px 0 44px;overflow:hidden}
+.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.15fr .85fr;
+gap:40px;align-items:center}
+h1.display{font-family:var(--ff);font-weight:400;letter-spacing:-.035em;line-height:1.03;
+margin:0 0 24px;font-size:clamp(42px,6.4vw,88px)}
+.lede-hero{font-weight:200;font-size:18px;color:var(--silver);max-width:560px;margin:0}
+.lede-hero b{color:var(--white);font-weight:600}
+.particles{position:absolute;inset:0;pointer-events:none;z-index:0}
+section{padding:60px 0;position:relative}
+.section-title{font-family:var(--ff);font-weight:400;letter-spacing:-.02em;
+font-size:clamp(26px,3vw,36px);margin:0 0 40px;color:var(--white)}
+.spread{display:flex;flex-wrap:wrap;gap:48px 64px}
+.arms-item{flex:1 1 220px;min-width:220px}
+.arms-item .letter{display:block;font-weight:400;font-size:34px;color:var(--iris);
+letter-spacing:-.02em;line-height:1;margin-bottom:12px}
+.arms-item h3{margin:0 0 8px;font-size:19px;font-weight:600;color:var(--white)}
+.arms-item p{margin:0 0 14px;font-size:14.5px;font-weight:300;color:var(--silver);
+line-height:1.5}
+.status{font-family:var(--fm);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+display:inline-flex;align-items:center;gap:8px}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}
+.dot.go{background:var(--verdant-soft)}
+.dot.warn{background:var(--amber)}
+.dot.stop{background:var(--stop)}
+.dot.off{background:var(--ash)}
+.status.go{color:var(--verdant-soft)}
+.status.warn{color:var(--amber)}
+.status.stop{color:var(--stop)}
+.status.off{color:var(--ash)}
+.bignum{font-family:var(--ff);font-weight:400;font-size:clamp(38px,5vw,62px);
+letter-spacing:-.03em;line-height:1;color:var(--white)}
+.bignum.go{color:var(--verdant-soft)}
+.bignum.stop{color:var(--stop)}
+.stat-row{display:flex;flex-wrap:wrap;gap:44px 64px;margin-top:26px}
+.stat{min-width:130px}
+.stat .cap{display:block;font-family:var(--fm);font-size:11px;letter-spacing:.08em;
+text-transform:uppercase;color:var(--ash);margin-bottom:10px}
+.stat .sub{display:block;font-size:13.5px;font-weight:300;color:var(--silver);
+margin-top:8px}
+.stack{display:flex;flex-direction:column;gap:34px}
+.repo-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+gap:10px 32px}
+.repo-name{font-size:21px;font-weight:600;color:var(--white)}
+.repo-desc{display:block;font-size:14px;font-weight:300;color:var(--silver);margin-top:5px}
+.repo-meta{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline;
+font-family:var(--fm);font-size:12.5px;color:var(--ash)}
+.repo-meta .v{color:var(--silver)}
+.note-row{display:flex;flex-wrap:wrap;gap:5px 20px;align-items:baseline}
+.note-kind{font-family:var(--fm);font-size:11px;letter-spacing:.08em;
+text-transform:uppercase;color:var(--amber);min-width:74px}
+.note-what{font-size:14.5px;font-weight:300;color:var(--silver)}
+.routine-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+gap:8px 32px}
+.routine-name{font-size:17px;font-weight:400;color:var(--white)}
+.routine-cadence{font-family:var(--fm);font-size:12.5px;color:var(--ash)}
+footer{padding:44px 0 76px;color:var(--ash);font-family:var(--fm);font-size:11.5px;
+letter-spacing:.02em}
+.course{margin-bottom:44px}
+.course h3{margin:0 0 4px;font-size:21px;font-weight:600}
+.course .repo-desc{margin:0 0 20px}
+.course .stack{gap:18px;padding-left:18px;border-left:1px solid #242424}
+.empty{font-size:14.5px;font-weight:300;color:var(--ash)}
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px 32px}
+.skill-grid a{display:block}
+.skill-grid .nm{font-size:16px;font-weight:600;color:var(--white)}
+.skill-grid a:hover .nm{color:var(--iris-soft)}
+.skill-grid .ds{display:block;font-size:13px;font-weight:300;color:var(--ash);line-height:1.45;
+margin-top:3px}
+details.skill{border-top:1px solid #242424;padding:18px 0}
+details.skill summary{cursor:pointer;list-style:none}
+details.skill summary::-webkit-details-marker{display:none}
+details.skill summary .nm{font-size:20px;font-weight:600}
+details.skill summary .ds{display:block;font-size:14.5px;font-weight:300;color:var(--silver);
+margin-top:4px;max-width:900px}
+details.skill[open] summary .nm{color:var(--iris-soft)}
+.files{font-family:var(--fm);font-size:12px;color:var(--ash);margin:16px 0 8px}
+.doc-name{font-family:var(--fm);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+color:var(--amber);margin:22px 0 8px}
+pre.doc{white-space:pre-wrap;word-break:break-word;font-family:var(--fm);font-size:13px;
+line-height:1.55;color:var(--silver);background:#0b0b0b;border:1px solid #1e1e1e;
+border-radius:8px;padding:18px 20px;margin:0;max-height:70vh;overflow:auto}
+@media(max-width:820px){
+  .hero{padding:56px 0 28px}
+  .hero-grid{grid-template-columns:1fr}
+  .particles{opacity:.45}
+  section{padding:44px 0}
+}
 """
+
+
+def particles_svg(n=54, seed=7):
+    """A small, fixed constellation of outlined triangles -- Dala's signature gesture,
+    scaled down to decoration rather than the thousand-particle brain-cloud the
+    reference uses. Seeded so the page looks the same from one rebuild to the next."""
+    rnd = random.Random(seed)
+    colors = ["#8052ff", "#a98bff", "#ffb829", "#15846e", "#5fd6b8"]
+    W, H = 1200, 560
+    g = []
+    for _ in range(n):
+        x = rnd.uniform(0, W)
+        y = rnd.uniform(0, H)
+        s = rnd.uniform(4, 11)
+        op = rnd.uniform(0.14, 0.62)
+        c = rnd.choice(colors)
+        rot = rnd.uniform(0, 360)
+        pts = f"{s/2:.2f},0 {s:.2f},{s:.2f} 0,{s:.2f}"
+        g.append(f'<g transform="translate({x:.1f} {y:.1f}) rotate({rot:.0f})" '
+                 f'opacity="{op:.2f}"><polygon points="{pts}" fill="none" '
+                 f'stroke="{c}" stroke-width="1"/></g>')
+    return (f'<svg class="particles" viewBox="0 0 {W} {H}" preserveAspectRatio="xMidYMid slice" '
+            f'xmlns="http://www.w3.org/2000/svg">' + "".join(g) + "</svg>")
 
 
 def esc(s):
     return html.escape(str(s), quote=True)
 
 
+def head(title):
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            f'<title>{esc(title)}</title>'
+            '<link rel="preconnect" href="https://fonts.googleapis.com">'
+            '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+            '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+            'family=Inter:wght@200;300;400;600;700&family=IBM+Plex+Mono:wght@400;500'
+            '&display=swap">'
+            f"<style>{CSS}</style></head><body><div class='w'>")
+
+
+def repo_row(r):
+    """One repository line: name, description, branch, last commit, dirty count, state."""
+    if r.get("untracked_project"):
+        cls, word = "off", "no git"
+    elif not r["known"]:
+        cls, word = "warn", "git unreadable"
+    elif r["stale_days"] > 21:
+        cls, word = "stop", f"quiet {r['stale_days']}d"
+    elif r["stale_days"] > 7:
+        cls, word = "warn", f"quiet {r['stale_days']}d"
+    else:
+        cls, word = "go", "active"
+    if r["dirty"] is None:
+        dirty = "unknown"
+    elif r.get("untracked_project"):
+        dirty = "&mdash;"
+    elif r["dirty"]:
+        dirty = f"{r['dirty']} file{'s' if r['dirty'] != 1 else ''}"
+    else:
+        dirty = "clean"
+    desc = f"<span class='repo-desc'>{esc(r['desc'])}</span>" if r.get("desc") else ""
+    return ("<div class='repo-row'><div>"
+            f"<a class='repo-name' href='{esc((PROJECTS / r['path']).as_uri())}'>"
+            f"{esc(r['name'])}</a>{desc}</div>"
+            "<div class='repo-meta'>"
+            f"<span>branch <span class='v'>{esc(r['branch'])}</span></span>"
+            f"<span>last <span class='v'>{esc(r['last'])}</span></span>"
+            f"<span>uncommitted <span class='v'>{dirty}</span></span>"
+            f"<span class='status {cls}'><span class='dot {cls}'></span>{esc(word)}</span>"
+            "</div></div>")
+
+
 def render(ctx):
     P = []
     a = P.append
-    a(f'<!doctype html><html lang="en"><head><meta charset="utf-8">')
-    a('<meta name="viewport" content="width=device-width,initial-scale=1">')
-    a(f'<title>{esc(ctx["title"])}</title>')
-    a('<link rel="preconnect" href="https://fonts.googleapis.com">')
-    a('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
-    a('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-      'family=Bricolage+Grotesque:opsz,wght@12..96,700&family=IBM+Plex+Mono:wght@400;500'
-      '&family=IBM+Plex+Sans:wght@400;500;600&display=swap">')
-    a(f"<style>{CSS}</style></head><body><div class='w'>")
+    a(head(ctx["title"]))
 
-    a(f"<header><p class='eyebrow'>Agentic OS · {esc(ctx['today'])}</p>"
-      f"<h1>{esc(ctx['title'])}</h1>"
-      f"<p class='sub'>{esc(ctx['sub'])}</p></header>")
+    # ── hero ─────────────────────────────────────────────────────────────
+    a("<div class='hero'>")
+    a(particles_svg())
+    a("<div class='hero-grid'><div>")
+    a(f"<p class='eyebrow'>Agentic OS &middot; {esc(ctx['today'])}</p>")
+    a(f"<h1 class='display'>{esc(ctx['title'])}</h1>")
+    a(f"<p class='lede-hero'>{ctx['focus']}</p>")
+    a("</div><div></div></div></div>")
 
-    a(f"<div class='lede'>{ctx['focus']}</div>")
-
-    # ARMS
-    a("<h2>The four parts</h2><div class='grid g4'>")
+    # ── ARMS ─────────────────────────────────────────────────────────────
+    a("<section><p class='eyebrow'>The four parts</p>"
+      "<h2 class='section-title'>Applications, Routines, Memory, Skills</h2>")
+    a("<div class='spread'>")
     for letter, name, test, ok, detail in ctx["arms"]:
-        a(f"<div class='card arms'><div class='letter'>{letter}</div><div>"
+        cls = "go" if ok else "off"
+        a(f"<div class='arms-item'><span class='letter'>{letter}</span>"
           f"<h3>{esc(name)}</h3><p>{esc(test)}</p>"
-          f"<span class='note'>{esc(detail)}</span></div>"
-          f"<div class='tick {'ok' if ok else 'no'}'>{'&#10003;' if ok else '&#9675;'}</div></div>")
-    a("</div>")
+          f"<span class='status {cls}'><span class='dot {cls}'></span>{esc(detail)}</span>"
+          f"</div>")
+    a("</div></section>")
 
-    # Blueberry
-    b = ctx["phase"]
-    if b["phase"]:
-        a("<h2>Blueberry &mdash; current phase</h2><div class='card'>")
-        a(f"<div class='big'>Phase {esc(b['phase'])}</div>"
-          f"<p class='sub' style='margin:2px 0 13px'>{esc(b['mode'])} &middot; "
-          f"{esc(b['state'])}{' &middot; STATUS.md updated ' + esc(b['updated']) if b['updated'] else ''}</p>")
-        if b["numbers"]:
-            a("<div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(150px,1fr))'>")
-            for label, val, good in b["numbers"]:
-                a(f"<div><span class='note' style='margin:0'>{esc(label)}</span>"
-                  f"<div class='mono' style='font-size:15px;color:var(--{'go' if good else 'stop'})'>"
-                  f"{esc(val)}</div></div>")
-            a("</div>")
-        a("</div>")
+    # ── school ───────────────────────────────────────────────────────────
+    if ctx["courses"]:
+        a("<section><p class='eyebrow'>School</p>"
+          "<h2 class='section-title'>Course projects</h2>")
+        for c in ctx["courses"]:
+            href = (SCHOOL / c["name"]).as_uri()
+            a(f"<div class='course'><h3><a href='{esc(href)}'>{esc(c['name'])}</a></h3>")
+            if c["title"]:
+                a(f"<span class='repo-desc'>{esc(c['title'])}</span>")
+            a("<div class='stack'>")
+            if c["projects"]:
+                for r in c["projects"]:
+                    a(repo_row(r))
+            else:
+                a(f"<span class='empty'>No projects yet. Start one with "
+                  f"<code>mkdir school\\{esc(c['name'])}\\&lt;name&gt;</code>; "
+                  "it appears here on the next rebuild.</span>")
+            a("</div></div>")
+        a("</section>")
 
-    # repos
-    a("<h2>Repositories</h2><div class='card tw'><table><tr>"
-      "<th>Project</th><th>Branch</th><th>Last commit</th><th>Uncommitted</th><th></th></tr>")
+    # ── Blueberry ────────────────────────────────────────────────────────
+    b = ctx["blueberry"]
+    if b["entries"]:
+        a("<section><p class='eyebrow'>Blueberry</p>"
+          "<h2 class='section-title'>Latest in STATUS.md</h2>")
+        if b["updated"]:
+            a(f"<p class='lede-hero' style='max-width:640px'>Header says updated "
+              f"{esc(b['updated'])}. Newest sections first.</p>")
+        a("<div class='stack' style='gap:18px;margin-top:26px'>")
+        for e in b["entries"]:
+            a("<div class='note-row'>"
+              f"<span class='note-kind'>{esc(e['date'])}</span>"
+              f"<span class='note-what' style='color:var(--white)'>{esc(e['what'])}</span>"
+              "</div>")
+        a("</div></section>")
+
+    # ── repositories ─────────────────────────────────────────────────────
+    a("<section><p class='eyebrow'>Repositories</p>"
+      "<h2 class='section-title'>What&rsquo;s live, what&rsquo;s quiet</h2>")
+    a("<div class='stack'>")
     for r in ctx["repos"]:
-        if r.get("untracked_project"):
-            cls, word = "", "no git"
-        elif not r["known"]:
-            cls, word = "warn", "git unreadable"
-        elif r["stale_days"] > 21:
-            cls, word = "stop", f"quiet {r['stale_days']}d"
-        elif r["stale_days"] > 7:
-            cls, word = "warn", f"quiet {r['stale_days']}d"
-        else:
-            cls, word = "go", "active"
-        if r["dirty"] is None:
-            dirty = "<span class='pill warn'>unknown</span>"
-        elif r.get("untracked_project"):
-            dirty = "<span class='pill'>&mdash;</span>"
-        elif r["dirty"]:
-            dirty = (f"<span class='pill warn'>{r['dirty']} file"
-                     f"{'s' if r['dirty'] != 1 else ''}</span>")
-        else:
-            dirty = "<span class='pill'>clean</span>"
-        a(f"<tr><td><b>{esc(r['name'])}</b><br><span class='note' style='margin:0'>"
-          f"{esc(r['desc'])}</span></td>"
-          f"<td class='mono'>{esc(r['branch'])}</td>"
-          f"<td class='mono'>{esc(r['last'])}</td><td>{dirty}</td>"
-          f"<td><span class='pill {cls}'>{esc(word)}</span></td></tr>")
-    a("</table></div>")
+        a(repo_row(r))
+    a("</div></section>")
 
-    # memory
-    a("<h2>Memory</h2><div class='card tw'><table>")
+    # ── skills ───────────────────────────────────────────────────────────
+    if ctx["skills"]:
+        a("<section><p class='eyebrow'>Skills</p>"
+          f"<h2 class='section-title'>{len(ctx['skills'])} installed</h2>")
+        a("<div class='skill-grid'>")
+        for s in ctx["skills"]:
+            d = s["desc"]
+            short = esc(d) if len(d) <= 110 else esc(d[:107].rstrip()) + "&hellip;"
+            a(f"<a href='SKILLS.html#{esc(s['slug'])}'><span class='nm'>{esc(s['name'])}</span>"
+              f"<span class='ds'>{short}</span></a>")
+        a("</div></section>")
+
+    # ── memory ───────────────────────────────────────────────────────────
+    a("<section><p class='eyebrow'>Memory</p>"
+      "<h2 class='section-title'>What&rsquo;s on file</h2>")
+    a("<div class='stack' style='gap:22px'>")
     for n in ctx["notes"]:
-        a(f"<tr><td style='width:1%;white-space:nowrap'><span class='kind'>{esc(n['kind'])}</span></td>"
-          f"<td><a href='{esc(n['href'])}'>{esc(n['file'])}</a></td>"
-          f"<td style='color:var(--dim)'>{esc(n['what'])}</td></tr>")
-    a("</table></div>")
+        a("<div class='note-row'>"
+          f"<span class='note-kind'>{esc(n['kind'])}</span>"
+          f"<a href='{esc(n['href'])}'>{esc(n['file'])}</a>"
+          f"<span class='note-what'>{esc(n['what'])}</span></div>")
+    a("</div></section>")
 
-    # routines
-    a("<h2>Routines</h2><div class='card tw'><table><tr>"
-      "<th>Routine</th><th>Cadence</th><th>Status</th></tr>")
+    # ── routines ─────────────────────────────────────────────────────────
+    a("<section><p class='eyebrow'>Routines</p>"
+      "<h2 class='section-title'>What runs on its own</h2>")
+    a("<div class='stack' style='gap:22px'>")
     for r in ctx["routines"]:
-        p = ("<span class='pill go'>scheduled</span>" if r["on"]
-             else "<span class='pill'>written, not scheduled</span>")
-        a(f"<tr><td><a href='routines/{esc(r['file'])}'>{esc(r['name'])}</a></td>"
-          f"<td class='mono'>{esc(r['cadence'])}</td><td>{p}</td></tr>")
-    a("</table></div>")
+        cls = "go" if r["on"] else "off"
+        word = "scheduled" if r["on"] else "written, not scheduled"
+        a("<div class='routine-row'>"
+          f"<a class='routine-name' href='routines/{esc(r['file'])}'>{esc(r['name'])}</a>"
+          f"<span class='routine-cadence'>{esc(r['cadence'])}</span>"
+          f"<span class='status {cls}'><span class='dot {cls}'></span>{esc(word)}</span>"
+          "</div>")
+    a("</div></section>")
 
-    # systems
-    a("<h2>Systems</h2><div class='grid g4'>")
+    # ── systems ──────────────────────────────────────────────────────────
+    a("<section><p class='eyebrow'>Systems</p>"
+      "<h2 class='section-title'>Underneath</h2>")
+    a("<div class='stat-row'>")
     br = ctx["brain"]
     if br["installed"]:
-        a(f"<div class='card'><span class='note' style='margin:0'>Second brain</span>"
-          f"<div class='big'>{br['rows']:,}</div>"
-          f"<span class='note'>indexed sections &middot; {br['memories']} memories &middot; "
+        a(f"<div class='stat'><span class='cap'>Second brain</span>"
+          f"<div class='bignum'>{br['rows']:,}</div>"
+          f"<span class='sub'>indexed sections &middot; {br['memories']} memories &middot; "
           f"<a href='http://127.0.0.1:7432'>open console</a></span></div>")
     else:
-        a("<div class='card'><span class='note' style='margin:0'>Second brain</span>"
-          "<div class='big' style='color:var(--warn)'>not installed</div>"
-          "<span class='note'>run <code>python install.py</code> in PowerShell</span></div>")
+        a("<div class='stat'><span class='cap'>Second brain</span>"
+          "<div class='bignum stop'>not installed</div>"
+          "<span class='sub'>run <code>python install.py</code> in PowerShell</span></div>")
+    a("<div class='stat'><span class='cap'>Skill launcher</span>"
+      "<div class='bignum'><a href='http://127.0.0.1:8787/'>open</a></div>"
+      "<span class='sub'>start it first: <code>python OS\\apps\\launcher\\launcher.py</code></span>"
+      "</div>")
     g = ctx["gens"]
     if g:
         link = (f"<a href='file:///{esc(g['gallery'])}'>open gallery</a>"
                 if g["gallery"] else "no gallery yet")
-        a(f"<div class='card'><span class='note' style='margin:0'>Generations</span>"
-          f"<div class='big'>{g['count']}</div><span class='note'>{link}</span></div>")
-    a("<div class='card'><span class='note' style='margin:0'>Cross-project memory</span>"
-      f"<div class='big' style='color:var(--{'go' if ctx['claude_md'] else 'warn'})'>"
+        a(f"<div class='stat'><span class='cap'>Generations</span>"
+          f"<div class='bignum'>{g['count']}</div><span class='sub'>{link}</span></div>")
+    a(f"<div class='stat'><span class='cap'>Cross-project memory</span>"
+      f"<div class='bignum {'go' if ctx['claude_md'] else 'stop'}'>"
       f"{'loaded' if ctx['claude_md'] else 'missing'}</div>"
-      "<span class='note'>Projects/CLAUDE.md</span></div>")
-    a("</div>")
+      "<span class='sub'>Projects/CLAUDE.md</span></div>")
+    a("</div></section>")
 
     a(f"<footer>Regenerated by <code>build_home.py</code> at {esc(ctx['stamp'])}. "
       "Every number here was read from disk at build time &mdash; if one looks wrong, "
       "the source is wrong, not the page. Rebuild after any week&rsquo;s upkeep."
       "</footer></div></body></html>")
+    return "\n".join(P)
+
+
+def render_skills(sks, stamp):
+    """SKILLS.html: every installed skill, its description, and its docs in full.
+
+    The docs are shown as plain preformatted text rather than rendered markdown. That
+    keeps this script free of a markdown library, and markdown reads fine as text.
+    """
+    P = []
+    a = P.append
+    a(head("Skills"))
+    a("<div class='hero' style='padding-bottom:24px'>"
+      "<p class='eyebrow'><a href='HOME.html'>&larr; Home</a></p>"
+      f"<h1 class='display'>{len(sks)} skills</h1>"
+      "<p class='lede-hero'>Everything in <code>~/.claude/skills</code> on this machine. "
+      "Click one to read its <code>SKILL.md</code>, and its <code>README.md</code> when it "
+      "has one. Account skills on claude.ai are not on disk, so they are not here.</p></div>")
+    for s in sks:
+        a(f"<details class='skill' id='{esc(s['slug'])}'><summary>"
+          f"<span class='nm'>{esc(s['name'])}</span>"
+          f"<span class='ds'>{esc(s['desc'])}</span></summary>")
+        a(f"<div class='files'><a href='{esc(s['dir'].as_uri())}'>open folder</a> &middot; "
+          f"{esc(', '.join(s['files'][:12]))}"
+          f"{' &hellip;' if len(s['files']) > 12 else ''}</div>")
+        for name, text in s["docs"]:
+            a(f"<div class='doc-name'>{esc(name)}</div><pre class='doc'>{esc(text)}</pre>")
+        a("</details>")
+    a(f"<footer>Regenerated by <code>build_home.py</code> at {esc(stamp)}. "
+      "Install or delete a skill, then rebuild, and this page follows.</footer></div>")
+    # A link like SKILLS.html#generate should land on that skill already open.
+    a("<script>function openHash(){var d=location.hash&&document.getElementById("
+      "decodeURIComponent(location.hash.slice(1)));if(d){d.open=true;d.scrollIntoView();}}"
+      "addEventListener('hashchange',openHash);openHash();</script>")
+    a("</body></html>")
     return "\n".join(P)
 
 
@@ -418,14 +671,20 @@ def main():
 
     notes, rts = memory_notes(), routines()
     brain, gens = brain_state(), generations()
-    phase = blueberry_phase()
+    blueberry, crs, sks = blueberry_status(), courses(), skills()
 
     dirty_total = sum(r["dirty"] or 0 for r in repos)
-    if phase["phase"]:
-        focus = (f"<b>Blueberry Phase {esc(phase['phase'])}</b> is the live thread "
-                 f"&mdash; {esc(phase['state'].lower())}.")
+    if blueberry["entries"]:
+        focus = (f"<b>Blueberry</b> is the live thread. Latest: "
+                 f"{esc(blueberry['entries'][0]['what'])}.")
+    elif not blueberry["found"]:
+        focus = f"<b>Blueberry's STATUS.md was not found</b> at {esc(BLUEBERRY_STATUS)}."
     else:
-        focus = "<b>No phase in progress.</b>"
+        focus = "<b>Blueberry's STATUS.md has no dated sections.</b>"
+    if crs:
+        n = sum(len(c["projects"]) for c in crs)
+        focus += (f" {len(crs)} course{'s' if len(crs) != 1 else ''} in school/, "
+                  f"{n} project{'s' if n != 1 else ''} started.")
     if dirty_total:
         focus += (f" {dirty_total} uncommitted file{'s' if dirty_total != 1 else ''} "
                   f"across {sum(1 for r in repos if r['dirty'])} repo(s).")
@@ -443,15 +702,20 @@ def main():
         "stamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "focus": focus,
         "repos": repos, "notes": notes, "routines": rts,
-        "brain": brain, "gens": gens, "phase": phase,
+        "brain": brain, "gens": gens, "blueberry": blueberry,
+        "courses": crs, "skills": sks,
         "claude_md": (PROJECTS / "CLAUDE.md").is_file(),
-        "arms": arms_status(repos, notes, rts, brain, gens),
+        "arms": arms_status(repos, notes, rts, brain, gens, sks),
     }
 
     out = Path(a.out)
     out.write_text(render(ctx), encoding="utf-8")
+    skills_out = out.with_name("SKILLS.html")
+    skills_out.write_text(render_skills(sks, ctx["stamp"]), encoding="utf-8")
     print(f"wrote  {out}")
-    print(f"       {len(repos)} repos, {len(notes)} memory notes, {len(rts)} routines, "
+    print(f"wrote  {skills_out}")
+    print(f"       {len(repos)} repos, {len(crs)} courses, {len(sks)} skills, "
+          f"{len(notes)} memory notes, {len(rts)} routines, "
           f"brain {'installed' if brain['installed'] else 'NOT installed'}")
     if a.open:
         webbrowser.open(out.as_uri())

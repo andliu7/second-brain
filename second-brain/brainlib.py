@@ -9,6 +9,7 @@ did not change, the rules did.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -17,7 +18,7 @@ import time
 import sys
 from pathlib import Path, PurePosixPath
 
-INDEXER_VERSION = "1.0.0"
+INDEXER_VERSION = "1.1.0"   # 1.1.0: nested roots keep their own trust, walked once
 
 # ---------------------------------------------------------------- tokenizer --
 
@@ -220,6 +221,29 @@ def context_for(path: str, ctx_map: dict) -> tuple[float, str]:
                     best = (float(spec.get("weight", 1.0)), str(spec.get("note", "")))
                 else:
                     best = (1.0, str(spec))
+    return best
+
+
+@functools.lru_cache(maxsize=8)
+def _normed(paths: tuple) -> frozenset:
+    """norm() touches the filesystem, and is_low_trust runs once per directory walked."""
+    return frozenset(norm(p).casefold().rstrip("/") for p in paths)
+
+
+def is_low_trust(dirpath: str, cfg: dict) -> bool:
+    """Longest prefix wins, the same rule as context_for.
+
+    A root nested inside a low-trust root keeps its own trust. On this machine
+    Projects (and the brain's own memories folder) sit inside Downloads, and a plain
+    "is it under a low-trust dir" test demoted all of it to filename-only rows.
+    """
+    dl = dirpath.replace("\\", "/").casefold().rstrip("/")
+    low = _normed(tuple(cfg.get("low_trust_dirs", [])))
+    roots = _normed(tuple(cfg.get("roots", [])))
+    best_len, best = -1, False
+    for p in low | roots:
+        if (dl == p or dl.startswith(p + "/")) and len(p) > best_len:
+            best_len, best = len(p), p in low
     return best
 
 

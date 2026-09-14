@@ -29,7 +29,11 @@ PROFILE = {
     "portfolio":           ("Personal web portfolio.", 1.00),
     "eclipse-workspace":   ("Legacy university Java work. Rarely the answer.", 0.70),
     "Downloads":           ("Unsorted downloads. Low trust - prefer any other source.", 0.45),
+    # Andrew's workspace sits inside Downloads. As its own root it keeps full trust
+    # instead of inheriting the Downloads weight (longest prefix wins in both).
+    "Projects":            ("Active work: Blueberry, bots, portfolio, this OS, school/ courses.", 1.25),
 }
+NESTED = {"Projects": ("Downloads", "Projects")}      # PROFILE name -> path under home
 LOW_TRUST = {"Downloads"}
 
 ROUTING_NOTE = """<!-- second-brain:start -->
@@ -61,7 +65,7 @@ Never run a full reindex on my behalf - print the command (`python "{brain}/idx.
 def detect_roots(home: Path) -> list[Path]:
     found = []
     for name in PROFILE:
-        p = home / name
+        p = home.joinpath(*NESTED.get(name, (name,)))
         if p.is_dir():
             found.append(p)
     for extra in ("notes", "Notes", "vault", "Obsidian"):

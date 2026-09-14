@@ -4,6 +4,13 @@ second-brain/brain.json
 second-brain/log.md
 second-brain/memories/*.md
 OS/HOME.html
+OS/SKILLS.html
+# run output: process lists, file paths, local state. Public repo
+OS/apps/launcher/runs/
+OS/apps/launcher/runs.log
+*.log
+# a stray Windows device name; git cannot index it
+NUL
 OS/_to_delete/
 
 # python

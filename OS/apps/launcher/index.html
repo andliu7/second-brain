@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill launcher</title>
+<style>
+  :root{
+    --bg:#141210; --panel:#1c1917; --line:#2e2a26;
+    --ink:#ece7e1; --dim:#9a9088; --faint:#6d645d;
+    --accent:#ff6b1a; --ok:#5fbf7f; --bad:#e2624c;
+    --mono:ui-monospace,"Cascadia Mono","Consolas",monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.55 ui-sans-serif,system-ui,"Segoe UI",sans-serif;
+    padding:44px 24px 64px;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+  .eyebrow{
+    font:600 11px/1 var(--mono); letter-spacing:.16em; text-transform:uppercase;
+    color:var(--faint); margin-bottom:14px;
+  }
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--dim);margin:0 0 30px;font-size:14px;max-width:56ch}
+  .sub code{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:16px 18px; margin-bottom:10px;
+    display:grid; grid-template-columns:1fr auto; gap:14px 18px; align-items:center;
+  }
+  .name{font-weight:600;font-size:15px}
+  .blurb{color:var(--dim);font-size:13px;margin-top:2px}
+  .cmd{
+    grid-column:1/-1; font-family:var(--mono); font-size:11.5px; color:var(--faint);
+    border-top:1px solid var(--line); padding-top:10px; margin-top:2px;
+    overflow-x:auto; white-space:pre;
+  }
+  button{
+    font:600 13px/1 inherit; color:#1a1512; background:var(--accent);
+    border:0; border-radius:7px; padding:11px 18px; cursor:pointer;
+    min-width:104px; transition:filter .12s ease;
+  }
+  button:hover:not(:disabled){filter:brightness(1.12)}
+  button:disabled{background:var(--line);color:var(--faint);cursor:default}
+
+  .status{grid-column:1/-1;font-size:12.5px;color:var(--dim);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none;translate:0 -1px}
+  .running .dot{background:var(--accent);animation:pulse 1s ease-in-out infinite}
+  .done .dot{background:var(--ok)}
+  .failed .dot{background:var(--bad)}
+  .failed .word{color:var(--bad)}
+  .done .word{color:var(--ok)}
+  @keyframes pulse{50%{opacity:.25}}
+  .where{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+  .where a{color:var(--accent)}
+
+  footer{margin-top:28px;color:var(--faint);font-size:12.5px}
+  footer code{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Agentic OS · headless skill runs</div>
+  <h1>Skill <span>launcher</span></h1>
+  <p class="sub">Each button runs one skill through <code>claude -p</code> with no chat window,
+     or one plain command. Fire-and-forget: nothing to pick, nothing to type. Every run appends
+     to <code>runs.log</code>; <b>view output</b> shows what it actually did.</p>
+
+  <div id="list"></div>
+
+  <footer>
+    Runs execute in <code>Downloads\Projects</code> with permissions bypassed, so they can write files
+    without asking. Server is bound to <code>127.0.0.1</code> only.
+  </footer>
+</div>
+
+<script>
+const list = document.getElementById('list');
+let skills = [];
+
+function fmt(s, run){
+  if(s.missing)                     return {cls:'failed', word:`${s.missing} is not installed, so this button is off`, extra:''};
+  if(!run || run.status === 'idle') return {cls:'', word:'never run this session', extra:''};
+  if(run.status === 'running')      return {cls:'running', word:'running…', extra:''};
+  const secs = run.seconds != null ? run.seconds + 's' : '';
+  const word = run.status === 'done' ? 'done' : `failed (exit ${run.exit})`;
+  const file = run.log ? `<a href="/log/${s.id}" target="_blank">view output</a>` : '';
+  return {cls:run.status, word, extra:[secs, file].filter(Boolean).join('   ')};
+}
+
+function render(runs){
+  list.innerHTML = '';
+  for(const s of skills){
+    const run = runs[s.id] || {status:'idle'};
+    const f = fmt(s, run);
+    const off = s.missing || run.status === 'running';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div>
+        <div class="name">${s.label}</div>
+        <div class="blurb">${s.blurb}</div>
+      </div>
+      <button data-id="${s.id}" ${off ? 'disabled' : ''}>
+        ${run.status === 'running' ? 'Running' : 'Run'}
+      </button>
+      <div class="cmd">${s.command.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</div>
+      <div class="status ${f.cls}">
+        <span class="dot"></span><span class="word">${f.word}</span>
+        <span class="where">${f.extra}</span>
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+list.addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-id]');
+  if(!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Running';
+  try { await fetch('/run/' + btn.dataset.id, {method:'POST'}); }
+  catch(err){ console.error(err); }
+  poll();
+});
+
+async function poll(){
+  try{
+    const runs = await (await fetch('/runs')).json();
+    render(runs);
+  }catch(err){ /* server stopped; leave the last state on screen */ }
+}
+
+(async function init(){
+  skills = await (await fetch('/skills')).json();
+  await poll();
+  setInterval(poll, 1500);
+})();
+</script>
+</body>
+</html>

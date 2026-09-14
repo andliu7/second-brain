@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from brainlib import (  # noqa: E402
-    CODE_EXT, CONF_EXT, TEXT_EXT, Row, append_rows, context_for,
+    CODE_EXT, CONF_EXT, TEXT_EXT, Row, append_rows, context_for, is_low_trust,
     knobs_fingerprint, load_config, norm, read_index, read_lines_with_offsets,
     tokenize, under_roots, validate_row, write_index,
 )
@@ -279,17 +279,20 @@ def resolve_pointers(rows: list[Row]) -> int:
 
 def walk(cfg: dict):
     skip = {d.casefold() for d in cfg.get("skip_dirs", [])}
-    low = [norm(d).casefold() for d in cfg.get("low_trust_dirs", [])]
+    roots = {norm(r).casefold() for r in cfg.get("roots", [])}
     for root in cfg.get("roots", []):
         rp = Path(norm(root))
         if not rp.exists():
             print(f"  ! root missing, skipped: {rp}", file=sys.stderr)
             continue
         for dirpath, dirnames, filenames in os.walk(rp):
-            dirnames[:] = [d for d in dirnames
-                           if d.casefold() not in skip and not d.startswith(".")]
             dl = dirpath.replace("\\", "/").casefold()
-            is_low = any(dl == l or dl.startswith(l + "/") for l in low)
+            # A root nested in this one is walked on its own turn, so it is not
+            # indexed twice. Its trust comes from is_low_trust, not from this root.
+            dirnames[:] = [d for d in dirnames
+                           if d.casefold() not in skip and not d.startswith(".")
+                           and f"{dl}/{d.casefold()}" not in roots]
+            is_low = is_low_trust(dirpath, cfg)
             for fn in filenames:
                 if fn.startswith("."):
                     continue
@@ -311,9 +314,7 @@ def main() -> int:
         target = norm(a.file)
         old_fp, rows = read_index(index_path)
         kept = [r for r in rows if r.path.casefold() != target.casefold()]
-        low = [norm(d).casefold() for d in cfg.get("low_trust_dirs", [])]
-        tl = str(Path(target).parent).replace("\\", "/").casefold()
-        is_low = any(tl == l or tl.startswith(l + "/") for l in low)
+        is_low = is_low_trust(str(Path(target).parent), cfg)
         fresh = index_file(target, cfg, is_low) if os.path.exists(target) else []
         allrows = kept + fresh
         resolve_pointers(allrows)
