@@ -51,6 +51,8 @@ The local .env supplied on this machine only points GENERATE_ENV_FILE at your ex
 
 Local library paths can be customized with SECOND_BRAIN_ROOT and CLAUDE_SKILLS_DIR. The development server binds only to 127.0.0.1 and rejects foreign origins and Host headers.
 
+Skills, projects and brain search are read live from disk on every request (server/live.mjs, /api/skills, /api/projects, /api/brain?q=). They run OS/build_home.py --json and second-brain/q.py --json, so python must be on PATH. The skills list always reads ~/.claude/skills, because build_home.py does.
+
 ## Make models and CLI tools more efficient
 
 In Network, choose **Export for agents**. This downloads second-brain-agent-graph.json with text nodes, source IDs, tags, and typed relationships. It omits binary attachments, images, API keys, and chat history.

@@ -8,6 +8,7 @@ makes about its index.
 
     python build_home.py            # writes OS/HOME.html
     python build_home.py --open     # ...and opens it
+    python build_home.py --json     # prints the same data as JSON, writes nothing
 
 Standard library only. Run it natively in PowerShell, not over a network mount.
 
@@ -125,7 +126,11 @@ def blueberry_status(limit=4):
     if m:
         out["updated"] = m.group(1)
     for m in re.finditer(r"^##\s+(.+?),\s*(\d{4}-\d{2}-\d{2})\s*$", txt, re.M):
-        out["entries"].append({"what": m.group(1).strip(), "date": m.group(2)})
+        # The entry's text runs to the next "## " heading, dated or not.
+        nxt = re.search(r"^##\s", txt[m.end():], re.M)
+        body = txt[m.end():m.end() + nxt.start()] if nxt else txt[m.end():]
+        out["entries"].append({"what": m.group(1).strip(), "date": m.group(2),
+                               "body": body.strip()})
         if len(out["entries"]) >= limit:
             break
     return out
@@ -655,6 +660,8 @@ def main():
     ap.add_argument("--no-git", action="store_true",
                     help="skip git entirely -- fast rebuild when only notes changed")
     ap.add_argument("--out", default=str(OS_DIR / "HOME.html"))
+    ap.add_argument("--json", action="store_true",
+                    help="print the gathered data as JSON and write no files (the web app reads this)")
     a = ap.parse_args()
 
     global SKIP_GIT
@@ -672,6 +679,13 @@ def main():
     notes, rts = memory_notes(), routines()
     brain, gens = brain_state(), generations()
     blueberry, crs, sks = blueberry_status(), courses(), skills()
+
+    if a.json:
+        # ASCII-only JSON, so the Windows console encoding cannot mangle it on the way out.
+        print(json.dumps({"repos": repos, "courses": crs, "blueberry": blueberry,
+                          "routines": rts, "notes": notes, "brain": brain, "gens": gens,
+                          "skills": sks}, default=str))
+        return
 
     dirty_total = sum(r["dirty"] or 0 for r in repos)
     if blueberry["entries"]:

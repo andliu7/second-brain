@@ -1,42 +1,27 @@
 {
-  "updated": "2026-09-13T23:31:40.029Z",
-  "phase": "Ready locally · visual review pending",
-  "bar": "Supplied Claude Code OS screens · Linear My Issues · 3D Force Graph",
+  "updated": "2026-09-14T01:37:44.103Z",
+  "phase": "Gauntlet loop: raising every rating to an A",
+  "bar": "Linear (My Issues, Inbox, the app shots on linear.app) for looks, contrast, structure and ease. Obsidian on the Projects folder for how much real work the site reaches",
   "checks": [
     {
-      "label": "Core workspace",
+      "label": "Baseline",
       "status": "complete",
-      "detail": "Eight pages implemented. Eleven DOM interaction and regression checks pass."
+      "detail": "Visual A-, contrast A-, structure C, ease C, helps real work D. Bars captured; Obsidian measured on the ten tasks: it does 4 of 10 (search, open a file, file tree, new note) and cannot see skills, git state, runs, generation or AI."
     },
     {
-      "label": "3D relational network",
-      "status": "complete",
-      "detail": "Color and shape legend, directed relationships, tags, filters, selection, neighborhood focus, portable graph export."
+      "label": "P1 Live data API",
+      "status": "working",
+      "detail": "round 1: /api/skills, /api/projects, /api/brain added (local only), fed by build_home.py --json and q.py --json; 6 new node tests pass"
     },
     {
-      "label": "Efficient agent context",
-      "status": "complete",
-      "detail": "Read-only CLI and shared inverted index. Synthetic 1,003-document fixture: 57.26 ms indexing, 0.23 ms query. See REVIEW.md for scope."
-    },
-    {
-      "label": "API, storage and graph checks",
-      "status": "complete",
-      "detail": "25 tests pass. Live source discovery returned 15 project files and 30 installed skills. No paid model calls run."
-    },
-    {
-      "label": "Independent code critique addressed",
-      "status": "complete",
-      "detail": "Four regression tests pass for filter reset and image/job recovery. Graph selection preserves its camera and renderer."
-    },
-    {
-      "label": "Production build",
-      "status": "complete",
-      "detail": "TypeScript and production bundle pass. About 98 KB initial JavaScript gzip; Three.js loads separately."
-    },
-    {
-      "label": "Rendered visual and mobile comparison",
+      "label": "P2 Skills, live",
       "status": "pending",
-      "detail": "No browser connected. Screenshots, 375px overflow, and a blind visual win are NOT verified."
+      "detail": "All installed skills with descriptions, docs and Run, in two clicks."
+    },
+    {
+      "label": "P3 Today, Projects and navigation",
+      "status": "pending",
+      "detail": "One front door: Today page, Projects page, Settings always visible."
     }
   ]
 }

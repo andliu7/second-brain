@@ -28,6 +28,8 @@ export async function handleApi(req,res,{local=false}={}) {
     if (route === 'sources' && req.method === 'GET') { if (!local) return send(res,404,{error:'Local libraries are available only when running the app on your computer.'}); const {listSources} = await import('./library.mjs'); return send(res,200,{sources:await listSources()}); }
     // Skill runs shell out to claude on this machine, so they exist only locally, never on a hosted deploy.
     if (route === 'tasks' && req.method === 'GET') { if (!local) return send(res,404,{error:'Skill runs are available only when running the app on your computer.'}); const {listTasks} = await import('./runner.mjs'); return send(res,200,{tasks:listTasks()}); }
+    // Skills, projects and brain search read this computer's disk fresh on every request, so they are local only too.
+    if (['skills','projects','brain'].includes(route) && req.method === 'GET') { if (!local) return send(res,404,{error:'Live data from this computer is available only when running the app on your computer.'}); const live = await import('./live.mjs'); return send(res,200,route === 'skills' ? {skills:await live.listSkills()} : route === 'projects' ? await live.listProjects() : await live.searchBrain(url.searchParams.get('q') || '')); }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
     if (route === 'source') { if (!local) return send(res,404,{error:'Local file access is disabled on hosted deployments.'}); const {readSource} = await import('./library.mjs'); return send(res,200,await readSource(body?.id)); }
