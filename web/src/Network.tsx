@@ -1,0 +1,80 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Download, Focus, Layers3, Link2, Minus, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import type { Workspace, Doc, Relation } from './types';
+import { graphFromWorkspace, buildIndex, searchGraph, relationTypes } from '../shared/graph.mjs';
+import { activity, download, now, uid } from './lib/storage';
+import './network.css';
+type Node = {id:string;title:string;kind:string;content:string;tags:string[]};
+type Edge = {id:string;source:string;target:string;relation:string;origin?:string};
+const colors:Record<string,string>={note:'#e4a57f',file:'#81b5eb',skill:'#b9a1ed',goal:'#88c9a0',topic:'#e4ce82'};
+const names:Record<string,string>={note:'Notes',file:'Files',skill:'Skills',goal:'Goals',topic:'Topics'};
+type Props={workspace:Workspace;commit:(update:(w:Workspace)=>Workspace,message?:string)=>Promise<boolean>;openDoc:(doc:Doc)=>void};
+function Stage({nodes,edges,selected,select,reset,zoom}:{nodes:Node[];edges:Edge[];selected:string;select:(id:string)=>void;reset:number;zoom:number}) {
+  const host=useRef<HTMLDivElement>(null);const [failure,setFailure]=useState('');const actions=useRef<{reset:()=>void;zoom:(n:number)=>void}|null>(null);const selectRef=useRef(select);selectRef.current=select;
+  const view=useRef<{position:THREE.Vector3;target:THREE.Vector3}|null>(null);
+  const highlight=useRef<(id:string)=>void>(()=>{});
+  useEffect(()=>{
+    const container=host.current!;let renderer:THREE.WebGLRenderer;
+    try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});}catch{setFailure('3D is unavailable on this device. The searchable node list and every relationship control still work below.');return;}
+    setFailure('');renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));container.appendChild(renderer.domElement);
+    renderer.domElement.setAttribute('aria-label','3D knowledge graph. Drag to rotate, scroll to zoom, right-drag to pan. Use the node list for keyboard selection.');
+    renderer.domElement.setAttribute('role','img');
+    const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(45,1,.1,2000);camera.position.set(0,35,155);
+    const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;controls.minDistance=18;controls.maxDistance=500;
+    if(view.current){camera.position.copy(view.current.position);controls.target.copy(view.current.target);controls.update();}
+    const group=new THREE.Group();scene.add(group);const positions=new Map<string,THREE.Vector3>();const meshes:THREE.Mesh[]=[];const resources:Array<{dispose:()=>void}>=[];
+    const edgeMaterials:{edge:Edge;material:THREE.LineBasicMaterial}[]=[];
+    const kinds=Object.keys(colors);
+    const ordered=[...nodes].sort((a,b)=>a.id.localeCompare(b.id));
+    ordered.forEach((node,i)=>{
+      const kind=kinds.indexOf(node.kind);const cluster=ordered.filter(n=>n.kind===node.kind);const order=cluster.findIndex(n=>n.id===node.id);
+      const angle=order*2.39996;const radius=cluster.length===1?0:8+Math.sqrt(order)*5.2;
+      const center=new THREE.Vector3(Math.cos(kind*1.256)*34,Math.sin(kind*1.256)*23,(kind-2)*10);
+      const pos=center.add(new THREE.Vector3(Math.cos(angle)*radius,Math.sin(angle)*radius,Math.sin(order*1.7)*14));positions.set(node.id,pos);
+      const geometry=node.kind==='goal'?new THREE.OctahedronGeometry(2.2):node.kind==='skill'?new THREE.BoxGeometry(3.3,3.3,3.3):new THREE.SphereGeometry(node.kind==='topic'?1.6:2,12,10);
+      const material=new THREE.MeshBasicMaterial({color:colors[node.kind],transparent:true,opacity:selected&&selected!==node.id?.toString()?0.7:1});
+      const mesh=new THREE.Mesh(geometry,material);mesh.position.copy(pos);mesh.userData.id=node.id;group.add(mesh);meshes.push(mesh);resources.push(geometry,material);
+    });
+    for(const edge of edges){const a=positions.get(edge.source),b=positions.get(edge.target);if(!a||!b)continue;const geo=new THREE.BufferGeometry().setFromPoints([a,b]);const material=new THREE.LineBasicMaterial({color:edge.origin==='tag'?'#615d46':'#727989',transparent:true,opacity:.35});edgeMaterials.push({edge,material});group.add(new THREE.Line(geo,material));resources.push(geo,material);if(edge.origin!=='tag'){const direction=b.clone().sub(a).normalize();const arrow=new THREE.ArrowHelper(direction,a.clone().lerp(b,.76),3.7,'#727989',2,1);group.add(arrow);resources.push(arrow.line.geometry,arrow.line.material as THREE.Material,arrow.cone.geometry,arrow.cone.material as THREE.Material);}}
+    function render(){renderer.render(scene,camera);}
+    highlight.current=(id)=>{for(const mesh of meshes){mesh.scale.setScalar(mesh.userData.id===id?1.65:1);(mesh.material as THREE.MeshBasicMaterial).opacity=!id||mesh.userData.id===id?1:.65;}for(const{edge,material}of edgeMaterials){const active=edge.source===id||edge.target===id;material.color.set(active?'#f1c1a0':edge.origin==='tag'?'#615d46':'#727989');material.opacity=active?.95:.35;}render();};
+    highlight.current(selected);
+    controls.addEventListener('change',render);
+    const size=()=>{const w=container.clientWidth,h=container.clientHeight;renderer.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();render();};
+    const observer=new ResizeObserver(size);observer.observe(container);size();
+    const ray=new THREE.Raycaster();const pointer=new THREE.Vector2();let down={x:0,y:0};
+    const pointerDown=(event:PointerEvent)=>{down={x:event.clientX,y:event.clientY};};
+    const pointerUp=(event:PointerEvent)=>{if(Math.hypot(event.clientX-down.x,event.clientY-down.y)>5)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(meshes)[0];if(hit)selectRef.current(hit.object.userData.id);};
+    renderer.domElement.addEventListener('pointerdown',pointerDown);renderer.domElement.addEventListener('pointerup',pointerUp);
+    actions.current={reset:()=>{controls.target.set(0,0,0);camera.position.set(0,35,155);controls.update();render();},zoom:(factor)=>{camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);controls.update();render();}};
+    return()=>{view.current={position:camera.position.clone(),target:controls.target.clone()};actions.current=null;highlight.current=()=>{};observer.disconnect();controls.dispose();resources.forEach(r=>r.dispose());renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();};
+  },[nodes,edges]);
+  useEffect(()=>{highlight.current(selected);},[selected]);
+  useEffect(()=>{actions.current?.reset();},[reset]);
+  const previousZoom=useRef(zoom);useEffect(()=>{if(zoom!==previousZoom.current)actions.current?.zoom(zoom>previousZoom.current?.valueOf()?0.8:1.25);previousZoom.current=zoom;},[zoom]);
+  return <div className="graph-stage" ref={host}>{failure&&<div className="graph-fallback"><Layers3 size={32}/><p>{failure}</p></div>}{!nodes.length&&<div className="graph-fallback"><Layers3 size={32}/><p>Create a note, import a file, or add a goal to start your network.</p></div>}</div>;
+}
+export default function Network({workspace,commit,openDoc}:Props) {
+  const graph=useMemo(()=>graphFromWorkspace(workspace) as {format:string;nodes:Node[];edges:Edge[]},[workspace.docs,workspace.goals,workspace.relations]);const index=useMemo(()=>buildIndex(graph),[graph]);
+  const [query,setQuery]=useState('');const [kinds,setKinds]=useState(Object.keys(colors));const [selected,setSelected]=useState('');const [reset,setReset]=useState(0);const [zoom,setZoom]=useState(0);const [focus,setFocus]=useState(false);
+  const [target,setTarget]=useState('');const [relation,setRelation]=useState('references');const [linkError,setLinkError]=useState('');const [agentQuery,setAgentQuery]=useState('');const [result,setResult]=useState<ReturnType<typeof searchGraph>|null>(null);
+  const graphNode=graph.nodes.find(n=>n.id===selected);const nearby=graph.edges.filter(e=>e.source===selected||e.target===selected);const neighborhood=new Set([selected,...nearby.flatMap(e=>[e.source,e.target])]);
+  const filtered=graph.nodes.filter(n=>kinds.includes(n.kind)&&(!focus||!selected||neighborhood.has(n.id))&&(!query||(n.title+' '+n.tags.join(' ')).toLowerCase().includes(query.toLowerCase())));
+  // Keep draw cost predictable. The full graph remains searchable/exportable.
+  const focusedId=focus?selected:'';
+  const nodes=useMemo(()=>filtered.slice(0,500) as Node[],[graph,query,kinds,focusedId]);const visibleIds=new Set(nodes.map(n=>n.id));const edges=useMemo(()=>graph.edges.filter(e=>visibleIds.has(e.source)&&visibleIds.has(e.target)) as Edge[],[graph,nodes]);
+  async function addRelation(){setLinkError('');if(!selected||!target||selected===target){setLinkError('Choose two different items.');return;}if((workspace.relations||[]).some(e=>e.source===selected&&e.target===target&&e.relation===relation)){setLinkError('That relationship already exists.');return;}
+    const edge:Relation={id:uid(),source:selected,target,relation:relation as Relation['relation'],created:now()};
+    const ok=await commit(w=>({...w,relations:[...(w.relations||[]),edge],activity:[activity('Connected two items in your network','network'),...w.activity].slice(0,100)}),'Relationship saved');if(ok)setTarget('');
+  }
+  function exportGraph(){download('second-brain-agent-graph.json',new Blob([JSON.stringify(graph)],{type:'application/json'}));}
+  return <><div className="page-heading"><div><div className="eyebrow">KNOWLEDGE, CONNECTED</div><h1>Your network</h1><p>A map you can explore. Relationships your tools can follow.</p></div><button className="button" onClick={exportGraph}><Download size={16}/>Export for agents</button></div>
+  <div className="network-toolbar"><label className="inline-search"><Search size={16}/><input aria-label="Search network" placeholder="Find an item or topic…" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="network-legend">{Object.entries(names).map(([kind,name])=><button key={kind} aria-pressed={kinds.includes(kind)} onClick={()=>setKinds(kinds.includes(kind)?kinds.filter(k=>k!==kind):[...kinds,kind])}><span style={{background:colors[kind]}}/>{name}</button>)}</div></div>
+  <div className="network-layout"><section className="network-canvas panel"><div className="graph-topline"><span>{nodes.length} / {graph.nodes.length} items · {edges.length} connections</span><span>3D EXPLORER</span></div><Stage nodes={nodes} edges={edges} selected={selected} select={setSelected} reset={reset} zoom={zoom}/><div className="graph-controls"><button className="icon-button" aria-label="Zoom in" onClick={()=>setZoom(z=>z+1)}><Plus size={17}/></button><button className="icon-button" aria-label="Zoom out" onClick={()=>setZoom(z=>z-1)}><Minus size={17}/></button><button className="icon-button" aria-label="Reset graph view" onClick={()=>setReset(r=>r+1)}><RotateCcw size={17}/></button><button className={'button small '+(focus?'primary':'')} onClick={()=>setFocus(!focus)} disabled={!selected}><Focus size={15}/>{focus?'Show all':'Focus neighbors'}</button></div><p className="graph-caption">Drag to rotate · Scroll or pinch to zoom · Right-drag to pan. Arrows show direction. Topic links come from your tags.</p></section>
+  <aside className="panel network-detail">{graphNode?<><span className="tag" style={{color:colors[graphNode.kind]}}>{names[graphNode.kind]}</span><h2>{graphNode.title}</h2><p className="node-excerpt">{graphNode.content.slice(0,360)||'No text content. This node can still connect your work.'}</p>{selected.startsWith('doc:')&&<button className="button small" onClick={()=>{const doc=workspace.docs.find(d=>'doc:'+d.id===selected);if(doc)openDoc(doc);}}>Open item</button>}<h3>Connections <span>{nearby.length}</span></h3><div className="node-connections">{nearby.slice(0,30).map(edge=>{const outgoing=edge.source===selected;const other=graph.nodes.find(n=>n.id===(outgoing?edge.target:edge.source));return <div key={edge.id}><button onClick={()=>setSelected(other!.id)}><span>{outgoing?'→':'←'} {edge.relation.replaceAll('_',' ')}</span><strong>{other?.title}</strong></button>{edge.origin==='explicit'&&<button className="icon-button" aria-label={'Remove '+edge.relation+' link to '+other?.title} onClick={()=>void commit(w=>({...w,relations:(w.relations||[]).filter(r=>r.id!==edge.id)}),'Relationship removed')}><Trash2 size={14}/></button>}</div>;})}{!nearby.length&&<p>No relationships yet. Connect a supporting file, skill, or goal below.</p>}</div>
+  {graphNode.kind!=='topic'&&<form className="relationship-form" onSubmit={e=>{e.preventDefault();void addRelation();}}><label>Relationship<select value={relation} onChange={e=>setRelation(e.target.value)}>{relationTypes.map(r=><option key={r} value={r}>{r.replaceAll('_',' ')}</option>)}</select></label><label>Connect to<select required value={target} onChange={e=>setTarget(e.target.value)}><option value="">Choose an item</option>{graph.nodes.filter(n=>n.id!==selected&&n.kind!=='topic'&&(relation!=='uses_skill'||n.kind==='skill')).map(n=><option key={n.id} value={n.id}>{n.title} ({n.kind})</option>)}</select></label>{linkError&&<p role="alert">{linkError}</p>}<button className="button primary" type="submit"><Link2 size={15}/>Connect items</button></form>}</>:<div className="network-hint"><Layers3 size={32}/><h2>Follow a thought.</h2><p>Select a node in the map or list. See what it means, what it supports, and what it depends on.</p><p>Files are blue, notes copper, skills violet, goals green, and topics gold. Skills are cubes; goals are diamonds.</p></div>}</aside></div>
+  <details className="panel node-directory" open><summary>Browse the network · {filtered.length} items</summary><div className="network-node-list">{filtered.slice(0,200).map(node=><button key={node.id} aria-pressed={selected===node.id} onClick={()=>{setSelected(node.id);setTarget('');}}><span className="node-dot" style={{background:colors[node.kind]}}/><span><strong>{node.title}</strong><small>{names[node.kind]}</small></span></button>)}</div>{filtered.length>200&&<p>Narrow your search to find more items. The full graph is included in the agent export.</p>}</details>
+  <section className="panel agent-panel"><div><span className="eyebrow">LESS CONTEXT. MORE SIGNAL.</span><h2>Put your network to work.</h2><p>Search the same index your CLI can use. Matches include source IDs and explicit one-hop relationships. No model call required.</p></div><form onSubmit={e=>{e.preventDefault();setResult(searchGraph(index,agentQuery,{budget:6000,limit:4}));}}><label>Find context<input required value={agentQuery} onChange={e=>setAgentQuery(e.target.value)} placeholder="What am I trying to accomplish?"/></label><button className="button primary">Retrieve context <Search size={15}/></button></form>{result&&<div className="retrieval-result"><p><strong>{result.stats.matchedNodes} items</strong> · {result.stats.contextChars.toLocaleString()} context characters / {result.stats.corpusChars.toLocaleString()} in the corpus · {result.stats.searchMs} ms</p><pre>{result.context||'No lexical matches. Try words used in your documents or tags.'}</pre><button className="button small" onClick={()=>download('second-brain-context.txt',new Blob([result.context],{type:'text/plain'}))}><Download size={14}/>Download context</button></div>}<details><summary>Use with Claude Code, Codex, or another CLI</summary><p>Export for agents, then run this from the web folder. Pass the resulting context to whichever model you choose. Relationships improve retrieval; they do not authorize commands.</p><pre>node bin/brain.mjs search "your question" --graph second-brain-agent-graph.json --budget 6000</pre><p>The budget is characters, not exact model tokens. Export includes text and relationships, never API keys or binary attachments.</p></details></section></>;
+}

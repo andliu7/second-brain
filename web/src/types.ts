@@ -1,0 +1,11 @@
+export type Page = 'overview' | 'files' | 'skills' | 'goals' | 'network' | 'chat' | 'generate' | 'settings';
+export type Doc = { id: string; name: string; content: string; kind: 'note' | 'file' | 'skill'; tags: string[]; pinned: boolean; created: string; updated: string; mime?: string; data?: string; size?: number; source?: string };
+export type Goal = { id: string; title: string; description: string; category: string; due: string; archived: boolean; milestones: {id: string; title: string; done: boolean}[]; created: string };
+export type Message = { id: string; role: 'user' | 'assistant'; content: string; created: string; provider?: string; model?: string };
+export type Conversation = { id: string; title: string; messages: Message[]; updated: string };
+export type Generation = { id: string; prompt: string; provider: string; model: string; aspect: string; created: string; status: 'queued' | 'complete' | 'failed'; job?: string; images: string[]; error?: string };
+export type Activity = { id: string; text: string; page: Page; created: string };
+export type Relation = { id: string; source: string; target: string; relation: 'references' | 'supports' | 'depends_on' | 'uses_skill' | 'related_to'; created: string };
+export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[] };
+export type Source = { id: string; name: string; kind: 'file' | 'skill'; path: string; size: number; updated: string };
+export type Connections = { local: boolean; providers: Record<string, boolean>; authRequired: boolean; models: Record<string, string> };

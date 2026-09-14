@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atlas — Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Committed single-theme: a star map is a dark object. Every colour painted
+   explicitly; nothing borrows the host theme. */
+:root{
+  --bg:#0a0b12; --panel:#12141d; --panel2:#0d0f17; --edge:#232738; --edge2:#333952;
+  --ink:#e9ebf4; --dim:#8b91a8; --faint:#565c73;
+  --mark:#e06a35;
+  --c-projects:#e06a35; --c-school:#4f7dde; --c-personal:#9d7f25;
+  --c-os:#8f66d6; --c-inbox:#2e8058; --c-media:#d16d99;
+  --fd:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --fb:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --fm:"IBM Plex Mono",Consolas,ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:14px}
+canvas{position:fixed;inset:0;display:block;cursor:grab}
+canvas.drag{cursor:grabbing}
+
+.hud{position:fixed;z-index:2;pointer-events:none}
+.hud>*{pointer-events:auto}
+
+/* top-left wordmark */
+#brand{top:18px;left:22px;display:flex;flex-direction:column;gap:2px}
+#brand h1{font-family:var(--fd);font-weight:700;font-size:19px;letter-spacing:-.02em;
+  margin:0;display:flex;align-items:baseline;gap:9px}
+#brand h1 span{font-family:var(--fm);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--mark);font-weight:400}
+#counts{font-family:var(--fm);font-size:11px;color:var(--dim);
+  font-variant-numeric:tabular-nums}
+#counts b{color:var(--ink);font-weight:500}
+#srcnote{font-family:var(--fm);font-size:10px;color:var(--faint);margin-top:1px}
+#srcnote.warn{color:#e0a052}
+
+/* top-right controls */
+#panel{top:18px;right:22px;width:246px;background:var(--panel);
+  border:1px solid var(--edge);border-radius:13px;padding:13px 14px;
+  display:flex;flex-direction:column;gap:11px}
+#panel .row{display:flex;gap:6px;align-items:center}
+#panel label{font-family:var(--fm);font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--faint)}
+input[type=search]{
+  width:100%;background:var(--panel2);border:1px solid var(--edge);border-radius:8px;
+  color:var(--ink);font-family:var(--fm);font-size:12px;padding:8px 11px;outline:none}
+input[type=search]:focus{border-color:var(--mark)}
+input[type=search]::placeholder{color:var(--faint)}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--edge);
+  border-radius:8px;overflow:hidden;flex:1}
+.seg button{flex:1;background:none;border:0;color:var(--dim);font-family:var(--fm);
+  font-size:11px;padding:6px 4px;cursor:pointer;letter-spacing:.04em}
+.seg button[aria-pressed="true"]{background:var(--mark);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--mark);outline-offset:-2px}
+input[type=range]{flex:1;accent-color:var(--mark);height:14px}
+#panel a{color:var(--dim);font-family:var(--fm);font-size:11px;text-decoration:none;
+  border:1px solid var(--edge);border-radius:8px;padding:6px 10px;text-align:center}
+#panel a:hover{color:var(--ink);border-color:var(--edge2)}
+#matchcount{font-family:var(--fm);font-size:10.5px;color:var(--mark);min-height:13px}
+
+/* legend bottom-left */
+#legend{bottom:18px;left:22px;background:var(--panel);border:1px solid var(--edge);
+  border-radius:13px;padding:11px 13px;display:flex;flex-direction:column;gap:6px}
+#legend .lg{display:flex;align-items:center;gap:8px;cursor:pointer;border:0;
+  background:none;color:var(--dim);font-family:var(--fm);font-size:11px;
+  padding:2px 4px;border-radius:6px;font-variant-numeric:tabular-nums}
+#legend .lg:hover{color:var(--ink)}
+#legend .lg.off{opacity:.32}
+#legend .lg i{width:9px;height:9px;border-radius:50%;flex:none}
+#legend .lg b{font-weight:500;color:var(--ink);margin-left:auto;padding-left:14px}
+#legend .hint{font-size:9.5px;color:var(--faint);font-family:var(--fm);margin-top:3px}
+
+/* detail card bottom-right */
+#detail{bottom:18px;right:22px;width:300px;background:var(--panel);
+  border:1px solid var(--edge);border-radius:13px;padding:13px 15px;display:none}
+#detail.show{display:block}
+#detail .name{font-family:var(--fm);font-size:12.5px;color:var(--ink);
+  overflow-wrap:anywhere;margin-bottom:2px}
+#detail .dir{font-family:var(--fm);font-size:10.5px;color:var(--faint);
+  overflow-wrap:anywhere}
+#detail dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:9px 0 10px;
+  font-family:var(--fm);font-size:11px}
+#detail dt{color:var(--faint)}
+#detail dd{margin:0;color:var(--dim);font-variant-numeric:tabular-nums}
+#detail .cat{display:inline-flex;align-items:center;gap:6px}
+#detail .cat i{width:8px;height:8px;border-radius:50%}
+#detail .ask{display:inline-block;font-family:var(--fm);font-size:11px;color:#fff;
+  background:var(--mark);border-radius:8px;padding:6px 11px;text-decoration:none}
+#detail .close{position:absolute;top:8px;right:11px;background:none;border:0;
+  color:var(--faint);font-size:16px;cursor:pointer;padding:2px}
+#detail .close:hover{color:var(--ink)}
+
+#tip{position:fixed;z-index:3;pointer-events:none;display:none;
+  background:var(--panel);border:1px solid var(--edge2);border-radius:8px;
+  padding:5px 9px;font-family:var(--fm);font-size:11px;color:var(--ink);
+  max-width:340px;overflow-wrap:anywhere}
+#tip small{display:block;color:var(--faint);font-size:9.5px}
+
+/* install state */
+#empty{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:4}
+#empty.show{display:flex}
+#empty .card{background:var(--panel);border:1px solid var(--edge);border-left:3px solid var(--mark);
+  border-radius:14px;padding:22px 26px;max-width:460px}
+#empty h2{font-family:var(--fd);font-size:19px;margin:0 0 8px}
+#empty p{color:var(--dim);font-size:13.5px;margin:0 0 10px}
+#empty pre{background:var(--panel2);border:1px solid var(--edge);border-radius:9px;
+  padding:11px 13px;font-family:var(--fm);font-size:11.5px;color:var(--ink);overflow-x:auto}
+
+@media (prefers-reduced-motion:reduce){ .noanim{display:none} }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div class="hud" id="brand">
+  <h1>Atlas <span>second brain</span></h1>
+  <div id="counts">loading…</div>
+  <div id="srcnote"></div>
+</div>
+
+<div class="hud" id="panel">
+  <input type="search" id="q" placeholder="Search files…  ( / )" aria-label="Search files">
+  <div id="matchcount"></div>
+  <div class="row"><label>Layout</label>
+    <div class="seg" role="group" aria-label="Layout">
+      <button id="l-rings" aria-pressed="true">Rings</button>
+      <button id="l-force" aria-pressed="false">Force</button>
+    </div>
+  </div>
+  <div class="row"><label>Spin</label><input type="range" id="spin" min="0" max="100" value="26" aria-label="Ring spin"></div>
+  <div class="row"><label>Size</label><input type="range" id="size" min="40" max="200" value="100" aria-label="Dot size"></div>
+  <a href="/">&#8592; Back to console</a>
+</div>
+
+<div class="hud" id="legend" role="group" aria-label="Categories"></div>
+
+<div class="hud" id="detail">
+  <button class="close" id="dclose" aria-label="Close">&times;</button>
+  <div class="name" id="dname"></div>
+  <div class="dir" id="ddir"></div>
+  <dl>
+    <dt>category</dt><dd class="cat" id="dcat"></dd>
+    <dt>size</dt><dd id="dsize"></dd>
+    <dt>sections</dt><dd id="dsec"></dd>
+  </dl>
+  <a class="ask" id="dask" href="/">Ask the brain about this</a>
+</div>
+
+<div id="tip"></div>
+
+<div id="empty"><div class="card">
+  <h2>No index yet</h2>
+  <p>The atlas draws from the brain's index, and it has not been built. In PowerShell,
+  natively:</p>
+  <pre>cd Downloads\Projects\second-brain\second-brain
+python install.py
+python serve.py</pre>
+  <p style="margin:0">Then reload. Until then this shows a shallow walk of the
+  brain's folder only.</p>
+</div></div>
+
+<script>
+'use strict';
+const CAT_COLOR = {
+  projects:'#e06a35', school:'#4f7dde', personal:'#9d7f25',
+  os:'#8f66d6', inbox:'#2e8058', media:'#d16d99',
+};
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+const $ = s => document.querySelector(s);
+
+let W=0, H=0, DPR=1;
+let nodes=[], cats=[], meta=null;
+let cam = {x:0, y:0, z:1};
+let layout='rings', spinSpeed=.26, sizeMul=1, rot=0;
+let hovered=-1, selected=-1, query='', offCats=new Set();
+let sprites={};
+
+function fmtB(b){
+  if (b>1e9) return (b/1e9).toFixed(1)+' GB';
+  if (b>1e6) return (b/1e6).toFixed(1)+' MB';
+  if (b>1e3) return (b/1e3).toFixed(0)+' KB';
+  return b+' B';
+}
+
+function size(){
+  DPR = Math.min(devicePixelRatio||1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W*DPR; cv.height = H*DPR;
+  makeSprites(); makeStars(); makeLayer();
+  nodes.forEach(n=> n._bk = undefined);
+}
+
+/* pre-rendered glow sprites: one drawImage per node beats shadowBlur by ~40x */
+const BUCKETS = 8;
+function makeSprites(){
+  // quantized sizes per colour: unscaled drawImage blits are ~3x faster than
+  // scaling the same sprite 5,000 times a frame
+  for (const [k,c] of Object.entries(CAT_COLOR)){
+    sprites[k] = [];
+    for (let b=0;b<BUCKETS;b++){
+      const R = Math.ceil((3 + b*2.2) * DPR);
+      const s = document.createElement('canvas');
+      s.width = s.height = R*2;
+      const g = s.getContext('2d');
+      const gr = g.createRadialGradient(R,R,0,R,R,R);
+      gr.addColorStop(0, '#ffffff');
+      gr.addColorStop(.18, c);
+      gr.addColorStop(.45, c+'aa');
+      gr.addColorStop(1, c+'00');
+      g.fillStyle = gr; g.fillRect(0,0,R*2,R*2);
+      s._r = R;
+      sprites[k].push(s);
+    }
+  }
+}
+
+let stars=null;
+let layer=null, layerCx=null, layerDirty=true, settling=0, LR=0;
+function makeLayer(){
+  LR = Math.ceil(Math.min(W,H)*.5 + 60);
+  layer = document.createElement('canvas');
+  layer.width = layer.height = LR*2*DPR;
+  layerCx = layer.getContext('2d');
+  layerDirty = true;
+}
+function makeStars(){
+  stars = document.createElement('canvas');
+  stars.width = W*DPR; stars.height = H*DPR;
+  const g = stars.getContext('2d');
+  g.scale(DPR,DPR);
+  // vignette ground
+  const v = g.createRadialGradient(W/2,H/2,Math.min(W,H)*.18, W/2,H/2, Math.max(W,H)*.75);
+  v.addColorStop(0,'#0d0f1a'); v.addColorStop(.55,'#0a0b12'); v.addColorStop(1,'#06070c');
+  g.fillStyle = v; g.fillRect(0,0,W,H);
+  // starfield
+  let seed = 12345;
+  const rnd = () => (seed = (seed*16807)%2147483647)/2147483647;
+  for (let i=0;i<340;i++){
+    const x = rnd()*W, y = rnd()*H, r = rnd()*1.1+.2, a = rnd()*.5+.08;
+    g.globalAlpha = a; g.fillStyle = rnd()>.85 ? '#8f9bc9' : '#e9ebf4';
+    g.beginPath(); g.arc(x,y,r,0,6.284); g.fill();
+  }
+  g.globalAlpha = 1;
+}
+
+/* ── layouts ─────────────────────────────────────────────────────────── */
+function layoutRings(){
+  // category sectors sized by share; inside each, folders as concentric arcs
+  const total = nodes.length || 1;
+  const R0 = Math.min(W,H)*.16, R1 = Math.min(W,H)*.46;
+  let a0 = -Math.PI/2;
+  const byCat = {};
+  nodes.forEach(n => (byCat[n.c] = byCat[n.c]||[]).push(n));
+  for (const cat of cats.map(c=>c.key)){
+    const list = byCat[cat]||[];
+    if (!list.length) continue;
+    // sqrt share: small categories stay visible without leaving a bare arc
+    const share = list.length/total;
+    const span = Math.max(.12, Math.min(
+      Math.sqrt(share)*Math.PI*.95, share*Math.PI*2*.92 + .3));
+    // group by dir so folders form contiguous arcs
+    list.sort((a,b)=> a.dir<b.dir?-1:a.dir>b.dir?1:0);
+    const rows = list.length < 30 ? Math.max(1, Math.ceil(list.length/10))
+               : Math.max(3, Math.ceil(Math.sqrt(list.length/2)));
+    const perRow = Math.ceil(list.length/rows);
+    // count folder boundaries so the sector reads as grouped constellations
+    let dirBreaks = 0;
+    for (let i=1;i<list.length;i++) if (list[i].dir!==list[i-1].dir) dirBreaks++;
+    const gapA = Math.min(.028, span*.25/Math.max(1,dirBreaks));
+    let extra = 0, prevDir = null;
+    list.forEach((n,i)=>{
+      if (prevDir!==null && n.dir!==prevDir) extra += gapA;
+      prevDir = n.dir;
+      const row = Math.floor(i/perRow), col = i%perRow;
+      // deterministic jitter from the path hash: organic, stable between frames
+      let h=0; for (let k=0;k<n.p.length;k+=7) h=(h*31+n.p.charCodeAt(k))|0;
+      const jr = ((h&255)/255-.5)*(R1-R0)/rows*.5;
+      const r = R0 + (R1-R0)*(row+.5)/rows + jr;
+      const usable = span - extra - gapA*0;
+      const a = a0 + extra + usable*( (col+.5)/perRow )*.96 + .02;
+      n.tx = Math.cos(a)*r; n.ty = Math.sin(a)*r;
+      n._j = ((h>>8)&255)/255;                     // size/alpha jitter seed
+    });
+    (byCat[cat].meta = {a0, a1:a0+span, r:R1});
+    cats.find(c=>c.key===cat)._arc = [a0, a0+span, R1];
+    a0 += span + .07;
+  }
+}
+
+function layoutForce(){
+  // folder hubs on a spiral, members jittered around their hub — O(n), no sim
+  const dirs = {};
+  nodes.forEach(n => (dirs[n.dir] = dirs[n.dir]||[]).push(n));
+  const keys = Object.keys(dirs);
+  const R1 = Math.min(W,H)*.44;
+  keys.forEach((d,i)=>{
+    const t = i/keys.length;
+    const a = t*Math.PI*2*3.2;                    // 3.2 turns of spiral
+    const r = Math.min(W,H)*.1 + R1*.82*Math.sqrt(t);
+    const hx = Math.cos(a)*r, hy = Math.sin(a)*r;
+    const list = dirs[d];
+    const cr = 6 + Math.sqrt(list.length)*3.4;
+    list.forEach((n,j)=>{
+      const ja = (j*2.399963), jr = cr*Math.sqrt(j/list.length);  // golden angle
+      n.tx = hx + Math.cos(ja)*jr; n.ty = hy + Math.sin(ja)*jr;
+    });
+  });
+  cats.forEach(c => c._arc = null);
+}
+
+function relayout(){
+  if (layout==='rings') layoutRings(); else layoutForce();
+  nodes.forEach(n => { if (n.x===undefined){ n.x=n.tx; n.y=n.ty; } });
+  settling = 80; layerDirty = true;
+}
+function markDirty(){ layerDirty = true; }
+
+function paintLayer(){
+  const g = layerCx;
+  g.setTransform(DPR,0,0,DPR,0,0);
+  g.clearRect(0,0,LR*2,LR*2);
+  g.translate(LR,LR);
+  const q = query;
+  const anyFilter = q || offCats.size;
+  let moving = false, matches = 0;
+  for (const pass of [0,1]){
+    for (const n of nodes){
+      if (offCats.has(n.c)) continue;
+      const hit = q && (n.n.toLowerCase().includes(q) || n.dir.toLowerCase().includes(q));
+      if (q && pass===1 && hit) matches++;
+      const lit = !anyFilter || hit;
+      if ((pass===0) === lit) continue;
+      const dx = n.tx-n.x, dy = n.ty-n.y;
+      if (dx*dx+dy*dy > .3){ n.x += dx*.11; n.y += dy*.11; moving = true; }
+      else { n.x = n.tx; n.y = n.ty; }
+      if (n._bk===undefined)
+        n._bk = Math.max(0, Math.min(BUCKETS-1,
+          Math.round((0.35 + Math.log10(1+n.b/2e3)*.9 + n.s*.25 + (n._j||0)*1.1)
+                     * sizeMul * 2) ));
+      const spr = (sprites[n.c]||sprites.inbox)[n._bk];
+      const half = spr._r/DPR;
+      g.globalAlpha = lit ? (.6 + (n._j||0)*.4) : .12;
+      g.drawImage(spr, n.x-half, n.y-half, half*2, half*2);
+      n._sr = Math.max(4, half*.7);
+    }
+  }
+  g.globalAlpha = 1;
+  lastMatches = matches;
+  return moving;
+}
+let lastMatches = 0;
+
+/* ── draw ────────────────────────────────────────────────────────────── */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(50, now-last); last = now;
+  if (!REDUCED && layout==='rings') rot += spinSpeed*dt*1e-5*Math.PI*2;
+
+  cx.setTransform(1,0,0,1,0,0);
+  if (stars) cx.drawImage(stars,0,0);
+  cx.setTransform(DPR,0,0,DPR,0,0);
+  cx.save();
+  cx.translate(W/2 + cam.x, H/2 + cam.y);
+  cx.scale(cam.z, cam.z);
+  const cr = Math.cos(rot), sr = Math.sin(rot);
+
+  // faint orbit guides
+  cx.strokeStyle = '#1c2033'; cx.lineWidth = 1/cam.z;
+  const Rg = Math.min(W,H);
+  for (const f of [.16,.31,.46]){
+    cx.beginPath(); cx.arc(0,0,Rg*f,0,6.284); cx.stroke();
+  }
+  // filaments: hub to each sector's inner edge, faint, in-category colour
+  if (layout==='rings'){
+    for (const c of cats){
+      if (!c._arc || offCats.has(c.key)) continue;
+      const mid = (c._arc[0]+c._arc[1])/2 + rot;
+      const r0 = Rg*.16;
+      cx.strokeStyle = CAT_COLOR[c.key]+'2e'; cx.lineWidth = 1.2/cam.z;
+      cx.beginPath();
+      cx.moveTo(Math.cos(mid)*18/Math.sqrt(cam.z), Math.sin(mid)*18/Math.sqrt(cam.z));
+      cx.lineTo(Math.cos(mid)*r0, Math.sin(mid)*r0);
+      cx.stroke();
+      // sector inner arc glint
+      cx.strokeStyle = CAT_COLOR[c.key]+'22';
+      cx.beginPath(); cx.arc(0,0,r0, c._arc[0]+rot+.01, c._arc[1]+rot-.01); cx.stroke();
+    }
+  }
+
+  // node layer: repaint only while easing or after a state change,
+  // then rotate the finished image — one blit per frame instead of thousands
+  if (layerDirty || settling > 0){
+    const moving = paintLayer();
+    settling = moving ? Math.max(1, settling-1) : 0;
+    layerDirty = false;
+  }
+  cx.save();
+  cx.rotate(rot);
+  cx.drawImage(layer, -LR, -LR, LR*2, LR*2);
+  cx.restore();
+  // screen-space node positions for picking (only what pick() needs)
+  const matches = lastMatches;
+
+  // selected halo
+  if (selected>=0){
+    const n = nodes[selected];
+    const hx = n.x*cr - n.y*sr, hy = n.x*sr + n.y*cr;
+    cx.strokeStyle = '#fff'; cx.lineWidth = 1.4/cam.z;
+    cx.beginPath(); cx.arc(hx, hy, (n._sr||5)+4/cam.z, 0, 6.284); cx.stroke();
+  }
+
+  // sector labels (rings only) — text stays upright
+  if (layout==='rings'){
+    cx.font = `600 ${13/cam.z}px ${getComputedStyle(document.body).getPropertyValue('--fm')}`;
+    for (const c of cats){
+      if (!c._arc || offCats.has(c.key)) continue;
+      const [a0,a1,r] = c._arc;
+      const mid = (a0+a1)/2 + rot;
+      const lx = Math.cos(mid)*(r+40/cam.z), ly = Math.sin(mid)*(r+40/cam.z);
+      cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.fillStyle = '#06070c';
+      for (const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1]])
+        cx.fillText(c.label.toUpperCase(), lx+ox/cam.z, ly+oy/cam.z);
+      cx.fillStyle = CAT_COLOR[c.key];
+      cx.fillText(c.label.toUpperCase(), lx, ly);
+    }
+  }
+
+  // center hub with bloom
+  const hb = cx.createRadialGradient(0,0,0, 0,0, 46/Math.sqrt(cam.z));
+  hb.addColorStop(0,'#e06a3540'); hb.addColorStop(1,'#e06a3500');
+  cx.fillStyle = hb;
+  cx.beginPath(); cx.arc(0,0,46/Math.sqrt(cam.z),0,6.284); cx.fill();
+  cx.fillStyle = '#e06a35';
+  cx.beginPath(); cx.arc(0,0, 7/Math.sqrt(cam.z), 0, 6.284); cx.fill();
+  cx.strokeStyle = '#e06a3555'; cx.lineWidth = 1/cam.z;
+  cx.beginPath(); cx.arc(0,0, 14/Math.sqrt(cam.z), 0, 6.284); cx.stroke();
+  cx.fillStyle = '#e9ebf4';
+  cx.font = `500 ${11/cam.z}px ${getComputedStyle(document.body).getPropertyValue('--fm')}`;
+  cx.textAlign='center';
+  cx.fillText('CLAUDE.MD', 0, 24/Math.sqrt(cam.z));
+
+  cx.restore();
+
+  const mc = $('#matchcount');
+  mc.textContent = query ? `${matches} match${matches===1?'':'es'}` : '';
+
+  requestAnimationFrame(frame);
+}
+
+/* ── input ───────────────────────────────────────────────────────────── */
+let dragging=false, lx=0, ly=0, moved=0;
+cv.addEventListener('pointerdown', e=>{ dragging=true; moved=0; lx=e.clientX; ly=e.clientY; cv.classList.add('drag'); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e=>{
+  if (dragging){
+    cam.x += e.clientX-lx; cam.y += e.clientY-ly;
+    moved += Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly);
+    lx=e.clientX; ly=e.clientY;
+  } else hover(e);
+});
+cv.addEventListener('pointerup', e=>{
+  dragging=false; cv.classList.remove('drag');
+  if (moved<5) click(e);
+});
+cv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const f = Math.exp(-e.deltaY*.0012);
+  const mx = e.clientX-W/2-cam.x, my = e.clientY-H/2-cam.y;
+  cam.x -= mx*(f-1); cam.y -= my*(f-1);
+  cam.z = Math.min(8, Math.max(.35, cam.z*f));
+}, {passive:false});
+
+function pick(e){
+  // un-rotate the cursor into layer space instead of rotating every node
+  const px = (e.clientX-W/2-cam.x)/cam.z, py = (e.clientY-H/2-cam.y)/cam.z;
+  const c = Math.cos(-rot), s2 = Math.sin(-rot);
+  const x = px*c - py*s2, y = px*s2 + py*c;
+  let best=-1, bd=1e9;
+  for (let i=0;i<nodes.length;i++){
+    const n = nodes[i];
+    if (offCats.has(n.c)) continue;
+    const d = (n.x-x)**2 + (n.y-y)**2;
+    const r = ((n._sr||5)+3)**2;
+    if (d<r && d<bd){ bd=d; best=i; }
+  }
+  return best;
+}
+function hover(e){
+  hovered = pick(e);
+  const tip = $('#tip');
+  if (hovered>=0){
+    const n = nodes[hovered];
+    tip.innerHTML = `${n.n}<small>${n.dir} &middot; ${fmtB(n.b)}${n.s?` &middot; ${n.s} section${n.s===1?'':'s'}`:''}</small>`;
+    tip.style.display='block';
+    tip.style.left = Math.min(W-360, e.clientX+14)+'px';
+    tip.style.top = (e.clientY+12)+'px';
+  } else tip.style.display='none';
+}
+function click(e){
+  const i = pick(e);
+  selected = i;
+  const d = $('#detail');
+  if (i<0){ d.classList.remove('show'); return; }
+  const n = nodes[i];
+  $('#dname').textContent = n.n;
+  $('#ddir').textContent = n.p;
+  $('#dcat').innerHTML = `<i style="background:${CAT_COLOR[n.c]}"></i>${(cats.find(c=>c.key===n.c)||{}).label||n.c}`;
+  $('#dsize').textContent = fmtB(n.b);
+  $('#dsec').textContent = n.s || '—';
+  $('#dask').href = '/?q=' + encodeURIComponent(n.n.replace(/\.[a-z0-9]+$/i,'').replace(/[-_]/g,' '));
+  d.classList.add('show');
+}
+$('#dclose').addEventListener('click', ()=>{ selected=-1; $('#detail').classList.remove('show'); });
+
+$('#q').addEventListener('input', e=>{ query = e.target.value.trim().toLowerCase(); markDirty(); });
+addEventListener('keydown', e=>{
+  if (e.target.matches('input')) { if (e.key==='Escape') e.target.blur(); return; }
+  if (e.key==='/'){ e.preventDefault(); $('#q').focus(); }
+  if (e.key==='Escape'){ selected=-1; $('#detail').classList.remove('show'); }
+});
+
+function setLayout(l){
+  layout = l;
+  $('#l-rings').setAttribute('aria-pressed', l==='rings');
+  $('#l-force').setAttribute('aria-pressed', l==='force');
+  relayout();
+}
+$('#l-rings').addEventListener('click', ()=>setLayout('rings'));
+$('#l-force').addEventListener('click', ()=>setLayout('force'));
+$('#spin').addEventListener('input', e=> spinSpeed = e.target.value/100);
+$('#size').addEventListener('input', e=>{ sizeMul = e.target.value/100;
+  nodes.forEach(n=> n._bk = undefined); markDirty(); });
+
+addEventListener('resize', ()=>{ size(); relayout(); });
+
+/* ── boot ────────────────────────────────────────────────────────────── */
+async function boot(){
+  size();
+  let d;
+  try{
+    d = await (await fetch('/api/atlas')).json();
+  } catch(e){
+    $('#counts').textContent = 'serve.py not reachable';
+    return;
+  }
+  meta = d;
+  cats = d.categories.filter(c=>c.n>0);
+  nodes = d.nodes;
+  $('#counts').innerHTML =
+    `<b>${d.total_files.toLocaleString()}</b> files &middot; <b>${fmtB(d.total_bytes)}</b>` +
+    (d.truncated ? ` &middot; showing ${d.shown.toLocaleString()}` : '');
+  const src = $('#srcnote');
+  if (!d.installed){
+    src.textContent = 'index not built — showing a shallow walk';
+    src.className = 'warn';
+    $('#empty').classList.add('show');
+    setTimeout(()=>$('#empty').classList.remove('show'), 6000);
+  } else {
+    src.textContent = 'source: live index';
+  }
+  const lg = $('#legend');
+  lg.innerHTML = cats.map(c =>
+    `<button class="lg" data-k="${c.key}">
+       <i style="background:${CAT_COLOR[c.key]}"></i>${c.label}<b>${c.n.toLocaleString()}</b>
+     </button>`).join('') + `<div class="hint">click to isolate &middot; drag to pan &middot; scroll to zoom</div>`;
+  lg.querySelectorAll('.lg').forEach(b => b.addEventListener('click', ()=>{
+    const k = b.dataset.k;
+    if (offCats.has(k)) offCats.delete(k); else offCats.add(k);
+    b.classList.toggle('off', offCats.has(k));
+    markDirty();
+  }));
+  relayout();
+  requestAnimationFrame(t=>{ last=t; requestAnimationFrame(frame); });
+}
+boot();
+</script>
+</body>
+</html>

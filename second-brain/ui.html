@@ -205,6 +205,9 @@ input[type=text]:focus-visible{border-color:var(--mark)}
 
 <header>
   <div class="word"><h1>Second brain</h1><span>console</span></div>
+  <a href="/map" style="font-family:var(--fm);font-size:11.5px;color:var(--dim);
+    text-decoration:none;border:1px solid var(--edge);border-radius:8px;
+    padding:7px 12px">&#10022; Atlas</a>
   <div class="stats" id="stats"></div>
   <button id="ridx">reindex</button>
 </header>
@@ -554,6 +557,9 @@ addEventListener('keydown', e => {
   if (e.key === 's'){ e.preventDefault(); surprise(); }
 });
 loadState();
+// arriving from the Atlas: /?q=... pre-fills the ask box
+const preQ = new URLSearchParams(location.search).get('q');
+if (preQ){ $('#q').value = preQ; $('#q').focus(); }
 </script>
 </body>
 </html>

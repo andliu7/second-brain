@@ -26,5 +26,6 @@ channel the useful ones will arrive on.
 | `phase-watch.md` | Weekday mornings | You are mid-gauntlet-loop and want the overnight state without opening four terminals |
 | `weekly-upkeep.md` | Friday afternoon | Always. This is the one that keeps the whole OS from rotting |
 | `quiet-repos.md` | Monday morning | You have six repos and keep rediscovering uncommitted work in the wrong one |
+| `weekly-planning.md` | Sunday 17:00 | Scheduled 2026-08-28. Digests the Weekly Bench inbox + open project threads into a Sunday-evening nudge |
 
 Start with `weekly-upkeep`. It is the only one whose absence compounds.

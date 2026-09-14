@@ -37,6 +37,7 @@ except ImportError:
 
 INDEX = HERE / "index.tsv"
 UI = HERE / "ui.html"
+MAP = HERE / "map.html"
 PORT_DEFAULT = 7432
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
 
@@ -179,6 +180,98 @@ def reindex():
         _reindex_lock.release()
 
 
+# ── the atlas: every file as one node ──────────────────────────────────────
+
+CATEGORIES = [
+    # (key, label, matcher) — first match wins, order is the legend order
+    ("projects", "Projects",  lambda p: "/projects/" in p and "/second-brain/" not in p),
+    ("os",       "OS + Brain", lambda p: "/second-brain/" in p or p.endswith("claude.md")),
+    ("school",   "School",    lambda p: "/school/" in p or "/cmsc" in p or "/fmsc" in p or "/dat" in p),
+    ("personal", "Personal",  lambda p: "/taxes/" in p or "/c_visa/" in p or "/personal/" in p),
+    ("media",    "Media",     lambda p: "/generations/" in p or p.endswith((".png", ".jpg", ".jpeg", ".mp4", ".webp", ".gif"))),
+    ("inbox",    "Inbox",     lambda p: True),
+]
+
+def categorize(path: str) -> str:
+    q = path.replace("\\", "/").lower()
+    for key, _, match in CATEGORIES:
+        if match(q):
+            return key
+    return "inbox"
+
+
+def atlas(cap: int = 9000):
+    """Every file the brain knows, as nodes. One pass over the index; no
+    filesystem walk when installed, so it is as fast as reading one TSV."""
+    if installed():
+        rows = read_rows()
+        files = {}
+        for r in rows:
+            f = files.setdefault(r.path, {"sections": 0, "bytes": 0, "mtime": 0})
+            f["sections"] += 1
+            f["bytes"] += max(0, r.byte_end - r.byte_start)
+            f["mtime"] = max(f["mtime"], getattr(r, "mtime_ns", 0) or 0)
+        src = "index"
+    else:
+        # honest fallback: shallow walk of the brain's neighbourhood
+        cfg = brainlib.load_config(HERE)
+        roots = [Path(x) for x in cfg.get("roots", [])] or [HERE.parent]
+        skip = set(brainlib.DEFAULT_CONFIG["skip_dirs"])
+        files = {}
+        for root in roots:
+            if not root.is_dir():
+                continue
+            for p in root.rglob("*"):
+                if len(files) > cap * 2:
+                    break
+                if p.is_dir():
+                    if p.name in skip:
+                        # rglob has no prune; cheap guard: skip children by name test below
+                        pass
+                    continue
+                if any(part in skip for part in p.parts):
+                    continue
+                try:
+                    st = p.stat()
+                except OSError:
+                    continue
+                files[str(p)] = {"sections": 0, "bytes": st.st_size,
+                                 "mtime": st.st_mtime_ns}
+        src = "walk"
+
+    nodes = []
+    for path, f in files.items():
+        norm = path.replace("\\", "/")
+        parts = norm.split("/")
+        nodes.append({
+            "p": norm,
+            "n": parts[-1],
+            "dir": "/".join(parts[-3:-1]),
+            "c": categorize(norm),
+            "s": f["sections"],
+            "b": f["bytes"],
+        })
+    total = len(nodes)
+    truncated = total > cap
+    if truncated:
+        # keep the biggest and the most-sectioned; drop the long tail evenly
+        nodes.sort(key=lambda n: -(n["s"] * 10000 + n["b"]))
+        nodes = nodes[:cap]
+    counts = {}
+    tot_bytes = 0
+    for n in nodes:
+        counts[n["c"]] = counts.get(n["c"], 0) + 1
+        tot_bytes += n["b"]
+    return {
+        "source": src, "installed": installed(),
+        "total_files": total, "shown": len(nodes), "truncated": truncated,
+        "total_bytes": tot_bytes,
+        "categories": [{"key": k, "label": lbl, "n": counts.get(k, 0)}
+                       for k, lbl, _ in CATEGORIES],
+        "nodes": nodes,
+    }
+
+
 def surprise():
     """A random section — rediscovery is the fun half of a memory system."""
     rows = [r for r in read_rows() if r.byte_end - r.byte_start > 80]
@@ -232,6 +325,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+        elif route == "/map":
+            try:
+                raw = MAP.read_bytes()
+            except OSError:
+                self.send_error(500, "map.html missing next to serve.py")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        elif route == "/api/atlas":
+            self._json(atlas())
         elif route == "/api/state":
             self._json(state())
         elif route == "/api/surprise":

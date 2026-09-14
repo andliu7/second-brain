@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+.DS_Store
+*.tsbuildinfo
+second-brain-backup-*.json
+second-brain-agent-graph.json
+second-brain-context.txt
