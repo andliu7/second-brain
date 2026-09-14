@@ -23,15 +23,15 @@ npm run test:ui
 
 ## Use
 
-**Files** creates notes and imports files up to 20 MB each. Text is editable and searchable; raster images and PDFs have previews, while other formats remain downloadable. Pin items for the Overview. “Browse library” discovers root documentation, OS/memory, OS/routines, second-brain/memories, and installed Claude SKILL.md files. Saving a source creates a personal copy. The original source is never edited.
+**Files** creates notes and imports files up to 20 MB each. Text is editable and searchable; raster images and PDFs have previews, while other formats remain downloadable. Pin items for the Overview. “Browse library” discovers root documentation, OS/memory, OS/routines and second-brain/memories. Saving a source creates a personal copy. The original source is never edited.
 
-**Skills** stores instructions you can edit and explicitly attach in Chat. Installed skills are discovered from ~/.claude/skills. The app does not execute scripts inside skills, invoke shell tools, or synchronize your Claude account.
+**Skills** lists every skill installed in ~/.claude/skills, read live from /api/skills on each visit, plus skills you write here, marked Personal. Each skill opens as its own page at #skills/<folder> (#skills/personal/<id> for yours): README.md and SKILL.md as tabs when a skill has both (a lone SKILL.md shows without a tab bar, its path above it), frontmatter as labels, Use in Chat (sends SKILL.md as context held in memory, nothing saved), and Duplicate to edit for a personal copy. Skills listed in server/runner.mjs also get a Run control and their output on that page. The app does not execute scripts inside skills or synchronize your Claude account.
 
 **Goals** tracks outcomes with dated milestones and an archive.
 
 **Network** maps files (blue), notes (copper), skills (violet cubes), goals (green diamonds), and topics (gold). Drag to rotate, scroll/pinch to zoom, right-drag to pan, or use the buttons. Select nodes from the graph or keyboard-accessible directory. Add references, supports, depends_on, uses_skill, or related_to links. Arrows encode direction; topic links are derived from your explicit tags. Deleting a document or goal removes its explicit relationships. The graph draws up to 500 matching nodes at once; search narrows the view, and the full graph remains exportable.
 
-**Chat** offers Claude, OpenAI, and Gemini with editable model IDs. Only conversation messages and explicitly attached text go to the provider. Binary file text extraction and autonomous tools are not included. Provider limits: at most 100 messages, 10 context attachments, 40,000 characters per item, and 120,000 combined characters per request.
+**Chat** offers Claude, OpenAI, and Gemini with editable model IDs. Only conversation messages and explicitly attached text go to the provider. Binary file text extraction and autonomous tools are not included. Provider limits: at most 100 messages, 10 context attachments, 40,000 characters per message, and 120,000 combined characters per request, which one attachment may use alone.
 
 **Generate** sends one image request to the selected provider. Kie uses Nano Banana Pro; fal uses FLUX Schnell; Google uses Gemini 3.1 Flash Image. Queued jobs survive reloads and can be checked without resubmitting. Results are downloaded into browser storage as actual bytes. Prompts, providers, model IDs, timestamps, and job tickets are preserved. Provider keys do not imply verified billing/model access, and no paid requests ran during development. Video and reference-image editing are future additions.
 
@@ -49,7 +49,7 @@ Copy .env.example to .env and add only the providers you use. Server-only keys:
 
 The local .env supplied on this machine only points GENERATE_ENV_FILE at your existing ~/.claude/.env. It contains no copied API secrets and is ignored by Git. The server loads those keys when it starts. Restart after changing environment values. Settings shows which keys are available; that is not a live account check. Consumer chat subscriptions do not provide the API keys used by this website.
 
-Local library paths can be customized with SECOND_BRAIN_ROOT and CLAUDE_SKILLS_DIR. The development server binds only to 127.0.0.1 and rejects foreign origins and Host headers.
+SECOND_BRAIN_ROOT changes the folder the Files library reads. CLAUDE_SKILLS_DIR only changes where the Run control (server/runner.mjs) checks that a skill is installed; it does not move the Skills list. The development server binds only to 127.0.0.1 and rejects foreign origins and Host headers.
 
 Skills, projects and brain search are read live from disk on every request (server/live.mjs, /api/skills, /api/projects, /api/brain?q=). They run OS/build_home.py --json and second-brain/q.py --json, so python must be on PATH. The skills list always reads ~/.claude/skills, because build_home.py does.
 

@@ -7,5 +7,5 @@ export type Generation = { id: string; prompt: string; provider: string; model: 
 export type Activity = { id: string; text: string; page: Page; created: string };
 export type Relation = { id: string; source: string; target: string; relation: 'references' | 'supports' | 'depends_on' | 'uses_skill' | 'related_to'; created: string };
 export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[] };
-export type Source = { id: string; name: string; kind: 'file' | 'skill'; path: string; size: number; updated: string };
+export type Source = { id: string; name: string; kind: 'file'; path: string; size: number; updated: string };
 export type Connections = { local: boolean; providers: Record<string, boolean>; authRequired: boolean; models: Record<string, string> };

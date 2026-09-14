@@ -62,6 +62,15 @@ test('skills lists every folder in ~/.claude/skills that has a SKILL.md, with it
   assert.equal(bySlug.generate.task, null);
 });
 
+test('every installed skill can be sent to Chat the way Use in Chat attaches it', async () => {
+  // ui-ux-pro-max's SKILL.md is over 45,000 characters, so a 40,000 cap per context item refused it.
+  const { validateChat } = await import('../server/providers.mjs');
+  const { body } = await apiRequest('skills');
+  for (const skill of body.skills) {
+    assert.doesNotThrow(() => validateChat({ provider: 'gemini', model: 'gemini-3.5-flash', messages: [{ role: 'user', content: 'What does this skill cover?' }], context: [{ name: skill.name, content: skill.skill, kind: 'skill' }] }), skill.slug);
+  }
+});
+
 test('projects reports repos, every school course with each project\'s git state, Blueberry STATUS entries and routines', async () => {
   const { status, body } = await apiRequest('projects');
   assert.equal(status, 200);

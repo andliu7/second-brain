@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-14T01:37:44.103Z",
-  "phase": "Gauntlet loop: raising every rating to an A",
+  "updated": "2026-09-14T14:44:26.918Z",
+  "phase": "Two gauntlets: the dashboard's Phases 3-4, and second-brain web to an A",
   "bar": "Linear (My Issues, Inbox, the app shots on linear.app) for looks, contrast, structure and ease. Obsidian on the Projects folder for how much real work the site reaches",
   "checks": [
     {
@@ -10,18 +10,98 @@
     },
     {
       "label": "P1 Live data API",
-      "status": "working",
-      "detail": "round 1: /api/skills, /api/projects, /api/brain added (local only), fed by build_home.py --json and q.py --json; 6 new node tests pass"
+      "status": "complete",
+      "detail": "/api/skills, /api/projects and /api/brain now read live from disk; live-data tests 6 of 6 pass (were 5 of 6 failing), live server returns 31 skills, 6 repos, decisions.md as brain winner; commit b1075ef"
     },
     {
       "label": "P2 Skills, live",
-      "status": "pending",
-      "detail": "All installed skills with descriptions, docs and Run, in two clicks."
+      "status": "working",
+      "detail": "round 2: per-item chat context cap 40k to 120k so Use in Chat works on ui-ux-pro-max; check sends it through the real UI (stubbed, unbilled) and validates every SKILL.md; 64/64"
     },
     {
       "label": "P3 Today, Projects and navigation",
       "status": "pending",
       "detail": "One front door: Today page, Projects page, Settings always visible."
+    },
+    {
+      "label": "D1 Capture core",
+      "status": "complete",
+      "detail": "Ladder (57faafa), atomic save with 9 cross-user security tests (24c8b09), parse Edge Function written not deployed plus docs/PARSING.md costs (this commit); npm run check green, 128 tests"
+    },
+    {
+      "label": "D2 Capture panel",
+      "status": "working",
+      "detail": "round 1: capture panel in the header (Ctrl+K, /) parses, runs the ladder, previews editable grouped items with guessed ones marked, saves; 10 tests, 3 preview screens, 0 contrast failures"
+    },
+    {
+      "label": "D3 Notes",
+      "status": "pending",
+      "detail": "Fast capture first, search and tags second."
+    },
+    {
+      "label": "D4 Food",
+      "status": "pending",
+      "detail": "Day view against goals; estimates look different; corrections write back."
+    },
+    {
+      "label": "D5 Workouts",
+      "status": "pending",
+      "detail": "Sessions and exercises, same confidence rules."
+    },
+    {
+      "label": "D6 Goals",
+      "status": "pending",
+      "detail": "Areas, milestones, and the quiz that turns intentions into numeric targets."
+    },
+    {
+      "label": "D7 Tasks",
+      "status": "pending",
+      "detail": "Weekly planner: inbox, days, any time."
+    },
+    {
+      "label": "D8 Today",
+      "status": "pending",
+      "detail": "Everything for today on one page."
+    },
+    {
+      "label": "P8 Visual system",
+      "status": "pending",
+      "detail": "Moved ahead of P4: one type scale, a copper budget, named status colors; must win blind against Linear on Skills list, skill page, Today and Projects"
+    },
+    {
+      "label": "P4 Ask and Ctrl+K",
+      "status": "pending",
+      "detail": "Palette searches the workspace and the brain together and runs actions; Chat asks about a course file without copying it"
+    },
+    {
+      "label": "P5 Generate proven",
+      "status": "pending",
+      "detail": "Prompt and price above the fold; one real image per provider under the 1 dollar cap; saved where the /generate skill saves"
+    },
+    {
+      "label": "P6 Retire the launcher",
+      "status": "pending",
+      "detail": "Every launcher action lives on the site, then the launcher's duplicate files go; HOME stays"
+    },
+    {
+      "label": "P7 Network live",
+      "status": "pending",
+      "detail": "The map fills itself from skills, courses, repos and memory notes"
+    },
+    {
+      "label": "P9 Contrast",
+      "status": "pending",
+      "detail": "Zero AA failures on every page, normal, hover and focus, at 1440 and 390"
+    },
+    {
+      "label": "P10 Phone width",
+      "status": "pending",
+      "detail": "No sideways scroll at 390, tap targets 44px"
+    },
+    {
+      "label": "P11 No dead ends",
+      "status": "pending",
+      "detail": "Every disabled control and error says what to do; all ten tasks in one final run"
     }
   ]
 }

@@ -1,10 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 export const projectRoot = path.resolve(process.env.SECOND_BRAIN_ROOT || fileURLToPath(new URL('../../', import.meta.url)));
-const skillsRoot = path.resolve(process.env.CLAUDE_SKILLS_DIR || path.join(os.homedir(), '.claude', 'skills'));
 const records = new Map();
 const extensions = new Set(['.md', '.txt', '.pdf', '.png', '.jpg', '.jpeg', '.webp']);
 const mimeTypes = { '.md': 'text/markdown', '.txt': 'text/plain', '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
@@ -27,13 +25,11 @@ export async function listSources() {
       const full = path.join(directory, entry.name);
       if (entry.isDirectory()) { if (depth < 5) await visit(root, full, kind, depth + 1); continue; }
       if (!entry.isFile() || !extensions.has(path.extname(entry.name).toLowerCase())) continue;
-      if (kind === 'skill' && entry.name !== 'SKILL.md') continue;
       try {
         const { stat } = await confinedFile(root, full);
         const relative = path.relative(root, full).replaceAll(path.sep, '/');
         const id = createHash('sha256').update(kind + ':' + full).digest('hex').slice(0, 24);
-        const name = kind === 'skill' ? path.basename(path.dirname(full)) : entry.name;
-        records.set(id, { id, name, kind, path: (kind === 'skill' ? 'Claude skills/' : '') + relative, size: stat.size, updated: stat.mtime.toISOString(), root, full });
+        records.set(id, { id, name: entry.name, kind, path: relative, size: stat.size, updated: stat.mtime.toISOString(), root, full });
       } catch { /* Oversize or inaccessible files are not exposed. */ }
     }
   }
@@ -45,7 +41,6 @@ export async function listSources() {
     const full = path.join(projectRoot, entry.name);
     try { const { stat } = await confinedFile(projectRoot, full); const id = createHash('sha256').update('file:' + full).digest('hex').slice(0,24); records.set(id, {id,name:entry.name,kind:'file',path:entry.name,size:stat.size,updated:stat.mtime.toISOString(),root:projectRoot,full}); } catch {}
   }
-  await visit(skillsRoot, skillsRoot, 'skill');
   return [...records.values()].map(({ root, full, ...record }) => record).sort((a,b) => a.name.localeCompare(b.name));
 }
 export async function readSource(id) {

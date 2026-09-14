@@ -1,0 +1,22 @@
+/* What Markdown.tsx draws beyond the base .markdown rule in styles.css: code, tables, task boxes,
+   quotes, rules and fenced code. Imported by Markdown.tsx itself, so these rules sit outside the
+   cascade layer index.css puts styles.css in. */
+.markdown code{font:12.5px/1.4 ui-monospace,Consolas,monospace;padding:1px 5px;border-radius:4px;background:#ffffff0a;border:1px solid var(--border);color:#e2cbbd}
+.markdown strong{color:var(--text);font-weight:600}
+.markdown-table{overflow-x:auto;margin:6px 0 10px}
+/* A table is as wide as its content (up to the panel), so each column sits next to the one before */
+.markdown table{border-collapse:collapse;font-size:13px;line-height:1.5;white-space:normal;overflow-wrap:normal}
+/* accessibility.css gives every strong overflow-wrap:anywhere, which split bold words mid-letter in tables */
+.markdown table strong{overflow-wrap:normal}
+.markdown .nowrap,.markdown td code,.markdown th code{white-space:nowrap}
+.markdown-task{position:relative;padding-left:22px}
+.markdown-task:before{content:'';position:absolute;left:1px;top:.45em;width:12px;height:12px;border:1.5px solid #ad917d;border-radius:3px;box-sizing:border-box}
+.markdown-task.done:before{background:#ad917d}
+.markdown th,.markdown td{padding:8px 24px 8px 0;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.markdown th{font-weight:500;color:var(--muted)}
+.markdown th:last-child,.markdown td:last-child{padding-right:0}
+.markdown .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.markdown h5{font-size:13px;font-weight:600;color:#d3c6d1;margin:10px 0 5px}
+.markdown blockquote{margin:6px 0;padding:2px 0 2px 14px;border-left:2px solid var(--border);color:var(--muted)}
+.markdown hr{border:0;border-top:1px solid var(--border);margin:14px 0}
+.markdown pre{margin:8px 0;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow-x:auto;white-space:pre;font:13px/1.55 ui-monospace,Consolas,monospace;color:var(--text)}

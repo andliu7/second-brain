@@ -1,0 +1,56 @@
+/* The Skills page (Skills.tsx). Imported by Skills.tsx itself, like network.css by Network.tsx, so
+   these rules sit outside the cascade layer index.css puts styles.css in and win over it without
+   !important. The one !important left is the document text size: accessibility.css sets every
+   .markdown to 16px with !important, and only another !important rule can set a different size. */
+.skill-list-heading{margin-bottom:20px}
+.skill-list{overflow:hidden}
+/* One band per group, as in a Linear list: a state mark, the name, the count. A band, not a row: a
+   tinted fill, a smaller semibold label, and more room above it than below */
+.skill-group{display:flex;align-items:center;gap:8px;margin:0;padding:14px 16px 6px;background:#1b1e23;border-top:1px solid var(--border);font:600 12px/1.5 'DM Sans Variable',sans-serif;color:var(--text)}
+.skill-list>section:first-child .skill-group{border-top:0}
+.skill-group-count{font-weight:400;color:var(--muted)}
+.skill-group-mark{width:9px;height:9px;border-radius:50%;border:1.5px solid #7d7e89}
+.skill-group-mark.runs{background:var(--green);border-color:var(--green)}
+.skill-group-mark.personal{border-color:var(--copper)}
+.skill-group-mark.installed{border-style:dashed}
+/* Name, summary, a Scripts chip, then the file count (or a personal skill's last edit): the summary
+   takes a little over half the row and steps down in size and brightness, so the names stay the
+   thing the eye scans */
+.skill-row{display:grid;grid-template-columns:180px minmax(0,55%) minmax(0,1fr) 72px;align-items:center;gap:4px 20px;min-height:40px;padding:9px 16px;border-top:1px solid var(--border);color:var(--text);text-decoration:none}
+.skill-row:hover{background:var(--panel-raised)}
+.skill-row:hover strong{color:var(--copper-bright)}
+.skill-row-name{display:flex;align-items:center;gap:8px;min-width:0}
+.skill-row-name strong{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skill-row-description{font-size:12.5px;line-height:1.5;color:#868791;min-width:0}
+.skill-row .tag{padding:2px 6px;color:var(--muted)}
+.skill-row-kind{display:flex;min-width:0}
+.skill-row-meta{font-size:12px;color:#83848e;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.skill-empty{display:flex;align-items:center;gap:10px;padding:22px 18px;font-size:14px;color:var(--muted)}
+.skill-back{display:inline-flex;margin:0 0 8px;font-size:14px;text-decoration:none}
+/* The actions sit level with the title, not on the middle of a long description */
+.skill-page .page-heading{align-items:flex-start}
+.skill-page .heading-actions{margin-top:9px}
+.skill-page .page-heading>div:first-child{flex:1 1 420px;min-width:0}
+.skill-page .heading-actions .button:not(.primary){font-weight:400;background:transparent;box-shadow:none}
+/* The page's one accent: a solid burnt orange from the brand mark's hue, dark enough that white
+   text reads at 7:1 and the fill never outshines the page */
+.skill-page .button.primary{background:#8f400f;color:#fff;border-color:#a44d1a;box-shadow:none}
+.skill-page .button.primary:hover:not(:disabled){background:#a04a17;border-color:#b85a24}
+.skill-fields{list-style:none;margin:2px 0 0;padding:0;max-width:720px;display:flex;flex-wrap:wrap;gap:2px 18px;font-size:14px;line-height:1.6}
+.skill-fields li{display:flex;gap:6px;min-width:0}
+.skill-field-key{color:var(--muted);text-transform:capitalize}
+.skill-lede{flex-basis:100%;max-width:720px;font-size:15px;color:var(--muted);margin-bottom:4px}
+/* The file path is the document's caption, directly above it */
+.skill-path{font-size:13px;line-height:1.5;color:var(--muted);margin:0 0 8px}
+/* The document sits on the page, not in a card, on the title's left edge and at one reading
+   measure with the lede, so no frame is left half empty */
+.skill-doc,.skill-page .run-panel{max-width:720px}
+.skill-doc>[role=region]{padding-top:6px}
+.skill-doc .tabs{border-bottom:1px solid var(--border);margin-bottom:18px}
+.skill-doc .tabs>button{font-size:14px}
+/* A table wider than the measure scrolls; a shadow at the edge says there is more that way. The
+   page-coloured covers scroll with the content (local) and hide each shadow at its own end. */
+.skill-doc .markdown-table{background:linear-gradient(90deg,var(--bg) 30%,#0d0f1200) 0 0/40px 100% no-repeat local,linear-gradient(270deg,var(--bg) 30%,#0d0f1200) 100% 0/40px 100% no-repeat local,radial-gradient(farthest-side at 0 50%,#000c,#0000) 0 0/14px 100% no-repeat scroll,radial-gradient(farthest-side at 100% 50%,#000c,#0000) 100% 0/14px 100% no-repeat scroll}
+.skill-doc .markdown{max-height:none;overflow:visible;padding-right:0;font-size:14px!important;line-height:1.7}
+.skill-doc .markdown>p,.skill-doc .markdown blockquote{max-width:76ch}
+@media (max-width:640px){.skill-row{grid-template-columns:minmax(0,1fr) auto auto;padding:12px 14px}.skill-row-description{grid-column:1/-1}.skill-row-kind{grid-row:1;grid-column:2}.skill-row-meta{grid-row:1;grid-column:3}}

@@ -33,7 +33,7 @@ export function validateChat(body) {
   let length = 0;
   for (const msg of body.messages) { if (!msg || !['user','assistant'].includes(msg.role) || typeof msg.content !== 'string' || !msg.content.trim() || msg.content.length > 40000) throw new Error('A message is empty or exceeds 40,000 characters.'); length += msg.content.length; }
   if (!Array.isArray(body.context || []) || (body.context || []).length > 10) throw new Error('Attach at most 10 context files.');
-  for (const item of body.context || []) { if (!item || typeof item.name !== 'string' || item.name.length > 500 || typeof item.content !== 'string' || item.content.length > 40000 || !['file','note','skill'].includes(item.kind)) throw new Error('Context items must be text, at most 40,000 characters each.'); length += item.content.length; }
+  for (const item of body.context || []) { if (!item || typeof item.name !== 'string' || item.name.length > 500 || typeof item.content !== 'string' || item.content.length > 120000 || !['file','note','skill'].includes(item.kind)) throw new Error('Context items must be text, at most 120,000 characters each.'); length += item.content.length; }
   if (length > 120000) throw new Error('This conversation and context exceed 120,000 characters. Start a new chat or attach fewer files.');
 }
 export async function chat(body) {
