@@ -30,8 +30,25 @@ export async function handleApi(req,res,{local=false}={}) {
     if (route === 'tasks' && req.method === 'GET') { if (!local) return send(res,404,{error:'Skill runs are available only when running the app on your computer.'}); const {listTasks} = await import('./runner.mjs'); return send(res,200,{tasks:listTasks()}); }
     // Skills, projects and brain search read this computer's disk fresh on every request, so they are local only too.
     if (['skills','projects','brain'].includes(route) && req.method === 'GET') { if (!local) return send(res,404,{error:'Live data from this computer is available only when running the app on your computer.'}); const live = await import('./live.mjs'); return send(res,200,route === 'skills' ? {skills:await live.listSkills()} : route === 'projects' ? await live.listProjects() : await live.searchBrain(url.searchParams.get('q') || '')); }
+    // The Network map is built from this computer's disk and streams files from it, so every graph route is local only.
+    if (route.startsWith('graph') && req.method === 'GET') {
+      if (!local) return send(res,404,{error:'The Network map is available only when running the app on your computer.'});
+      const graph = await import('./graph.mjs'); const id = url.searchParams.get('id') || '';
+      if (route === 'graph') return send(res,200,await graph.buildGraph());
+      if (route === 'graph/node') return send(res,200,await graph.nodeDetail(id));
+      if (route === 'graph/text') return send(res,200,await graph.textChunk(id, Number(url.searchParams.get('offset') || 0)));
+      if (route === 'graph/reads') return send(res,200,graph.log);
+      if (route === 'graph/file' || route === 'graph/preview') {
+        const file = route === 'graph/file' ? await graph.fileInfo(id) : { path: await graph.previewImage(id), mime: 'image/png' };
+        res.writeHead(200, {'Content-Type':file.mime,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'"});
+        const { createReadStream } = await import('node:fs'); createReadStream(file.path).on('error', () => res.end()).pipe(res); return;
+      }
+      return send(res,404,{error:'API route not found.'});
+    }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
+    // Open on device runs explorer.exe on this computer, only ever after a click in the panel.
+    if (route === 'graph/open') { if (!local) return send(res,404,{error:'Open on device works only when running the app on your computer.'}); const {openOnDevice} = await import('./graph.mjs'); return send(res,200,await openOnDevice(String(body?.id || ''), Boolean(body?.reveal))); }
     if (route === 'source') { if (!local) return send(res,404,{error:'Local file access is disabled on hosted deployments.'}); const {readSource} = await import('./library.mjs'); return send(res,200,await readSource(body?.id)); }
     if (route === 'run') { if (!local) return send(res,404,{error:'Skill runs are available only when running the app on your computer.'}); const {startRun} = await import('./runner.mjs'); startRun(String(body?.id || '')); return send(res,202,{ok:true}); }
     if (!['chat','generate','generation-status'].includes(route)) return send(res,404,{error:'API route not found.'});

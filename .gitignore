@@ -25,5 +25,8 @@ __pycache__/
 
 # personal state — re-include OS/memory only if this repo stays private
 second-brain/index.cache
+# the Network map: which folders it scans, and its built graph and thumbnails
+second-brain/graph-roots.json
+second-brain/.cache/
 OS/memory/
 OS/MEMORY.md

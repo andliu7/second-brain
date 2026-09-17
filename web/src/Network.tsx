@@ -1,80 +1,113 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Focus, Layers3, Link2, Minus, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Workspace, Doc, Relation } from './types';
-import { graphFromWorkspace, buildIndex, searchGraph, relationTypes } from '../shared/graph.mjs';
-import { activity, download, now, uid } from './lib/storage';
+// Network: the whole workspace as a working map. Every file under the configured roots plus
+// every installed skill (server/graph.mjs), as departments and the four ARMS layers, with edges
+// only from real links read from the files. Three parts share one selection: the file tree
+// (FileTree.tsx), the map (NetworkCanvas.tsx) and the viewer (FileViewer.tsx). The selection is
+// also the hash, #network/<id>, so the Ctrl+K search (MapSearch.tsx) and a pasted link land on a
+// file. Local only: /api/graph* returns 404 on a hosted deploy.
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Focus, Layers3, Loader2, RefreshCw } from 'lucide-react';
+import { api } from './lib/api';
+import { buildModel, COLORS, LAYER_NAMES, layout, loadGraph, localScene, type GraphPayload, type Model } from './lib/network';
+import { NetworkCanvas } from './NetworkCanvas';
+import { FileTree } from './FileTree';
+import { FileViewer, KindIcon, kindLabel, type NodeDetail } from './FileViewer';
 import './network.css';
-type Node = {id:string;title:string;kind:string;content:string;tags:string[]};
-type Edge = {id:string;source:string;target:string;relation:string;origin?:string};
-const colors:Record<string,string>={note:'#e4a57f',file:'#81b5eb',skill:'#b9a1ed',goal:'#88c9a0',topic:'#e4ce82'};
-const names:Record<string,string>={note:'Notes',file:'Files',skill:'Skills',goal:'Goals',topic:'Topics'};
-type Props={workspace:Workspace;commit:(update:(w:Workspace)=>Workspace,message?:string)=>Promise<boolean>;openDoc:(doc:Doc)=>void};
-function Stage({nodes,edges,selected,select,reset,zoom}:{nodes:Node[];edges:Edge[];selected:string;select:(id:string)=>void;reset:number;zoom:number}) {
-  const host=useRef<HTMLDivElement>(null);const [failure,setFailure]=useState('');const actions=useRef<{reset:()=>void;zoom:(n:number)=>void}|null>(null);const selectRef=useRef(select);selectRef.current=select;
-  const view=useRef<{position:THREE.Vector3;target:THREE.Vector3}|null>(null);
-  const highlight=useRef<(id:string)=>void>(()=>{});
-  useEffect(()=>{
-    const container=host.current!;let renderer:THREE.WebGLRenderer;
-    try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});}catch{setFailure('3D is unavailable on this device. The searchable node list and every relationship control still work below.');return;}
-    setFailure('');renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));container.appendChild(renderer.domElement);
-    renderer.domElement.setAttribute('aria-label','3D knowledge graph. Drag to rotate, scroll to zoom, right-drag to pan. Use the node list for keyboard selection.');
-    renderer.domElement.setAttribute('role','img');
-    const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(45,1,.1,2000);camera.position.set(0,35,155);
-    const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=false;controls.minDistance=18;controls.maxDistance=500;
-    if(view.current){camera.position.copy(view.current.position);controls.target.copy(view.current.target);controls.update();}
-    const group=new THREE.Group();scene.add(group);const positions=new Map<string,THREE.Vector3>();const meshes:THREE.Mesh[]=[];const resources:Array<{dispose:()=>void}>=[];
-    const edgeMaterials:{edge:Edge;material:THREE.LineBasicMaterial}[]=[];
-    const kinds=Object.keys(colors);
-    const ordered=[...nodes].sort((a,b)=>a.id.localeCompare(b.id));
-    ordered.forEach((node,i)=>{
-      const kind=kinds.indexOf(node.kind);const cluster=ordered.filter(n=>n.kind===node.kind);const order=cluster.findIndex(n=>n.id===node.id);
-      const angle=order*2.39996;const radius=cluster.length===1?0:8+Math.sqrt(order)*5.2;
-      const center=new THREE.Vector3(Math.cos(kind*1.256)*34,Math.sin(kind*1.256)*23,(kind-2)*10);
-      const pos=center.add(new THREE.Vector3(Math.cos(angle)*radius,Math.sin(angle)*radius,Math.sin(order*1.7)*14));positions.set(node.id,pos);
-      const geometry=node.kind==='goal'?new THREE.OctahedronGeometry(2.2):node.kind==='skill'?new THREE.BoxGeometry(3.3,3.3,3.3):new THREE.SphereGeometry(node.kind==='topic'?1.6:2,12,10);
-      const material=new THREE.MeshBasicMaterial({color:colors[node.kind],transparent:true,opacity:selected&&selected!==node.id?.toString()?0.7:1});
-      const mesh=new THREE.Mesh(geometry,material);mesh.position.copy(pos);mesh.userData.id=node.id;group.add(mesh);meshes.push(mesh);resources.push(geometry,material);
-    });
-    for(const edge of edges){const a=positions.get(edge.source),b=positions.get(edge.target);if(!a||!b)continue;const geo=new THREE.BufferGeometry().setFromPoints([a,b]);const material=new THREE.LineBasicMaterial({color:edge.origin==='tag'?'#615d46':'#727989',transparent:true,opacity:.35});edgeMaterials.push({edge,material});group.add(new THREE.Line(geo,material));resources.push(geo,material);if(edge.origin!=='tag'){const direction=b.clone().sub(a).normalize();const arrow=new THREE.ArrowHelper(direction,a.clone().lerp(b,.76),3.7,'#727989',2,1);group.add(arrow);resources.push(arrow.line.geometry,arrow.line.material as THREE.Material,arrow.cone.geometry,arrow.cone.material as THREE.Material);}}
-    function render(){renderer.render(scene,camera);}
-    highlight.current=(id)=>{for(const mesh of meshes){mesh.scale.setScalar(mesh.userData.id===id?1.65:1);(mesh.material as THREE.MeshBasicMaterial).opacity=!id||mesh.userData.id===id?1:.65;}for(const{edge,material}of edgeMaterials){const active=edge.source===id||edge.target===id;material.color.set(active?'#f1c1a0':edge.origin==='tag'?'#615d46':'#727989');material.opacity=active?.95:.35;}render();};
-    highlight.current(selected);
-    controls.addEventListener('change',render);
-    const size=()=>{const w=container.clientWidth,h=container.clientHeight;renderer.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();render();};
-    const observer=new ResizeObserver(size);observer.observe(container);size();
-    const ray=new THREE.Raycaster();const pointer=new THREE.Vector2();let down={x:0,y:0};
-    const pointerDown=(event:PointerEvent)=>{down={x:event.clientX,y:event.clientY};};
-    const pointerUp=(event:PointerEvent)=>{if(Math.hypot(event.clientX-down.x,event.clientY-down.y)>5)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(meshes)[0];if(hit)selectRef.current(hit.object.userData.id);};
-    renderer.domElement.addEventListener('pointerdown',pointerDown);renderer.domElement.addEventListener('pointerup',pointerUp);
-    actions.current={reset:()=>{controls.target.set(0,0,0);camera.position.set(0,35,155);controls.update();render();},zoom:(factor)=>{camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);controls.update();render();}};
-    return()=>{view.current={position:camera.position.clone(),target:controls.target.clone()};actions.current=null;highlight.current=()=>{};observer.disconnect();controls.dispose();resources.forEach(r=>r.dispose());renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();};
-  },[nodes,edges]);
-  useEffect(()=>{highlight.current(selected);},[selected]);
-  useEffect(()=>{actions.current?.reset();},[reset]);
-  const previousZoom=useRef(zoom);useEffect(()=>{if(zoom!==previousZoom.current)actions.current?.zoom(zoom>previousZoom.current?.valueOf()?0.8:1.25);previousZoom.current=zoom;},[zoom]);
-  return <div className="graph-stage" ref={host}>{failure&&<div className="graph-fallback"><Layers3 size={32}/><p>{failure}</p></div>}{!nodes.length&&<div className="graph-fallback"><Layers3 size={32}/><p>Create a note, import a file, or add a goal to start your network.</p></div>}</div>;
-}
-export default function Network({workspace,commit,openDoc}:Props) {
-  const graph=useMemo(()=>graphFromWorkspace(workspace) as {format:string;nodes:Node[];edges:Edge[]},[workspace.docs,workspace.goals,workspace.relations]);const index=useMemo(()=>buildIndex(graph),[graph]);
-  const [query,setQuery]=useState('');const [kinds,setKinds]=useState(Object.keys(colors));const [selected,setSelected]=useState('');const [reset,setReset]=useState(0);const [zoom,setZoom]=useState(0);const [focus,setFocus]=useState(false);
-  const [target,setTarget]=useState('');const [relation,setRelation]=useState('references');const [linkError,setLinkError]=useState('');const [agentQuery,setAgentQuery]=useState('');const [result,setResult]=useState<ReturnType<typeof searchGraph>|null>(null);
-  const graphNode=graph.nodes.find(n=>n.id===selected);const nearby=graph.edges.filter(e=>e.source===selected||e.target===selected);const neighborhood=new Set([selected,...nearby.flatMap(e=>[e.source,e.target])]);
-  const filtered=graph.nodes.filter(n=>kinds.includes(n.kind)&&(!focus||!selected||neighborhood.has(n.id))&&(!query||(n.title+' '+n.tags.join(' ')).toLowerCase().includes(query.toLowerCase())));
-  // Keep draw cost predictable. The full graph remains searchable/exportable.
-  const focusedId=focus?selected:'';
-  const nodes=useMemo(()=>filtered.slice(0,500) as Node[],[graph,query,kinds,focusedId]);const visibleIds=new Set(nodes.map(n=>n.id));const edges=useMemo(()=>graph.edges.filter(e=>visibleIds.has(e.source)&&visibleIds.has(e.target)) as Edge[],[graph,nodes]);
-  async function addRelation(){setLinkError('');if(!selected||!target||selected===target){setLinkError('Choose two different items.');return;}if((workspace.relations||[]).some(e=>e.source===selected&&e.target===target&&e.relation===relation)){setLinkError('That relationship already exists.');return;}
-    const edge:Relation={id:uid(),source:selected,target,relation:relation as Relation['relation'],created:now()};
-    const ok=await commit(w=>({...w,relations:[...(w.relations||[]),edge],activity:[activity('Connected two items in your network','network'),...w.activity].slice(0,100)}),'Relationship saved');if(ok)setTarget('');
-  }
-  function exportGraph(){download('second-brain-agent-graph.json',new Blob([JSON.stringify(graph)],{type:'application/json'}));}
-  return <><div className="page-heading"><div><h1>Your network</h1></div><button className="button" onClick={exportGraph}><Download size={16}/>Export for agents</button></div>
-  <div className="network-toolbar"><label className="inline-search"><Search size={16}/><input aria-label="Search network" placeholder="Find an item or topic…" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="network-legend">{Object.entries(names).map(([kind,name])=><button key={kind} aria-pressed={kinds.includes(kind)} onClick={()=>setKinds(kinds.includes(kind)?kinds.filter(k=>k!==kind):[...kinds,kind])}><span style={{background:colors[kind]}}/>{name}</button>)}</div></div>
-  <div className="network-layout"><section className="network-canvas panel"><div className="graph-topline"><span>{nodes.length} / {graph.nodes.length} items · {edges.length} connections</span><span>3D EXPLORER</span></div><Stage nodes={nodes} edges={edges} selected={selected} select={setSelected} reset={reset} zoom={zoom}/><div className="graph-controls"><button className="icon-button" aria-label="Zoom in" onClick={()=>setZoom(z=>z+1)}><Plus size={17}/></button><button className="icon-button" aria-label="Zoom out" onClick={()=>setZoom(z=>z-1)}><Minus size={17}/></button><button className="icon-button" aria-label="Reset graph view" onClick={()=>setReset(r=>r+1)}><RotateCcw size={17}/></button><button className={'button small '+(focus?'primary':'')} onClick={()=>setFocus(!focus)} disabled={!selected}><Focus size={15}/>{focus?'Show all':'Focus neighbors'}</button></div><p className="graph-caption">Drag to rotate · Scroll or pinch to zoom · Right-drag to pan. Arrows show direction. Topic links come from your tags.</p></section>
-  <aside className="panel network-detail">{graphNode?<><span className="tag" style={{color:colors[graphNode.kind]}}>{names[graphNode.kind]}</span><h2>{graphNode.title}</h2><p className="node-excerpt">{graphNode.content.slice(0,360)||'No text content. This node can still connect your work.'}</p>{selected.startsWith('doc:')&&<button className="button small" onClick={()=>{const doc=workspace.docs.find(d=>'doc:'+d.id===selected);if(doc)openDoc(doc);}}>Open item</button>}<h3>Connections <span>{nearby.length}</span></h3><div className="node-connections">{nearby.slice(0,30).map(edge=>{const outgoing=edge.source===selected;const other=graph.nodes.find(n=>n.id===(outgoing?edge.target:edge.source));return <div key={edge.id}><button onClick={()=>setSelected(other!.id)}><span>{outgoing?'→':'←'} {edge.relation.replaceAll('_',' ')}</span><strong>{other?.title}</strong></button>{edge.origin==='explicit'&&<button className="icon-button" aria-label={'Remove '+edge.relation+' link to '+other?.title} onClick={()=>void commit(w=>({...w,relations:(w.relations||[]).filter(r=>r.id!==edge.id)}),'Relationship removed')}><Trash2 size={14}/></button>}</div>;})}{!nearby.length&&<p>No relationships yet. Connect a supporting file, skill, or goal below.</p>}</div>
-  {graphNode.kind!=='topic'&&<form className="relationship-form" onSubmit={e=>{e.preventDefault();void addRelation();}}><label>Relationship<select value={relation} onChange={e=>setRelation(e.target.value)}>{relationTypes.map(r=><option key={r} value={r}>{r.replaceAll('_',' ')}</option>)}</select></label><label>Connect to<select required value={target} onChange={e=>setTarget(e.target.value)}><option value="">Choose an item</option>{graph.nodes.filter(n=>n.id!==selected&&n.kind!=='topic'&&(relation!=='uses_skill'||n.kind==='skill')).map(n=><option key={n.id} value={n.id}>{n.title} ({n.kind})</option>)}</select></label>{linkError&&<p role="alert">{linkError}</p>}<button className="button primary" type="submit"><Link2 size={15}/>Connect items</button></form>}</>:<div className="network-hint"><Layers3 size={32}/><h2>Follow a thought.</h2><p>Select a node in the map or list. See what it means, what it supports, and what it depends on.</p><p>Files are blue, notes copper, skills violet, goals green, and topics gold. Skills are cubes; goals are diamonds.</p></div>}</aside></div>
-  <details className="panel node-directory" open><summary>Browse the network · {filtered.length} items</summary><div className="network-node-list">{filtered.slice(0,200).map(node=><button key={node.id} aria-pressed={selected===node.id} onClick={()=>{setSelected(node.id);setTarget('');}}><span className="node-dot" style={{background:colors[node.kind]}}/><span><strong>{node.title}</strong><small>{names[node.kind]}</small></span></button>)}</div>{filtered.length>200&&<p>Narrow your search to find more items. The full graph is included in the agent export.</p>}</details>
-  <section className="panel agent-panel"><div><span className="eyebrow">LESS CONTEXT. MORE SIGNAL.</span><h2>Put your network to work.</h2><p>Search the same index your CLI can use. Matches include source IDs and explicit one-hop relationships. No model call required.</p></div><form onSubmit={e=>{e.preventDefault();setResult(searchGraph(index,agentQuery,{budget:6000,limit:4}));}}><label>Find context<input required value={agentQuery} onChange={e=>setAgentQuery(e.target.value)} placeholder="What am I trying to accomplish?"/></label><button className="button primary">Retrieve context <Search size={15}/></button></form>{result&&<div className="retrieval-result"><p><strong>{result.stats.matchedNodes} items</strong> · {result.stats.contextChars.toLocaleString()} context characters / {result.stats.corpusChars.toLocaleString()} in the corpus · {result.stats.searchMs} ms</p><pre>{result.context||'No lexical matches. Try words used in your documents or tags.'}</pre><button className="button small" onClick={()=>download('second-brain-context.txt',new Blob([result.context],{type:'text/plain'}))}><Download size={14}/>Download context</button></div>}<details><summary>Use with Claude Code, Codex, or another CLI</summary><p>Export for agents, then run this from the web folder. Pass the resulting context to whichever model you choose. Relationships improve retrieval; they do not authorize commands.</p><pre>node bin/brain.mjs search "your question" --graph second-brain-agent-graph.json --budget 6000</pre><p>The budget is characters, not exact model tokens. Export includes text and relationships, never API keys or binary attachments.</p></details></section></>;
+
+type Props = { notify: (text: string, error?: boolean) => void; path?: string };
+const cache = new Map<string, NodeDetail>(); // node details by id, for the viewer and the hover card
+
+export default function Network({ notify, path = '' }: Props) {
+  const [payload, setPayload] = useState<GraphPayload | null>(null); const [loadError, setLoadError] = useState('');
+  const [selected, setSelected] = useState(-1); const [hovered, setHovered] = useState(-1); const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const [detail, setDetail] = useState<NodeDetail | null>(null); const [detailError, setDetailError] = useState(''); const [loading, setLoading] = useState(false);
+  const [hoverDetail, setHoverDetail] = useState<NodeDetail | null>(null);
+  const [local, setLocal] = useState(false); const [query, setQuery] = useState(''); const [focus, setFocus] = useState({ index: -1, seq: 0 });
+  const stage = useRef<HTMLDivElement>(null);
+  const model: Model | null = useMemo(() => payload ? buildModel(payload) : null, [payload]);
+  const full = useMemo(() => model ? layout(model) : null, [model]);
+  const scene = useMemo(() => model && full ? (local && selected >= 0 ? localScene(model, selected) : full) : null, [model, full, local, selected]);
+  // The scene changes only with a new build from disk or the local view, never with a selection,
+  // so the camera keeps its place while you click around.
+  const sceneKey = `${payload?.built || ''}:${local && selected >= 0 ? 'local:' + selected : 'all'}`;
+
+  // loadGraph holds one request: StrictMode mounts twice in development, and a second build
+  // would arrive later and reset the map under the first click. Rebuild asks for a fresh one.
+  const load = useCallback(async (reload = false) => {
+    setLoadError('');
+    try { const reply = await loadGraph(reload); cache.clear(); setPayload(reply); }
+    catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not build the map'); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const fetchDetail = useCallback(async (id: string) => { const hit = cache.get(id); if (hit) return hit; const reply = await api<NodeDetail>(`graph/node?id=${encodeURIComponent(id)}`); cache.set(id, reply); return reply; }, []);
+  // The selected node's detail, read fresh for the viewer (the summary is at most the first 8 KB).
+  // The old detail goes at once, so a new name never sits over the previous file's body while
+  // the read is in flight: the viewer says Reading until this file's own detail arrives.
+  useEffect(() => {
+    setDetail(null);
+    if (!model || selected < 0) return;
+    const id = model.nodes[selected].id; let live = true; setLoading(true); setDetailError('');
+    fetchDetail(id).then(reply => { if (live) setDetail(reply); }).catch(error => { if (live) { setDetail(null); setDetailError(error instanceof Error ? error.message : 'Could not read this node'); } }).finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [model, selected, fetchDetail]);
+  // The hover card, a moment after the pointer settles on a node, never for every node on load.
+  useEffect(() => {
+    if (!model || hovered < 0) { setHoverDetail(null); return; }
+    const id = model.nodes[hovered].id; let live = true;
+    const timer = setTimeout(() => { fetchDetail(id).then(reply => { if (live) setHoverDetail(reply); }).catch(() => { if (live) setHoverDetail(null); }); }, 140);
+    return () => { live = false; clearTimeout(timer); };
+  }, [model, hovered, fetchDetail]);
+
+  // One selection for the tree, the map and the viewer. The camera moves to the node, so a
+  // tree row or a link in the viewer also finds it on the map; a pick outside the tree clears
+  // its filter, so the row it reveals is never hidden by an old search.
+  const select = useCallback((index: number, from: 'tree' | 'map' | 'viewer' = 'map') => { setSelected(index); if (index >= 0) setFocus(f => ({ index, seq: f.seq + 1 })); if (from !== 'tree') setQuery(''); }, []);
+  const selectFromTree = useCallback((index: number) => select(index, 'tree'), [select]);
+  const selectFromViewer = useCallback((index: number) => select(index, 'viewer'), [select]);
+  const onHover = useCallback((index: number, x: number, y: number) => { setHovered(index); if (index >= 0) setPointer({ x, y }); }, []);
+  // The selection and the hash agree both ways: a pick here writes #network/<id> (a link to this
+  // file), and a hash from the Ctrl+K search or a pasted link selects its node once the map is up.
+  // While a path from the hash is still waiting to be applied (the map just arrived), the hash
+  // is left alone: writing #network first would push a bare entry between two of the file, and
+  // Back would then need three presses to leave the page.
+  const selectedRef = useRef(selected); selectedRef.current = selected;
+  const pathRef = useRef(path); pathRef.current = path; const applied = useRef('');
+  useEffect(() => { if (!model || (pathRef.current && pathRef.current !== applied.current)) return; const id = selected >= 0 ? model.nodes[selected].id : ''; const want = id ? 'network/' + id : 'network'; if (location.hash.slice(1) !== want) location.hash = want; }, [model, selected]);
+  useEffect(() => { if (!model || !path) return; applied.current = path; const index = model.byId.get(path); if (index !== undefined && index !== selectedRef.current) select(index, 'viewer'); }, [model, path, select]);
+
+  if (loadError) return <><div className="page-heading"><div><h1>Network</h1></div></div><div className="error-banner" role="alert"><p>{loadError}</p><button className="button small" onClick={() => void load(true)}><RefreshCw size={14}/>Try again</button></div></>;
+  if (!model || !scene) return <><div className="page-heading"><div><h1>Network</h1></div></div><div className="panel network-loading"><Loader2 className="spin" size={18}/><p>Reading every file under the configured roots…</p></div></>;
+  const hoverNode = hovered >= 0 ? model.nodes[hovered] : null; const rect = stage.current?.getBoundingClientRect();
+  // The card sits in the corner of the map diagonally opposite the pointer, so it never covers the
+  // node or the neighbourhood lit around it (a hover from the tree, left of the map, counts as left).
+  const cardStyle = rect ? (() => { const style: CSSProperties = {}; style[pointer.x - rect.left < rect.width / 2 ? 'right' : 'left'] = 12; style[pointer.y - rect.top < rect.height / 2 ? 'bottom' : 'top'] = 12; return style; })() : undefined;
+  const hoverPath = hoverNode && model.paths[hovered] ? model.paths[hovered].slice((model.roots[hoverNode.root]?.path.length || -1) + 1) : '';
+  return <div className="network-page">
+    <div className="page-heading network-heading"><div><h1>Network</h1></div><div className="heading-actions">
+      <div className="network-legend" aria-label="Layers">{Object.entries(LAYER_NAMES).map(([layer, name]) => <span key={layer}><i style={{ background: COLORS[layer] }}/>{name}</span>)}<span><i style={{ background: COLORS.folder }}/>Files by kind</span></div>
+      <button type="button" className={`button small ${local ? 'primary' : ''}`} aria-pressed={local} disabled={selected < 0} title={selected < 0 ? 'Pick a node first' : ''} onClick={() => setLocal(v => !v)}><Focus size={14}/>{local ? 'Whole map' : 'Local graph'}</button>
+      <button type="button" className="button small" onClick={() => void load(true)} aria-label="Rebuild the map from disk"><RefreshCw size={14}/></button>
+    </div></div>
+    <div className="network-body">
+      <FileTree model={model} selected={selected} onSelect={selectFromTree} onHover={onHover} query={query} setQuery={setQuery}/>
+      <div className="network-stage" ref={stage}>
+        <NetworkCanvas model={model} scene={scene} selected={selected} hovered={hovered} onSelect={select} onHover={onHover} focus={focus} sceneKey={sceneKey}/>
+        {selected < 0 && <p className="network-hint muted">Drag to pan, scroll to zoom, click a node to open it.</p>}
+        {hoverNode && <div className="hover-card" style={cardStyle} role="tooltip">
+          <div className="hover-head"><span style={{ color: COLORS[hoverNode.layer] || COLORS[hoverNode.kind] || COLORS.file }}><KindIcon node={hoverNode} size={14}/></span><strong>{hoverNode.name}</strong></div>
+          <p className="hover-path">{hoverNode.kind === 'app' ? hoverNode.where : hoverNode.kind === 'dept' ? LAYER_NAMES[hoverNode.layer] || 'Department' : hoverPath && hoverPath !== hoverNode.name ? hoverPath : `${kindLabel(hoverNode)} in ${(model.roots[hoverNode.root]?.path || '').split('/').slice(-2).join('/')}`}</p>
+          {hoverNode.kind === 'image' && <img className="hover-image" src={`/api/graph/file?id=${encodeURIComponent(hoverNode.id)}`} alt=""/>}
+          {(hoverNode.kind === 'pdf' || hoverNode.kind === 'html') && <img className="hover-image" src={`/api/graph/preview?id=${encodeURIComponent(hoverNode.id)}`} alt=""/>}
+          {hoverDetail && hoverDetail.id === hoverNode.id && <>
+            {hoverNode.kind === 'skill' && <div className="hover-skill">{hoverDetail.summary.title && hoverDetail.summary.title !== hoverNode.name && <strong>{hoverDetail.summary.title}</strong>}<p>{hoverDetail.summary.description}</p></div>}
+            {(hoverNode.kind === 'note' || hoverNode.kind === 'code' || hoverNode.kind === 'text') && hoverDetail.excerpt && <pre className="hover-lines">{hoverDetail.excerpt.split('\n').slice(0, 8).join('\n')}</pre>}
+            {(hoverNode.kind === 'folder' || hoverNode.kind === 'dept') && <p className="muted">{model.count[hovered]} files · {hoverDetail.children.length} entries</p>}
+            <p className="muted">{hoverDetail.linksIn.length} linked from · {hoverDetail.linksOut.length} links to</p>
+          </>}
+        </div>}
+      </div>
+      <FileViewer model={model} index={selected} detail={detail} loading={loading} error={detailError} onSelect={selectFromViewer} notify={notify}/>
+    </div>
+    <p className="network-foot muted"><Layers3 size={13}/>{model.roots.map(root => `${root.count.toLocaleString()} files in ${root.path.split('/').slice(-2).join('/')}`).join(' · ')} · {model.edges.length.toLocaleString()} links from the files · built {payload?.built ? new Date(payload.built).toLocaleTimeString() : 'now'}. Roots come from second-brain/graph-roots.json, on this computer only.</p>
+  </div>;
 }

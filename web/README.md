@@ -1,6 +1,6 @@
 # Second Brain
 
-A local personal workspace with Files, Skills, Goals, Chat, Generate, and a color-coded 3D Network. Source code lives alongside the repository’s existing Python retrieval engine; the original engine and OS dashboard are preserved.
+A local personal workspace with Files, Skills, Goals, Chat, Generate, and a Network map of every file on this computer's configured roots. Source code lives alongside the repository’s existing Python retrieval engine; the original engine and OS dashboard are preserved.
 
 ## Run
 
@@ -31,7 +31,7 @@ npm run test:ui
 
 **Goals** tracks outcomes with dated milestones and an archive.
 
-**Network** maps files (blue), notes (copper), skills (violet cubes), goals (green diamonds), and topics (gold). Drag to rotate, scroll/pinch to zoom, right-drag to pan, or use the buttons. Select nodes from the graph or keyboard-accessible directory. Add references, supports, depends_on, uses_skill, or related_to links. Arrows encode direction; topic links are derived from your explicit tags. Deleting a document or goal removes its explicit relationships. The graph draws up to 500 matching nodes at once; search narrows the view, and the full graph remains exportable.
+**Network** is the whole workspace as a map: every file under the configured roots plus every installed skill, as departments (the areas in Projects/CLAUDE.md) and the four ARMS layers (Applications blue from the Claude Code config on disk, Routines yellow from OS/routines, Memory, Skills in Claude orange). Edges come only from real links read from the files: markdown links, [[wikilinks]], path and folder-name mentions, /skill mentions. Beside the map, a file tree with a search box (Enter opens the top match; arrows, Right, Left and Enter work in the tree) and a viewer: markdown rendered, code and text with line numbers, images whole, PDFs as their first page (rendered by the PyMuPDF that ships with this machine's Python, the way HTML gets a headless Chrome screenshot), a skill as its whole SKILL.md, plus Linked from and Links to, Open on device, Reveal in Explorer and Copy path. Open on device hands a document to its default app but only ever reveals a script or an executable (.js, .bat, .exe, .py and the like), so nothing on the map can be run from here. Hover a node or a tree row for a preview; Local graph shows one node and its neighbours. The selection is the hash (#network/<id>), and the Ctrl+K search lists map files, so from the front door a file is Ctrl+K, its name, Enter. Read only: nothing here renames, moves or deletes a file. The roots come from `second-brain/graph-roots.json` (gitignored; a missing file means ~/Downloads/Projects and ~/.claude/skills), and the built graph and hover thumbnails cache under `second-brain/.cache/graph/`, also gitignored. The panel summary reads at most the first 8 KB of a text file; the viewer pages through the rest in 64 KB chunks. Local only: /api/graph* returns 404 on a hosted deploy.
 
 **Chat** offers Claude, OpenAI, and Gemini with editable model IDs. Only conversation messages and explicitly attached text go to the provider. Binary file text extraction and autonomous tools are not included. Provider limits: at most 100 messages, 10 context attachments, 40,000 characters per message, and 120,000 combined characters per request, which one attachment may use alone.
 
@@ -57,7 +57,7 @@ Skills, projects and brain search are read live from disk on every request (serv
 
 ## Make models and CLI tools more efficient
 
-In Network, choose **Export for agents**. This downloads second-brain-agent-graph.json with text nodes, source IDs, tags, and typed relationships. It omits binary attachments, images, API keys, and chat history.
+`bin/brain.mjs` searches a workspace graph export (second-brain-agent-graph.json: text nodes, source IDs, tags, and typed relationships, never binary attachments, images, API keys, or chat history). The Network page no longer produces that export; `shared/graph.mjs` still builds it from a workspace backup.
 
 ```powershell
 node bin/brain.mjs search "carbonyl mechanisms" --graph second-brain-agent-graph.json --budget 6000 --limit 5

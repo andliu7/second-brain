@@ -1,2 +1,92 @@
-.network-toolbar{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px}.network-legend{display:flex;gap:8px;flex-wrap:wrap}.network-legend button{display:flex;align-items:center;gap:7px;border:1px solid #333740;border-radius:7px;background:#15181d;padding:9px 12px;font-size:13px;color:#ddd}.network-legend button[aria-pressed=false]{opacity:.4}.network-legend button span,.node-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}.network-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:20px;align-items:start}.network-canvas{position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#1a202a,#101317)}.graph-topline{position:absolute;top:20px;left:22px;right:22px;display:flex;justify-content:space-between;color:#a8afbc;font-size:12px;z-index:1;pointer-events:none}.graph-topline>span:last-child{letter-spacing:2px;font-size:10px}.graph-stage{height:510px;position:relative}.graph-stage canvas{display:block;max-width:100%;touch-action:none}.graph-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:20px;padding:50px;text-align:center;color:#b2bac7;flex-direction:column}.graph-fallback p{max-width:350px;line-height:1.7}.graph-controls{display:flex;gap:9px;position:absolute;bottom:65px;left:20px}.graph-controls>.icon-button{background:#202631;border:1px solid #343e4b;width:40px;height:40px}.graph-caption{padding:16px 20px;border-top:1px solid #29303a;font-size:12px!important;color:#a9b0bd;line-height:1.6}.network-detail{padding:24px;max-height:650px;overflow:auto}.network-detail h2{font-size:22px;line-height:1.35;margin:16px 0}.network-detail h3{font-size:14px;margin:27px 0 12px;color:#cad0d9}.network-detail h3 span{color:#8d96a5}.node-excerpt{font-size:14px!important;line-height:1.8;color:#adb6c6;white-space:pre-line;overflow-wrap:anywhere;margin-bottom:18px}.network-hint{padding:28px 0;color:#aaa}.network-hint p{line-height:1.8;font-size:14px;margin-bottom:18px}.network-hint svg{color:#d5a388}.node-connections>div{display:flex;align-items:center;border-bottom:1px solid #2c313a;padding:10px 0;gap:4px}.node-connections>div>button:first-child{flex:1;text-align:left;background:none;border:0;padding:5px;min-width:0}.node-connections span{display:block;font-size:12px;color:#aa9a89}.node-connections strong{font-size:13px;font-weight:500;display:block;margin-top:5px;overflow-wrap:anywhere}.node-connections>p{font-size:13px;line-height:1.7;color:#9da6b6}.relationship-form{border-top:1px solid #303744;margin-top:24px;padding-top:22px;display:flex;flex-direction:column;gap:15px}.relationship-form label,.agent-panel label{display:flex;flex-direction:column;gap:9px;font-size:13px}.relationship-form select{font-size:13px;max-width:100%}.relationship-form p{font-size:13px;color:#eda0a0}.node-directory{margin-top:22px;padding:20px}.node-directory summary,.agent-panel summary{cursor:pointer;font-size:14px}.network-node-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:9px;margin-top:19px;max-height:320px;overflow:auto}.network-node-list>button{display:flex;align-items:center;text-align:left;gap:12px;border:1px solid #2c333e;background:#171c23;padding:13px;border-radius:7px;min-width:0}.network-node-list>button[aria-pressed=true]{border-color:#d2a484;background:#28221f}.network-node-list strong{display:block;font-size:13px;font-weight:500;overflow-wrap:anywhere}.network-node-list small{display:block;font-size:12px;color:#969fac;margin-top:5px}.agent-panel{margin-top:22px;padding:28px;display:flex;flex-direction:column;gap:22px}.agent-panel h2{font-size:25px;margin:9px 0}.agent-panel p{font-size:14px;line-height:1.8;color:#aeb6c3}.agent-panel>form{display:flex;align-items:flex-end;gap:12px}.agent-panel label{flex:1}.agent-panel pre{padding:18px;background:#0e1116;border:1px solid #2e3540;border-radius:8px;font:13px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto}.agent-panel details p{margin:13px 0}.retrieval-result p{margin-bottom:12px}@media(max-width:1100px){.network-layout{grid-template-columns:1fr}.network-detail{max-height:none}.graph-stage{height:430px}}@media(max-width:600px){.graph-stage{height:360px}.graph-topline{font-size:11px;left:15px;right:15px}.graph-topline>span:last-child{display:none}.network-toolbar .inline-search{width:100%}.network-legend{gap:6px}.network-legend button{font-size:12px;padding:9px}.graph-caption{font-size:12px!important}.network-detail,.agent-panel{padding:21px}.agent-panel>form{flex-direction:column;align-items:stretch}.graph-controls{bottom:90px}.network-node-list{grid-template-columns:1fr}.network-node-list strong{font-size:14px}.network-layout{gap:15px}}
+/* Network (Network.tsx, FileTree.tsx, NetworkCanvas.tsx, FileViewer.tsx). Imported by Network.tsx,
+   like projects.css by Projects.tsx, so it sits outside the cascade layer index.css puts styles.css in. */
+.network-page{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 128px);min-height:520px}
+.network-heading{margin-bottom:0}
+.network-heading .heading-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.network-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.network-legend span{display:inline-flex;align-items:center;gap:6px}
+.network-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.network-body{display:grid;grid-template-columns:270px minmax(0,1fr) 380px;gap:12px;flex:1;min-height:0}
+.network-loading{display:flex;align-items:center;gap:10px;padding:18px 20px;font-size:14px;color:var(--muted)}
 
+/* The tree */
+.file-tree{display:flex;flex-direction:column;min-height:0;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.file-filter{margin:10px;flex-shrink:0}
+.tree-rows{flex:1;overflow:auto;padding:0 6px 10px;outline:none}
+.tree-row{display:flex;align-items:center;gap:5px;min-height:28px;padding:3px 8px 3px 8px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text);white-space:nowrap}
+.tree-row:hover{background:var(--panel-raised)}
+.tree-row.selected{background:#ffffff12;color:#f2f1ef}
+.tree-row:focus-visible{outline:2px solid var(--copper-bright);outline-offset:-2px}
+.tree-toggle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;padding:0;border:0;background:none;color:var(--muted);border-radius:4px}
+.tree-toggle:hover{color:var(--text);background:#ffffff14}
+.tree-icon{display:inline-flex;flex-shrink:0}
+.tree-name{overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* Counts are small, muted figures after the name, never a badge competing with it: the file count, then the link count. */
+.tree-count,.tree-links{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0}
+.tree-links{margin-left:8px}
+.tree-empty{margin:10px 8px;font-size:13px;color:var(--muted)}
+
+/* The map */
+.network-stage{position:relative;min-width:0;min-height:0;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.network-canvas{position:absolute;inset:0}
+.network-canvas canvas{display:block;touch-action:none;cursor:grab}
+.network-canvas canvas:active{cursor:grabbing}
+.network-hint{position:absolute;left:14px;bottom:10px;margin:0;font-size:12.5px;pointer-events:none}
+.hover-card{position:absolute;z-index:5;width:280px;max-height:260px;overflow:hidden;padding:10px 12px;background:#191c21f2;border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 28px #00000080;pointer-events:none;font-size:12.5px;backdrop-filter:blur(6px)}
+.hover-head{display:flex;align-items:center;gap:7px;min-width:0}
+.hover-head strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.hover-path{margin:2px 0 6px;color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hover-image{display:block;max-width:100%;max-height:150px;border-radius:5px;background:#0d0f12;object-fit:contain}
+.hover-lines{margin:0;max-height:120px;overflow:hidden;white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,Consolas,monospace;color:#c9cad2}
+.hover-skill strong{display:block;color:#D97757}
+.hover-skill p{margin:3px 0 0;color:var(--text);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.hover-card .muted{margin:6px 0 0;font-size:11.5px}
+
+/* The viewer */
+.file-viewer{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius)}
+.viewer-empty{margin:auto;padding:24px;text-align:center;color:var(--muted);max-width:280px}
+.viewer-empty h2{margin:10px 0 6px;font-size:16px;color:var(--text)}
+.viewer-empty p{margin:0;font-size:13.5px;line-height:1.5}
+.viewer-head{display:flex;gap:12px;align-items:flex-start;padding:16px 18px 10px}
+.viewer-icon{display:inline-flex;flex-shrink:0;margin-top:2px}
+.viewer-title{min-width:0}
+.viewer-title h2{margin:0;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.viewer-title .muted{margin:3px 0 0;font-size:12.5px}
+.viewer-path{margin:3px 0 0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.viewer-actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 18px 12px}
+.viewer-body{padding:0 18px 18px;display:flex;flex-direction:column;gap:14px}
+.viewer-summary{padding:10px 12px;border-radius:8px;background:var(--panel-raised);font-size:13px;line-height:1.5}
+.viewer-summary strong{display:block;margin-bottom:2px}
+.viewer-summary p{margin:0;color:var(--muted)}
+.viewer-facts{margin:0;font-size:13px}
+.viewer-facts>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--border)}
+.viewer-facts dt{color:var(--muted)}.viewer-facts dd{margin:0;overflow-wrap:anywhere}
+.viewer-image{display:block;max-width:100%;border-radius:8px;background:#0d0f12}
+.viewer-page{background:#fff;border:1px solid var(--border)}
+/* Map files in the Ctrl+K search (MapSearch.tsx) */
+.search-kind{display:inline-flex;flex:0 0 auto !important}
+.search-note{margin:0;padding:13px;font-size:13px;color:var(--muted)}
+/* The rendered note sits in a 380px column beside a 13px tree, so it reads at the app's own scale (14px, the size
+   accessibility.css gives buttons and settings prose), not the 16px it gives the chat and the editor. */
+.viewer-markdown .markdown{max-height:none;overflow:visible;padding-right:0;font-size:14px!important;line-height:1.6;color:var(--text)}
+.viewer-markdown .markdown h2{font-size:18px;margin-bottom:8px;line-height:1.4}
+.viewer-markdown .markdown h3{font-size:15px;margin:12px 0 5px}
+.viewer-markdown .markdown h4{font-size:14px}
+.viewer-markdown .markdown code{font-size:12px}
+.code-view{margin:0;padding:10px 0;overflow:auto;background:var(--bg);border-radius:8px;font:12.5px/1.55 ui-monospace,Consolas,monospace;color:var(--text);tab-size:4}
+.code-line{display:block;white-space:pre;padding-right:14px}
+.code-number{display:inline-block;width:44px;padding-right:12px;text-align:right;color:var(--muted);user-select:none}
+.viewer-more{align-self:flex-start}
+.viewer-note{display:flex;align-items:center;gap:8px;margin:0;padding:0 18px 12px;font-size:13px;color:var(--muted)}
+.viewer-body .viewer-note{padding:0}
+.viewer-links h3{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.viewer-links h3 span{font-weight:400}
+.viewer-links ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.viewer-links li button{display:flex;align-items:center;gap:7px;width:100%;padding:5px 8px;border:0;border-radius:6px;background:none;color:var(--text);font-size:13px;text-align:left;min-width:0}
+.viewer-links li button span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer-links li button small{margin-left:auto;color:var(--muted);font-size:11px;flex-shrink:0}
+.viewer-links li button:hover{background:var(--panel-raised);color:var(--copper-bright)}
+.viewer-links .muted{margin:0;font-size:13px}
+.network-foot{display:flex;align-items:center;gap:6px;margin:0;font-size:12px}
+@media (max-width:1200px){.network-body{grid-template-columns:230px minmax(0,1fr) 320px}}
+@media (max-width:900px){.network-page{height:auto}.network-body{grid-template-columns:1fr;grid-template-rows:280px 420px auto}.file-viewer{max-height:520px}}
