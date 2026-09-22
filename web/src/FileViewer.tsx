@@ -2,7 +2,7 @@
 // component, code and text in monospace with line numbers, images whole, PDFs on their first
 // page, anything else as its metadata plus Open on device. The server reads at most 8 KB for
 // the summary; the rest of a text file arrives in 64 KB chunks through Load more.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink, File, FileCode2, FileText, FolderOpen, Folder, Globe, Image, Layers3, Loader2, Plug, Clock3, Brain, Zap, FileType2 } from 'lucide-react';
 import { Markdown } from './Markdown';
 import { api } from './lib/api';
@@ -32,12 +32,16 @@ export function FileViewer({ model, index, detail, loading, error, onSelect, not
   const node = index >= 0 ? model.nodes[index] : null; const detailId = detail?.id;
   // Windows line endings become plain newlines: the Markdown component reads a heading to the end of its line.
   const lf = (value: string) => value.replace(/\r\n?/g, '\n');
-  useEffect(() => { setText(lf(detail?.excerpt || '')); setNext(detail?.next ?? null); setCopied(false); }, [detailId, detail?.excerpt, detail?.next]);
+  // The file on screen right now. A chunk read takes as long as the disk takes, and the reader can
+  // pick another file while one is in flight; a chunk that comes back for a file no longer shown is
+  // dropped, so one file's bytes never land inside another.
+  const showing = useRef(detailId);
+  useEffect(() => { showing.current = detailId; setText(lf(detail?.excerpt || '')); setNext(detail?.next ?? null); setMore(false); setCopied(false); }, [detailId, detail?.excerpt, detail?.next]);
   async function loadMore(offset: number) {
-    if (!detail) return; setMore(true);
-    try { const chunk = await api<{ text: string; next: number | null }>(`graph/text?id=${encodeURIComponent(detail.id)}&offset=${offset}`); setText(t => t + lf(chunk.text)); setNext(chunk.next); }
-    catch (error) { notify(error instanceof Error ? error.message : 'Could not read more of this file', true); }
-    finally { setMore(false); }
+    if (!detail) return; const id = detail.id; setMore(true);
+    try { const chunk = await api<{ text: string; next: number | null }>(`graph/text?id=${encodeURIComponent(id)}&offset=${offset}`); if (showing.current !== id) return; setText(t => t + lf(chunk.text)); setNext(chunk.next); }
+    catch (error) { if (showing.current === id) notify(error instanceof Error ? error.message : 'Could not read more of this file', true); }
+    finally { if (showing.current === id) setMore(false); }
   }
   // A skill reads whole: its SKILL.md keeps loading until the end (a few chunks at most).
   useEffect(() => { if (detail?.kind === 'skill' && next !== null && !more) void loadMore(next); }, [detail?.kind, next, more]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -81,10 +85,12 @@ export function FileViewer({ model, index, detail, loading, error, onSelect, not
       {(detail.kind === 'code' || detail.kind === 'text' || detail.kind === 'html') && (text ? <CodeView text={text}/> : <p className="muted">This file is empty.</p>)}
       {next !== null && detail.kind !== 'skill' && <button type="button" className="button small viewer-more" onClick={() => void loadMore(next)} disabled={more}>{more ? <Loader2 className="spin" size={14}/> : null}Load more · {left <= 65536 ? `the last ${bytes(left)}` : `next 64 KB, ${bytes(left)} left`}</button>}
       {detail.kind === 'skill' && next !== null && <p className="viewer-note"><Loader2 className="spin" size={14}/>Reading the rest of SKILL.md…</p>}
-      {(detail.kind === 'folder' || detail.kind === 'dept') && <section className="viewer-links"><h3>Contains <span>{detail.children.length}</span></h3><ul>{detail.children.slice(0, 400).map(child => <li key={child.id}><button type="button" onClick={() => pick(child)}><span className="tree-icon" style={{ color: colorOf(child as GraphNode) }}><KindIcon node={child} size={13}/></span><span>{child.name}</span></button></li>)}</ul>{detail.children.length > 400 && <p className="muted">And {detail.children.length - 400} more in the tree.</p>}</section>}
       {detail.kind === 'file' && file && <p className="viewer-note">No preview for this kind of file. Open on device shows it in its own app.</p>}
-      {links(detail.kind === 'app' ? 'Used by' : 'Links to', detail.linksOut)}
+      {/* The relations come before a folder's contents: what links here is the answer the map is
+          asked for, and under a long Contains list it would sit below the fold. */}
       {links('Linked from', detail.linksIn)}
+      {links(detail.kind === 'app' ? 'Used by' : 'Links to', detail.linksOut)}
+      {(detail.kind === 'folder' || detail.kind === 'dept') && <section className="viewer-links"><h3>Contains <span>{detail.children.length}</span></h3><ul>{detail.children.slice(0, 400).map(child => <li key={child.id}><button type="button" onClick={() => pick(child)}><span className="tree-icon" style={{ color: colorOf(child as GraphNode) }}><KindIcon node={child} size={13}/></span><span>{child.name}</span></button></li>)}</ul>{detail.children.length > 400 && <p className="muted">And {detail.children.length - 400} more in the tree.</p>}</section>}
     </div>}
   </aside>;
 }

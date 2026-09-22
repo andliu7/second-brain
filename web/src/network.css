@@ -12,8 +12,10 @@
 /* The tree */
 .file-tree{display:flex;flex-direction:column;min-height:0;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .file-filter{margin:10px;flex-shrink:0}
-.tree-rows{flex:1;overflow:auto;padding:0 6px 10px;outline:none}
-.tree-row{display:flex;align-items:center;gap:5px;min-height:28px;padding:3px 8px 3px 8px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text);white-space:nowrap}
+/* Rows scroll whole: the list settles on a row boundary rather than slicing one through the middle
+   at the top edge, however it was scrolled (a wheel, or a row revealed by a pick on the map). */
+.tree-rows{flex:1;overflow:auto;padding:0 6px 10px;outline:none;scroll-snap-type:y proximity}
+.tree-row{display:flex;align-items:center;gap:5px;height:28px;padding:3px 8px 3px 8px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text);white-space:nowrap;scroll-snap-align:start}
 .tree-row:hover{background:var(--panel-raised)}
 .tree-row.selected{background:#ffffff12;color:#f2f1ef}
 .tree-row:focus-visible{outline:2px solid var(--copper-bright);outline-offset:-2px}
@@ -63,9 +65,17 @@
 .viewer-facts dt{color:var(--muted)}.viewer-facts dd{margin:0;overflow-wrap:anywhere}
 .viewer-image{display:block;max-width:100%;border-radius:8px;background:#0d0f12}
 .viewer-page{background:#fff;border:1px solid var(--border)}
-/* Map files in the Ctrl+K search (MapSearch.tsx) */
+/* Map files in the Ctrl+K search (MapSearch.tsx). The row's own actions sit at its right edge,
+   always visible, so Open on device is the same two actions as finding the file. */
 .search-kind{display:inline-flex;flex:0 0 auto !important}
 .search-note{margin:0;padding:13px;font-size:13px;color:var(--muted)}
+.search-row{display:flex;align-items:center;border-radius:7px}
+.search-row:hover{background:#2a242b}
+.search-row .search-result{flex:1;min-width:0}
+.search-row .search-result:hover{background:none}
+.search-row-actions{display:flex;gap:2px;flex-shrink:0;padding-right:7px}
+.search-row-actions .icon-button{width:30px;height:30px;margin:0;color:#a396a8}
+.search-row-actions .icon-button:hover{background:#ffffff14;color:#f0e6ee}
 /* The rendered note sits in a 380px column beside a 13px tree, so it reads at the app's own scale (14px, the size
    accessibility.css gives buttons and settings prose), not the 16px it gives the chat and the editor. */
 .viewer-markdown .markdown{max-height:none;overflow:visible;padding-right:0;font-size:14px!important;line-height:1.6;color:var(--text)}

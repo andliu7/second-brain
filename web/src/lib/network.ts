@@ -15,8 +15,11 @@ export type Model = {
 // One scene the canvas draws: which model nodes, where, how big, and the lines between them.
 export type Scene = { ids: Int32Array; x: Float32Array; y: Float32Array; r: Float32Array; at: Int32Array; edges: GraphEdge[]; contains: Int32Array };
 
-// Layer colours first (the four ARMS layers, skills in Claude orange), then ordinary files by kind, dimmer.
-export const COLORS: Record<string, string> = { skill: '#D97757', app: '#4C8FDB', routine: '#E2C34D', memory: '#7FC8A9', dept: '#E9E8E7', folder: '#8B909B', note: '#B7B0D8', code: '#6C7380', text: '#7C828E', image: '#6F8CA8', pdf: '#A08079', html: '#8F8B6A', file: '#5A5F68' };
+// Layer colours first (the four ARMS layers, skills in Claude orange), then ordinary files by kind,
+// dimmer but never faint: every one of these clears 4.5:1 against the map's background (#0d0f12),
+// so an unlinked file is a quieter dot rather than noise. The dimming of a focused view is what
+// separates the tiers, not a colour too dark to read.
+export const COLORS: Record<string, string> = { skill: '#D97757', app: '#4C8FDB', routine: '#E2C34D', memory: '#7FC8A9', dept: '#E9E8E7', folder: '#8B909B', note: '#B7B0D8', code: '#7E8592', text: '#7C828E', image: '#6F8CA8', pdf: '#A08079', html: '#8F8B6A', file: '#7A8089' };
 export const LAYER_NAMES: Record<string, string> = { app: 'Applications', routine: 'Routines', memory: 'Memory', skill: 'Skills' };
 export const colorOf = (node: GraphNode) => COLORS[node.layer] || COLORS[node.kind] || COLORS.file;
 export const isFolder = (node: GraphNode) => node.kind === 'folder' || node.kind === 'skill' || node.kind === 'dept';

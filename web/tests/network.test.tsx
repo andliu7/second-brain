@@ -3,7 +3,7 @@
 // large file through Load more, and Open on device never fires without a click. The map's
 // canvas has no 2D context here, so the page runs without it.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Network from '../src/Network';
 import App from '../src/App';
@@ -41,12 +41,15 @@ const details: Record<string, object> = {
   vite: { id: 'vite', name: 'vite.config.js', kind: 'code', layer: '', path: 'C:/Users/andrew/Downloads/Projects/blueberry_game/vite.config.js', root: 'C:/Users/andrew/Downloads/Projects', size: 400, mtime: 0, summary: {}, excerpt: 'export default {}\n', next: null, linksIn: [], linksOut: [], children: [], group: null, where: null },
 };
 let requests: { url: string; body: any }[] = [];
+// A slow chunk read, held by the test until it releases it: the selection can move while one is in flight.
+let holdText: Promise<void> | null = null;
 beforeEach(() => {
-  requests = [];
+  requests = []; holdText = null;
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
   vi.stubGlobal('fetch', vi.fn(async (url: string, options?: RequestInit) => {
     const path = String(url); const body = options?.body ? JSON.parse(String(options.body)) : undefined; requests.push({ url: path, body });
     const params = new URL(path, 'http://localhost').searchParams;
+    if (path.includes('/graph/text') && holdText) await holdText;
     const reply = path.includes('/graph/node') ? details[params.get('id')!] : path.includes('/graph/text') ? { text: `chunk at ${params.get('offset')}\n## The last heading\n`, offset: Number(params.get('offset')), next: params.get('id') === 'big' && Number(params.get('offset')) === 8192 ? 73728 : null, size: 200000 } : path.includes('/graph/open') ? { ok: true, command: 'explorer.exe', args: [], reveal: body?.reveal || body?.id === 'vite', runnable: body?.id === 'vite' } : path.endsWith('/graph') ? payload
       : path.endsWith('/status') ? { local: true, authRequired: false, providers: {}, models: {} } : path.endsWith('/projects') ? { repos: [], courses: [], blueberry: null, routines: [] } : path.endsWith('/tasks') ? { tasks: [] } : path.endsWith('/skills') ? { skills: [] } : { error: 'no' };
     return new Response(JSON.stringify(reply), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -122,6 +125,22 @@ describe('Network: one selection across tree, map and viewer', () => {
     expect(within(viewer()).getByRole('button', { name: 'Open on device' })).toBeInTheDocument();
   });
 
+  it('selects the top match as you type, so a named file is one action plus typing, and a click during that moment wins', async () => {
+    const user = userEvent.setup(); render(<Network notify={notify}/>);
+    await screen.findByRole('treeitem', { name: /Chemistry apps/ });
+    expect(screen.getByLabelText('Search files')).toHaveFocus(); // the cold open is already typing-ready
+    await user.keyboard('duolingo--onboarding--00.png'); // no Enter
+    expect(await within(viewer()).findByRole('img', { name: 'duolingo--onboarding--00.png' })).toBeInTheDocument();
+    expect(row('duolingo--onboarding--00.png')).toHaveAttribute('aria-selected', 'true');
+    expect(within(viewer()).getByRole('button', { name: 'Open on device' })).toBeInTheDocument();
+    // A row clicked while the query is still settling keeps its file: the top match does not steal it back.
+    const box = screen.getByLabelText('Search files');
+    await user.clear(box); await user.type(box, 'mobbin');
+    await user.click(row('duolingo--onboarding--00.png'));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 400)); });
+    expect(within(viewer()).getByRole('heading', { level: 2, name: 'duolingo--onboarding--00.png' })).toBeInTheDocument();
+  });
+
   it('walks a relation: a Links to entry moves the tree row, the viewer and the map selection together', async () => {
     const user = userEvent.setup(); render(<Network notify={notify}/>);
     await screen.findByRole('treeitem', { name: /Chemistry apps/ });
@@ -136,6 +155,14 @@ describe('Network: one selection across tree, map and viewer', () => {
     await user.click(within(viewer()).getByRole('button', { name: /README.md/ }));
     expect(await within(viewer()).findByRole('heading', { level: 2, name: 'README.md' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Local graph' })).toBeEnabled();
+  });
+
+  it('puts what links here above a folder\'s contents, so the answer is not below a long list', async () => {
+    const user = userEvent.setup(); render(<Network notify={notify}/>);
+    await screen.findByRole('treeitem', { name: /Chemistry apps/ });
+    await user.keyboard('mobbin{Enter}');
+    await within(viewer()).findByRole('heading', { level: 2, name: 'mobbin' });
+    expect(within(viewer()).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(['Linked from 1', 'Links to 0', 'Contains 1']);
   });
 
   it('pages a large text file in chunks on demand, and opens on the device only on a click', async () => {
@@ -165,6 +192,32 @@ describe('Network: one selection across tree, map and viewer', () => {
     await waitFor(() => expect(requests.filter(r => r.url.includes('/graph/open')).at(-1)?.body).toEqual({ id: 'big', reveal: true }));
     await user.click(within(viewer()).getByRole('button', { name: 'Copy path' }));
     expect(await navigator.clipboard.readText()).toBe('C:/Users/andrew/Downloads/Projects/second-brain/index.tsv');
+  });
+
+  it('drops a chunk that arrives after the selection moved, so one file\'s bytes never show inside another', async () => {
+    const user = userEvent.setup(); render(<Network notify={notify}/>);
+    await screen.findByRole('treeitem', { name: /Chemistry apps/ });
+    const box = screen.getByLabelText('Search files');
+    await user.keyboard('index.tsv{Enter}');
+    expect(await within(viewer()).findByText('row 2')).toBeInTheDocument();
+    let release = () => {};
+    holdText = new Promise<void>(resolve => { release = resolve; });
+    await user.click(within(viewer()).getByRole('button', { name: /Load more/ }));
+    expect(requests.filter(r => r.url.includes('/graph/text'))).toHaveLength(1);
+    // The reader picks another file while that chunk is still on its way.
+    await user.clear(box); await user.type(box, 'vite.config{Enter}');
+    expect(await within(viewer()).findByText(/export default/)).toBeInTheDocument();
+    holdText = null; release();
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
+    expect(within(viewer()).queryByText(/chunk at 8192/)).toBeNull(); // the index's bytes stayed out of vite.config.js
+    expect(viewer().querySelectorAll('.code-line')).toHaveLength(1);
+    // And the held read left nothing stuck: back on the index, Load more still works and reads once.
+    await user.clear(box); await user.type(box, 'index.tsv{Enter}');
+    const more = await within(viewer()).findByRole('button', { name: /Load more/ });
+    expect(more).toBeEnabled();
+    await user.click(more);
+    expect(await within(viewer()).findByText(/chunk at 8192/)).toBeInTheDocument();
+    expect(within(viewer()).getAllByText(/chunk at 8192/)).toHaveLength(1);
   });
 
   it('shows a skill whole, as its SKILL.md rendered, with what uses it', async () => {
@@ -205,8 +258,11 @@ describe('the front door reaches the map', () => {
     await user.keyboard('{Control>}k{/Control}'); // action 1
     const dialog = await screen.findByRole('dialog');
     await user.keyboard('duolingo--onboarding--00');
-    const hit = await within(dialog).findByRole('button', { name: /duolingo--onboarding--00\.png/ }, { timeout: 5000 }); // the map is fetched and built first
+    const hit = await within(dialog).findByRole('button', { name: /^duolingo--onboarding--00\.png/ }, { timeout: 5000 }); // the map is fetched and built first
     expect(hit).toHaveTextContent('Image · blueberry_game/docs/mobbin');
+    // The row carries its own actions, so neither of them is a hop past the file.
+    expect(within(dialog).getByRole('button', { name: 'Open duolingo--onboarding--00.png on device' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Reveal duolingo--onboarding--00.png in Explorer' })).toBeInTheDocument();
     expect(within(dialog).queryByText('No matches yet')).not.toBeInTheDocument();
     await user.keyboard('{Enter}'); // action 2
     // The Network page is lazy: it suspends inside the key event's act() and resumes on the plain event
@@ -228,14 +284,36 @@ describe('the front door reaches the map', () => {
     await user.keyboard('{Control>}k{/Control}'); // action 1
     const dialog = await screen.findByRole('dialog');
     await user.keyboard('duolingo--onboarding--00');
-    await within(dialog).findByRole('button', { name: /duolingo--onboarding--00\.png/ }, { timeout: 5000 });
+    await within(dialog).findByRole('button', { name: /^duolingo--onboarding--00\.png/ }, { timeout: 5000 });
     expect(requests.some(r => r.url.includes('/graph/open'))).toBe(false);
     await user.keyboard('{Control>}{Enter}{/Control}'); // action 2
-    await waitFor(() => expect(requests.filter(r => r.url.includes('/graph/open')).map(r => r.body)).toEqual([{ id: 'pic' }]));
+    await waitFor(() => expect(requests.filter(r => r.url.includes('/graph/open')).map(r => r.body)).toEqual([{ id: 'pic', reveal: false }]));
     expect(await screen.findByRole('status')).toHaveTextContent('Opened duolingo--onboarding--00.png on this computer');
     for (let i = 0; i < 100 && !screen.queryByRole('heading', { level: 1, name: 'Network' }); i++) await new Promise(r => setTimeout(r, 50));
     expect(await within(viewer()).findByRole('img', { name: 'duolingo--onboarding--00.png' }, { timeout: 5000 })).toBeInTheDocument();
     expect(requests.filter(r => r.url.includes('/graph/open'))).toHaveLength(1);
+  });
+
+  it('the result row opens the file on this computer in the same two actions, and Shift+Enter reveals it instead', async () => {
+    const user = userEvent.setup(); render(<App/>);
+    await screen.findByRole('heading', { level: 1, name: 'Today' });
+    await user.keyboard('{Control>}k{/Control}'); // action 1
+    const dialog = await screen.findByRole('dialog');
+    await user.keyboard('duolingo--onboarding--00');
+    await user.click(await within(dialog).findByRole('button', { name: 'Open duolingo--onboarding--00.png on device' }, { timeout: 5000 })); // action 2
+    await waitFor(() => expect(requests.filter(r => r.url.includes('/graph/open')).map(r => r.body)).toEqual([{ id: 'pic', reveal: false }]));
+    expect(await screen.findByRole('status')).toHaveTextContent('Opened duolingo--onboarding--00.png on this computer');
+    // The pick still lands on the file in Network, so the map and the viewer show what was opened.
+    for (let i = 0; i < 100 && !screen.queryByRole('heading', { level: 1, name: 'Network' }); i++) await new Promise(r => setTimeout(r, 50));
+    expect(await within(viewer()).findByRole('img', { name: 'duolingo--onboarding--00.png' }, { timeout: 5000 })).toBeInTheDocument();
+    // Shift+Enter on the row reveals it in Explorer rather than opening it.
+    await user.keyboard('{Control>}k{/Control}');
+    const again = await screen.findByRole('dialog');
+    await user.keyboard('duolingo--onboarding--00');
+    await within(again).findByRole('button', { name: /^duolingo--onboarding--00\.png/ }, { timeout: 5000 });
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    await waitFor(() => expect(requests.filter(r => r.url.includes('/graph/open')).map(r => r.body)).toEqual([{ id: 'pic', reveal: false }, { id: 'pic', reveal: true }]));
+    expect(await screen.findByRole('status')).toHaveTextContent('Revealed duolingo--onboarding--00.png in Explorer');
   });
 });
 
