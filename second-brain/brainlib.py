@@ -192,9 +192,13 @@ def knobs_fingerprint(cfg: dict) -> str:
 
 # -------------------------------------------------------------------- paths --
 
+@functools.lru_cache(maxsize=4096)
 def norm(p) -> str:
     """One canonical path spelling everywhere: absolute, forward slashes.
-    Windows is case-insensitive, so compare casefolded but store as-is."""
+    Windows is case-insensitive, so compare casefolded but store as-is.
+    Cached: resolve() touches the disk, and context_for re-normalised the same
+    handful of context prefixes for every one of the 300 prescore survivors,
+    two thirds of a query's time."""
     return str(Path(p).expanduser().resolve()).replace("\\", "/")
 
 
@@ -254,25 +258,28 @@ COLUMNS = [
     "pointer", "confidence", "mtime_ns", "size",
 ]
 
-_ESC = {"\t": "\\t", "\n": "\\n", "\r": "\\r", "\\": "\\\\"}
 _UNESC = {"t": "\t", "n": "\n", "r": "\r", "\\": "\\"}
+_UNESC_RE = re.compile(r"\\(.)", re.DOTALL)
 
 
+# Both run over every field of every row whenever the index is read or written, 24 MB
+# of it. A per-character Python loop here cost 27s to read and 32s to write under the
+# profiler, which is what a single-file repair (idx.py --file) paid on every drifted
+# file a query touched. Escapes are rare in practice (paths are forward-slashed, keywords
+# have no tabs), so the common case is a containment test and a return.
 def esc(s: str) -> str:
-    return "".join(_ESC.get(c, c) for c in (s or ""))
+    s = s or ""
+    if "\\" not in s and "\t" not in s and "\n" not in s and "\r" not in s:
+        return s
+    return s.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 
 def unesc(s: str) -> str:
-    out, i = [], 0
-    while i < len(s):
-        c = s[i]
-        if c == "\\" and i + 1 < len(s):
-            out.append(_UNESC.get(s[i + 1], s[i + 1]))
-            i += 2
-        else:
-            out.append(c)
-            i += 1
-    return "".join(out)
+    if "\\" not in s:
+        return s
+    # An unknown escape decodes to the character itself and a trailing lone backslash
+    # stays, the same as the character loop this replaced.
+    return _UNESC_RE.sub(lambda m: _UNESC.get(m.group(1), m.group(1)), s)
 
 
 class Row:

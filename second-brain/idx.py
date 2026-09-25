@@ -246,12 +246,17 @@ def index_file(path: str, cfg: dict, low_trust: bool = False) -> list[Row]:
 def resolve_pointers(rows: list[Row]) -> int:
     """A pointer that does not resolve to an existing index row is dropped.
     Dangling references must never survive into the persisted artifact."""
-    by_path: dict[str, list[Row]] = {}
+    # One pass builds the lookups with string ops (paths are already forward-slashed and
+    # splitext agrees with Path.stem, ".gitignore" included). The old version parsed every
+    # path with pathlib, and for a pointer that missed the heading table it re-parsed every
+    # path again: 12 of the 21 seconds a single-file repair took under the profiler.
     by_head: dict[str, Row] = {}
+    by_name: dict[str, Row] = {}       # first row of the first file with that name
     for r in rows:
-        by_path.setdefault(r.path.casefold(), []).append(r)
+        name = r.path.casefold().rsplit("/", 1)[-1]
         by_head.setdefault(r.heading.strip().casefold(), r)
-        by_head.setdefault(Path(r.path).stem.casefold(), r)
+        by_head.setdefault(os.path.splitext(name)[0], r)
+        by_name.setdefault(name, r)
     dropped = 0
     for r in rows:
         if not r.pointer:
@@ -262,11 +267,7 @@ def resolve_pointers(rows: list[Row]) -> int:
         if tl in by_head:
             cand = by_head[tl]
         else:
-            base = Path(target.split("#")[0]).name.casefold()
-            for pth, rs in by_path.items():
-                if Path(pth).name.casefold() == base:
-                    cand = rs[0]
-                    break
+            cand = by_name.get(Path(target.split("#")[0]).name.casefold())
             if cand is None and Path(target).stem.casefold() in by_head:
                 cand = by_head[Path(target).stem.casefold()]
         if cand is None or cand.key() == r.key():

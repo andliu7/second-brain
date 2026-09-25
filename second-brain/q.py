@@ -229,6 +229,14 @@ def score_all(qtoks, rows, postings, lens, avg, cfg, scope, qseq=None, typed=Non
         if scope_l and scope_l not in r.path.casefold() and scope_l not in r.heading.casefold():
             continue
         head_seq = tokenize(r.heading)
+        if r.kind.startswith("code"):
+            # A code heading opens with the file's own name ("report.ts > formatReport").
+            # The path field already credits that name, so left in, the filename earned
+            # heading and path weight both AND its tokens fired the phrase bonus, which
+            # is meant for symbol names and prose headings. The gauntlet showed the cost:
+            # for "what is the ceiling on the chem-core bundle", chem-core-size.ts scored
+            # 178 and the note that holds the decision scored 70. Credit the name once.
+            head_seq = tokenize(r.heading.split(" > ", 1)[1]) if " > " in r.heading else []
         head = set(head_seq)
         pth = path_toks(r.path)
         kw = set(r.keywords.split())
@@ -302,6 +310,26 @@ def verify_and_repair(row: Row, cfg: dict, rows=None) -> tuple[Row | None, str]:
                     row.path, "--quiet"], check=False,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return None, "STALE"
+
+
+def last_reindex(brain_dir: Path) -> tuple[str, int] | None:
+    """(date, days ago) of the last full reindex, from the line idx.py appends to log.md.
+    Repairs keep single files honest; only a full run drops deleted files and adds new
+    ones, and nothing else tells a session how old the map it is reading from is."""
+    import datetime
+    try:
+        lines = [ln for ln in (brain_dir / "log.md").read_text(encoding="utf-8").splitlines()
+                 if "] reindex |" in ln]
+    except OSError:
+        return None
+    if not lines:
+        return None
+    stamp = lines[-1].split("[", 1)[1].split("]", 1)[0]
+    try:
+        when = datetime.datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+    return stamp[:10], (datetime.datetime.now() - when).days
 
 
 def truncate(text: str, cap: int) -> tuple[str, bool]:
@@ -388,6 +416,7 @@ def main() -> int:
 
     # open exactly one file -- the winner. One retry if it needed repair.
     winner = None
+    dead = 0          # candidates skipped because their file is gone: a stale-index sign
     for attempt in range(2):
         _, top_score, top_i, note = scored[0]
         cand = rows[top_i]
@@ -395,6 +424,8 @@ def main() -> int:
         if fixed is not None:
             winner = (fixed, top_score, note)
             break
+        if err == "file no longer exists":
+            dead += 1
         if err == "STALE" and attempt == 0:
             for p in (BRAIN_DIR / "index.cache",):
                 p.unlink(missing_ok=True)
@@ -539,6 +570,14 @@ def main() -> int:
             print(f"~   {c['label']}")
     if note:
         print(f"~ {note}")
+    # Say how old the map is. The gauntlet found the index 12 days old with three areas
+    # missing and 10,000 rows for deleted folders, and no session could tell.
+    age = last_reindex(BRAIN_DIR)
+    if dead or (age and age[1] > 7):
+        when = f"last full reindex {age[0]}, {age[1]} days ago" if age else "no full reindex on record"
+        gone = f"; {dead} top candidate{'s' if dead != 1 else ''} pointed at deleted files" if dead else ""
+        print(f"~ STALE INDEX: {when}{gone}. New and deleted files are unknown to it "
+              "until you run: python idx.py")
     print(body)
     if cut1:
         print(f"[cut at {cap}B - rerun --cap wide for more]")
