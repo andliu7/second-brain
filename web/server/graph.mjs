@@ -120,9 +120,13 @@ function walk(root, rootIndex, nodes, options) {
 }
 
 // The ARMS layers a file can belong to by where it lives. Skills and applications are set elsewhere.
+// Two more for the home page's key: a router is a CLAUDE.md or one of the all-caps area indexes at
+// the root of Projects (CHEMISTRY.md, SCHOOL.md), a plan is a PLAN.md or STATUS.md wherever it sits.
 function layerOf(rel) {
   if (/(^|\/)OS\/routines\/[^/]+$/.test(rel)) return 'routine';
   if (/(^|\/)OS\/memory\/[^/]+$/.test(rel) || /(^|\/)OS\/MEMORY\.md$/.test(rel) || /second-brain\/memories\/[^/]+$/.test(rel) || /second-brain\/index\.tsv$/.test(rel)) return 'memory';
+  if (/(^|\/)CLAUDE\.md$/.test(rel) || /^[A-Z]+\.md$/.test(rel)) return 'router';
+  if (/(^|\/)[\w-]*(PLAN|STATUS)\.md$/.test(rel)) return 'plan';
   return '';
 }
 
@@ -262,6 +266,66 @@ export async function buildGraph(roots = readRoots()) {
   const graph = { roots: roots.map((p, i) => ({ path: slash(p), count: options.counts[i] || 0 })), signature, nodes: nodes.map(({ path: _path, ...node }) => node), edges, built: new Date().toISOString() };
   memory = { signature, graph, nodes, edges, roots };
   return graph;
+}
+
+// The home page's map: the same graph with the bulk folded away. Images, code, text, PDFs and
+// other files become one node per (folder, kind) carrying its member ids, named like
+// "blueberry_game/docs/reference · 5,829 images". Notes, skills, routines, memory, plans,
+// routers and applications stay individual. A folder whose subtree holds nothing individual
+// collapses into its parent's groups, so a tree of 12,000 files reads as a few hundred nodes.
+// Pure over the public graph, so a test can run it on a fixture and on the real build alike.
+const GROUPED = new Set(['image', 'code', 'file', 'text', 'pdf']);
+const GROUP_LABEL = { image: ['image', 'images'], code: ['code file', 'code files'], file: ['file', 'files'], text: ['text file', 'text files'], pdf: ['PDF', 'PDFs'] };
+export function groupGraph(graph) {
+  const { nodes, edges, roots } = graph; const n = nodes.length;
+  const container = i => ['folder', 'skill', 'dept'].includes(nodes[i].kind);
+  const groupable = i => GROUPED.has(nodes[i].kind) && !nodes[i].layer;
+  // A container is kept when anything individual lives anywhere beneath it.
+  const keep = new Uint8Array(n);
+  for (let i = n - 1; i >= 0; i--) {
+    if (nodes[i].kind === 'dept') keep[i] = 1;
+    else if (!container(i) && !groupable(i)) { for (let p = nodes[i].parent; p >= 0 && !keep[p]; p = nodes[p].parent) keep[p] = 1; }
+  }
+  const anchorOf = i => { let p = nodes[i].parent; while (p >= 0 && !keep[p]) p = nodes[p].parent; return p; };
+  const rel = i => { const parts = []; for (let j = i; j >= 0 && nodes[j].kind !== 'dept'; j = nodes[j].parent) parts.unshift(nodes[j].name); return parts.join('/'); };
+  const out = []; const at = new Int32Array(n).fill(-1);
+  for (let i = 0; i < n; i++) { if (keep[i] || (!container(i) && !groupable(i))) { at[i] = out.push({ ...nodes[i], parent: nodes[i].parent >= 0 ? at[nodes[i].parent] : -1 }) - 1; } }
+  // One group per (anchor, kind). Its name is the deepest folder every member shares.
+  const groups = new Map(); const folderGroups = new Map(); // collapsed folder index -> Map(group key -> count)
+  const ancestors = i => { const chain = []; for (let p = i; p >= 0; p = nodes[p].parent) chain.unshift(p); return chain; };
+  for (let i = 0; i < n; i++) {
+    if (!groupable(i)) continue;
+    const anchor = anchorOf(i); const key = anchor + '|' + nodes[i].kind;
+    let group = groups.get(key);
+    if (!group) { group = { anchor, kind: nodes[i].kind, members: [], size: 0, mtime: 0, common: ancestors(nodes[i].parent), root: nodes[i].root }; groups.set(key, group); }
+    else { const chain = ancestors(nodes[i].parent); let same = 0; while (same < group.common.length && same < chain.length && group.common[same] === chain[same]) same++; group.common.length = same; }
+    group.members.push(nodes[i].id); group.size += nodes[i].size; group.mtime = Math.max(group.mtime, nodes[i].mtime);
+    for (let p = nodes[i].parent; p >= 0 && p !== anchor; p = nodes[p].parent) { if (!folderGroups.has(p)) folderGroups.set(p, new Map()); const counts = folderGroups.get(p); counts.set(key, (counts.get(key) || 0) + 1); }
+  }
+  const groupAt = new Map();
+  for (const [key, group] of groups) {
+    const deepest = group.common[group.common.length - 1]; const where = nodes[deepest].kind === 'dept' ? path.basename(roots[group.root]?.path || '') : rel(deepest);
+    const count = group.members.length; const label = GROUP_LABEL[group.kind][count === 1 ? 0 : 1];
+    groupAt.set(key, out.push({ id: short('group:' + nodes[group.anchor].id + ':' + group.kind), name: `${where} · ${count.toLocaleString('en-US')} ${label}`, kind: group.kind, layer: '', parent: at[group.anchor], root: group.root, size: group.size, mtime: group.mtime, members: group.members }) - 1);
+  }
+  // Where an old index landed: itself, its group, or for a collapsed folder its largest group.
+  const target = i => {
+    if (at[i] >= 0) return at[i];
+    if (groupable(i)) return groupAt.get(anchorOf(i) + '|' + nodes[i].kind);
+    const counts = folderGroups.get(i); if (!counts) return at[anchorOf(i)];
+    let best = null, most = 0; for (const [key, count] of counts) if (count > most) { most = count; best = key; }
+    return groupAt.get(best);
+  };
+  const seen = new Set(); const kept = [];
+  for (const [a, b, type] of edges) { const ta = target(a), tb = target(b); if (ta === undefined || tb === undefined || ta === tb || ta < 0 || tb < 0) continue; const key = ta + '>' + tb; if (seen.has(key)) continue; seen.add(key); kept.push([ta, tb, type]); }
+  return { roots, signature: graph.signature, built: graph.built, nodes: out, edges: kept };
+}
+// The grouped graph for the build the client already holds: the signature it sends is compared
+// with the one in memory, so the second request never walks the disk again. Any other
+// signature (a cold server, a tree that changed) builds afresh.
+export async function groupedGraph(signature = '') {
+  const graph = signature && memory.signature === signature ? memory.graph : await buildGraph();
+  return groupGraph(graph);
 }
 
 async function nodeAt(id) {

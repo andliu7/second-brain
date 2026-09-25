@@ -1,0 +1,44 @@
+/* Home (Home.tsx, SphereCanvas.tsx). Imported by Home.tsx, like network.css by Network.tsx, so it
+   sits outside the cascade layer index.css puts styles.css in. The app-home rules fold the shell's
+   sidebar and top bar away while the globe is the page; the burger in Home.tsx opens the sidebar. */
+.app-home .sidebar{transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 40px #0008}
+.app-home .sidebar-open{transform:none}
+.app-home .sidebar-scrim{display:block;position:fixed;inset:0;background:#040609ae;z-index:34;border:0;backdrop-filter:blur(3px)}
+.app-home .topbar{display:none}
+.app-home .main-shell{margin:0;width:100%}
+.app-home .main-content{padding:0;max-width:none;display:flex;min-height:100vh}
+.home{position:relative;flex:1;min-width:0;min-height:100vh;background:#0c1222;overflow:hidden;color:var(--text)}
+.sphere-canvas{position:absolute;inset:0}
+.sphere-canvas canvas{display:block;touch-action:none;cursor:grab;outline:none}
+.sphere-canvas canvas:active{cursor:grabbing}
+.sphere-canvas canvas:focus-visible{outline:2px solid var(--copper-bright);outline-offset:-3px}
+.home-top{position:absolute;left:12px;top:12px;z-index:6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 24px)}
+.home-burger{width:36px;height:36px;color:var(--text);background:#111a30e6;border:1px solid #2a3552}
+.home-brand{font-weight:600;font-size:14px;margin-right:4px}
+.home-top .button{background:#111a30e6;border-color:#2a3552}
+.home-top kbd{font:inherit;font-size:11px;color:var(--muted)}
+.home-key{position:absolute;left:12px;top:64px;z-index:5;display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:#111a30e6;border:1px solid #2a3552;border-radius:9px;font-size:12.5px;backdrop-filter:blur(6px)}
+.home-key span{display:flex;align-items:center;gap:8px}
+.home-key i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.home-key small{margin-left:auto;padding-left:14px;color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.home-foot{position:absolute;left:14px;bottom:10px;margin:0;font-size:12px;pointer-events:none;z-index:5;max-width:calc(100% - 28px)}
+.home-loading,.home-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:14px;padding:20px}
+.home-loading p{margin:0}
+/* The panel: over the right edge, 420 px or the viewport minus a strip of the globe, never all of it. */
+.home-panel{position:absolute;top:0;right:0;bottom:0;width:min(420px,calc(100vw - 56px));z-index:7;display:flex;flex-direction:column;background:#0f1526f7;border-left:1px solid #2a3552;box-shadow:-12px 0 36px #00000066;animation:home-slide .22s ease-out}
+@keyframes home-slide{from{transform:translateX(100%)}to{transform:none}}
+.home-panel-head{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid #2a3552;flex-shrink:0}
+.home-tabs{display:flex;gap:4px;flex:1}
+.home-tabs button{padding:6px 10px;border:0;border-radius:6px;background:none;color:var(--muted);font-size:13px;font-weight:600}
+.home-tabs button[aria-selected="true"]{background:#ffffff14;color:var(--text)}
+.home-panel .icon-button{color:var(--text)}
+.home-panel .file-tree,.home-panel .file-viewer{flex:1;min-height:0;border:0;border-radius:0;background:transparent}
+.home-members{overflow:auto}
+.home-members ul{list-style:none;margin:0;padding:0 10px 14px}
+.home-members li{display:flex;align-items:center;gap:4px;min-height:34px;padding:0 4px;border-radius:6px}
+.home-members li:hover{background:var(--panel-raised)}
+.home-members li>button:first-child{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:6px 4px;border:0;background:none;color:var(--text);font-size:13px;text-align:left}
+.home-members li>button:first-child span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-members li>button:first-child small{margin-left:auto;color:var(--muted);font-size:11px;flex-shrink:0}
+.home-members .viewer-note{padding:0 14px 14px}
+@media (max-width:700px){.home-key{top:auto;bottom:34px;flex-direction:row;flex-wrap:wrap;gap:4px 12px;max-width:calc(100% - 24px);font-size:11.5px;padding:8px 10px}.home-key small{margin-left:0;padding-left:4px}.home-brand{display:none}}

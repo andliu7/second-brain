@@ -4,9 +4,11 @@
 // one request the Network page and the Ctrl+K search share.
 import { api } from './api';
 
-export type GraphNode = { id: string; name: string; kind: string; layer: string; parent: number; root: number; size: number; mtime: number; group?: string; where?: string };
+// members: the grouped graph (/api/graph/grouped) folds a folder's images, code and files into one
+// node per kind that lists the ids of the files inside it. Individual nodes never carry it.
+export type GraphNode = { id: string; name: string; kind: string; layer: string; parent: number; root: number; size: number; mtime: number; group?: string; where?: string; members?: string[] };
 export type GraphEdge = [number, number, string];
-export type GraphPayload = { roots: { path: string; count: number }[]; nodes: GraphNode[]; edges: GraphEdge[]; built?: string };
+export type GraphPayload = { roots: { path: string; count: number }[]; nodes: GraphNode[]; edges: GraphEdge[]; built?: string; signature?: string };
 export type Model = {
   nodes: GraphNode[]; roots: GraphPayload['roots']; edges: GraphEdge[];
   children: number[][]; count: Int32Array; depth: Int32Array; paths: string[]; byId: Map<string, number>;
@@ -15,13 +17,19 @@ export type Model = {
 // One scene the canvas draws: which model nodes, where, how big, and the lines between them.
 export type Scene = { ids: Int32Array; x: Float32Array; y: Float32Array; r: Float32Array; at: Int32Array; edges: GraphEdge[]; contains: Int32Array };
 
-// Layer colours first (the four ARMS layers, skills in Claude orange), then ordinary files by kind,
-// dimmer but never faint: every one of these clears 4.5:1 against the map's background (#0d0f12),
-// so an unlinked file is a quieter dot rather than noise. The dimming of a focused view is what
-// separates the tiers, not a colour too dark to read.
-export const COLORS: Record<string, string> = { skill: '#D97757', app: '#4C8FDB', routine: '#E2C34D', memory: '#7FC8A9', dept: '#E9E8E7', folder: '#8B909B', note: '#B7B0D8', code: '#7E8592', text: '#7C828E', image: '#6F8CA8', pdf: '#A08079', html: '#8F8B6A', file: '#7A8089' };
+// One colour per source, the single source for both maps and the home page's key: the four ARMS
+// layers (applications blue, routines yellow, memory magenta, skills in Claude orange), then files
+// by kind: notes a warm pink beside memory, code and every other file a muted cyan, images a soft
+// violet, plans and routers white. Every one clears 4.5:1 against both map grounds (#0d0f12 and
+// the home's navy #0c1222), so an unlinked file is a quieter dot rather than noise. The dimming
+// of a focused view is what separates the tiers, not a colour too dark to read.
+export const COLORS: Record<string, string> = { skill: '#D97757', app: '#4C8FDB', routine: '#E2C34D', memory: '#EC6FB0', dept: '#E9E8E7', folder: '#8B909B', note: '#E4A3C3', code: '#6FB3B8', text: '#6FB3B8', image: '#A78BDB', pdf: '#6FB3B8', html: '#6FB3B8', file: '#6FB3B8', plan: '#F2F1EF', router: '#F2F1EF' };
 export const LAYER_NAMES: Record<string, string> = { app: 'Applications', routine: 'Routines', memory: 'Memory', skill: 'Skills' };
 export const colorOf = (node: GraphNode) => COLORS[node.layer] || COLORS[node.kind] || COLORS.file;
+// The key on the home page: every colour a node can take, in the order the reference lists them,
+// with the COLORS entry it reads from. sourceOf says which row a node belongs to.
+export const SOURCES: { key: string; name: string }[] = [{ key: 'app', name: 'Applications' }, { key: 'routine', name: 'Routines' }, { key: 'memory', name: 'Memory' }, { key: 'note', name: 'Notes' }, { key: 'skill', name: 'Skills' }, { key: 'code', name: 'Code and files' }, { key: 'image', name: 'Images' }, { key: 'plan', name: 'Plans and routers' }, { key: 'folder', name: 'Folders' }];
+export const sourceOf = (node: Pick<GraphNode, 'kind' | 'layer'>) => node.layer === 'router' ? 'plan' : node.layer ? node.layer : node.kind === 'note' || node.kind === 'image' || node.kind === 'folder' ? node.kind : 'code';
 export const isFolder = (node: GraphNode) => node.kind === 'folder' || node.kind === 'skill' || node.kind === 'dept';
 
 // One build per page load, shared: the Network page and the Ctrl+K search read the same
@@ -32,6 +40,9 @@ export function loadGraph(reload = false): Promise<GraphPayload> {
   if (reload || !pending) { pending = api<GraphPayload>('graph').catch(error => { pending = null; throw error; }); }
   return pending;
 }
+// The grouped graph for the home page, asked for with the full build's signature so the server
+// folds the graph it already holds instead of walking the disk a second time.
+export const loadGrouped = (signature = '') => api<GraphPayload>('graph/grouped' + (signature ? '?signature=' + encodeURIComponent(signature) : ''));
 
 export function buildModel(payload: GraphPayload): Model {
   const { nodes, roots, edges } = payload; const n = nodes.length;

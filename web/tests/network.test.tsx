@@ -253,7 +253,7 @@ describe('Network: one selection across tree, map and viewer', () => {
 describe('the front door reaches the map', () => {
   it('Ctrl+K finds a file on the map from the cold open, and Enter opens it in Network: two actions plus typing', async () => {
     const user = userEvent.setup(); render(<App/>);
-    await screen.findByRole('heading', { level: 1, name: 'Today' });
+    await screen.findByRole('button', { name: 'Capture a thought' }); // the cold open is the home globe, with capture in its top bar
     const entries = history.length;
     await user.keyboard('{Control>}k{/Control}'); // action 1
     const dialog = await screen.findByRole('dialog');
@@ -280,7 +280,7 @@ describe('the front door reaches the map', () => {
 
   it('Ctrl+Enter on the first result also opens it on this computer: two actions, and Open fires once, for that file', async () => {
     const user = userEvent.setup(); render(<App/>);
-    await screen.findByRole('heading', { level: 1, name: 'Today' });
+    await screen.findByRole('button', { name: 'Capture a thought' }); // the cold open is the home globe, with capture in its top bar
     await user.keyboard('{Control>}k{/Control}'); // action 1
     const dialog = await screen.findByRole('dialog');
     await user.keyboard('duolingo--onboarding--00');
@@ -296,7 +296,7 @@ describe('the front door reaches the map', () => {
 
   it('the result row opens the file on this computer in the same two actions, and Shift+Enter reveals it instead', async () => {
     const user = userEvent.setup(); render(<App/>);
-    await screen.findByRole('heading', { level: 1, name: 'Today' });
+    await screen.findByRole('button', { name: 'Capture a thought' }); // the cold open is the home globe, with capture in its top bar
     await user.keyboard('{Control>}k{/Control}'); // action 1
     const dialog = await screen.findByRole('dialog');
     await user.keyboard('duolingo--onboarding--00');

@@ -16,7 +16,7 @@ type Props = { model: Model; scene: Scene; selected: number; hovered: number; on
 type Camera = { tx: number; ty: number; k: number };
 // Every painted name carries the dot it belongs to (dx, dy, same coordinates as x and y), so the
 // check can measure that a name is anchored to a node on screen rather than pinned to an edge.
-type LabelBox = { name: string; x: number; y: number; w: number; h: number; dx: number; dy: number };
+export type LabelBox = { name: string; x: number; y: number; w: number; h: number; dx: number; dy: number };
 // At rest the links are a faint texture under the dots and names, Obsidian-style; a hover or a
 // selection draws the node's own links bright on top (draw), so the web never has to be read whole.
 const EDGE_COLORS: Record<string, string> = { link: 'rgba(213,152,124,0.2)', wiki: 'rgba(213,152,124,0.2)', mention: 'rgba(213,152,124,0.12)', skill: 'rgba(217,119,87,0.24)', app: 'rgba(76,143,219,0.2)' };
@@ -25,14 +25,14 @@ const BG = '#0d0f12';
 // every node colour in COLORS, clears 4.5:1 against BG.
 const INK = { bg: BG, label: '#e6e7ee', dept: '#f2f1ef', near: '#ececf2', focus: '#f2f1ef', dim: 0.72 };
 const LABEL_WIDTH = 170; // a long department name is cut with an ellipsis rather than run off the panel
-const INSET = 26; // no label is drawn closer than this to the edge of the map
+export const INSET = 26; // no label is drawn closer than this to the edge of the map
 
 // A small hook for the gauntlet check: where a node is on screen, what is selected, its colour,
 // and the names actually painted in the last frame, so "no label crosses the panel edge" is measured.
 declare global { interface Window { __network?: { ready: boolean; count: number; screenOf: (path: string) => { x: number; y: number } | null; camera: () => Camera; renders: () => number; selected: () => string; colorOf: (path: string) => string; colors: Record<string, string>; ink: typeof INK; labels: () => LabelBox[] } } }
 
 // A name wider than the label column is cut, so one long department name cannot run off the map.
-function ellipsis(ctx: CanvasRenderingContext2D, name: string) {
+export function ellipsis(ctx: CanvasRenderingContext2D, name: string) {
   if (ctx.measureText(name).width <= LABEL_WIDTH) return name;
   let text = name;
   while (text.length > 4 && ctx.measureText(text + '…').width > LABEL_WIDTH) text = text.slice(0, -1);
