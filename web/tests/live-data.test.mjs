@@ -37,14 +37,36 @@ test('the live routes do not exist on a hosted deployment, even for an authorize
   }
 });
 
-test('skills lists every folder in ~/.claude/skills that has a SKILL.md, with its docs and files', async () => {
-  const onDisk = fs.readdirSync(skillsDir).filter(name => fs.existsSync(path.join(skillsDir, name, 'SKILL.md'))).sort();
+// Two shapes on disk: a skill installed here has a folder of its own directly under ~/.claude/skills,
+// and a plugin skill syncs one level deeper, into synced/<bucket>/<slug>. Reading only the immediate
+// children dropped 21 of the skills on this machine, 16 of them installed nowhere else, so the page
+// said "Installed 32" on a machine holding 48. A slug in both places is one skill: its own folder wins.
+function foldersOnDisk() {
+  const holds = dir => fs.existsSync(path.join(dir, 'SKILL.md'));
+  const dirs = new Map();
+  for (const name of fs.readdirSync(skillsDir)) if (holds(path.join(skillsDir, name))) dirs.set(name, name);
+  const syncedRoot = path.join(skillsDir, 'synced');
+  if (fs.existsSync(syncedRoot)) for (const bucket of fs.readdirSync(syncedRoot)) {
+    const bucketDir = path.join(syncedRoot, bucket);
+    if (!fs.statSync(bucketDir).isDirectory()) continue;
+    for (const name of fs.readdirSync(bucketDir)) if (!dirs.has(name) && holds(path.join(bucketDir, name))) dirs.set(name, `synced/${bucket}/${name}`);
+  }
+  return dirs;
+}
+
+test('skills lists every folder in ~/.claude/skills that has a SKILL.md, synced plugin skills included, with its docs and files', async () => {
+  const folders = foldersOnDisk();
+  const onDisk = [...folders.keys()].sort();
   const { status, body } = await apiRequest('skills');
   assert.equal(status, 200);
   assert.deepEqual(body.skills.map(skill => skill.slug).sort(), onDisk);
   assert.ok(onDisk.includes('brain'));
+  const synced = [...folders.entries()].filter(([, rel]) => rel.startsWith('synced/')).map(([slug]) => slug);
+  assert.ok(synced.length > 0, 'no synced plugin skills found to check');
   for (const skill of body.skills) {
-    const dir = path.join(skillsDir, skill.slug);
+    const dir = path.join(skillsDir, folders.get(skill.slug));
+    assert.equal(skill.path, folders.get(skill.slug), `${skill.slug} path`);
+    assert.equal(skill.source, folders.get(skill.slug).startsWith('synced/') ? 'synced' : 'installed', `${skill.slug} source`);
     assert.ok(skill.name, `${skill.slug} has no name`);
     assert.ok(skill.description, `${skill.slug} has no description`);
     assert.equal(skill.skill, text(path.join(dir, 'SKILL.md')), `${skill.slug} SKILL.md text`);

@@ -32,7 +32,9 @@ export async function listSkills() {
     const docs = Object.fromEntries(skill.docs);
     // task is the runner.mjs task id when the site can run this skill, otherwise null.
     const task = TASKS.find(item => item.skill === skill.slug);
-    return { name: skill.name, slug: skill.slug, description: skill.desc, skill: docs['SKILL.md'], readme: docs['README.md'] ?? null, files: skill.files, task: task ? task.id : null };
+    // path is the folder under ~/.claude/skills, which for a synced plugin skill is
+    // synced/<bucket>/<slug> rather than the slug alone; source says which of the two it is.
+    return { name: skill.name, slug: skill.slug, description: skill.desc, skill: docs['SKILL.md'], readme: docs['README.md'] ?? null, files: skill.files, path: skill.path, source: skill.source, task: task ? task.id : null };
   });
 }
 

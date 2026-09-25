@@ -18,21 +18,44 @@ const entities = (text: string) => text.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi,
 const KEEP = /[-\u2010-\u2015/|]/; // hyphen, the Unicode dashes, slash, pipe
 const words = (text: string): ReactNode[] => text.split(/(\S+)/).map((part, i) => i % 2 && KEEP.test(part) ? <span key={i} className="nowrap">{part}</span> : part);
 
+// The marks inline() reads: three code-span patterns, then **bold**, *italic* and a [link](url), in
+// one capture group, so split() keeps them at the odd indexes. Whichever starts first in the text
+// wins, which is how a code span inside a link label ([`a/path.md`](...)) stays the label's.
+// A code span opens with a run of backticks and closes with a run of the same length, the way every
+// Markdown reader matches them: `` ` `` holds one backtick, and a run nothing closes ("Code blocks
+// (fenced ``` and indented)", in caveman-compress) is text and shows as the file wrote it. A regex
+// cannot count a run it has already read, so there is one pattern per run length, longest first; a run
+// of any other length inside a span is content. The lookbehind keeps a pattern off a longer run's tail.
+const MARKS = /((?<!`)```(?!`)(?:[^`]|`{1,2}(?!`)|`{4,})+?```(?!`)|(?<!`)``(?!`)(?:[^`]|`(?!`)|`{3,})+?``(?!`)|(?<!`)`(?!`)(?:[^`]|`{2,})+?`(?!`)|\*\*(?:[^*]|\*(?!\*))+?\*\*|\*[^\s*](?:[^*]*[^\s*])?\*|\[[^\]]+\]\([^)\s]+\))/;
+// A span may be padded with one space each side, which is the room that lets it hold a backtick of
+// its own ("` ``` `"); the padding is not content.
+function chip(part: string) {
+  const run = /^`+/.exec(part)![0].length;
+  const body = part.slice(run, -run);
+  return body.startsWith(' ') && body.endsWith(' ') && body.trim() ? body.slice(1, -1) : body;
+}
+
 // `code` becomes a mono chip, **bold** <strong>, *italic* <em>, and [text](https://...) a link that
-// opens in a new tab. split() with a capture group keeps the matches, at the odd indexes, so the
-// text between them stays plain. Bold and italic text go through inline() again, because skills
-// write **`code in bold`**. An image shows as its alt text (a README badge is a link around an
+// opens in a new tab; the text between the matches stays plain. Bold and italic text go through
+// inline() again, because skills write **`code in bold`**, and a link's label the same way, for
+// [`a/path.md`](a/path.md). An image shows as its alt text (a README badge is a link around an
 // image), and a relative link as its text, since its path means nothing inside this app.
 // `cell` is true inside a table, where words() keeps split-prone words whole.
 function inline(text: string, cell = false): ReactNode[] {
   const plain = cell ? words : (part: string) => part;
-  return text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1').split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^\s*](?:[^*]*[^\s*])?\*|\[[^\]]+\]\([^)\s]+\))/).map((part, i) => {
-    if (i % 2 === 0) return plain(entities(part));
-    if (part.startsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>; // in a table, CSS keeps a code chip on one line
+  // A bold run may hold a single asterisk: **a workbook *you create* for someone** and a written-out
+  // \* both used to leave the ** showing, because the pattern allowed no asterisk at all inside.
+  // (?:[^*]|\*(?!\*)) takes any character except the closing **, and the lazy + stops at the first one.
+  return text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1').split(MARKS).map((part, i) => {
+    // An asterisk a skill wrote out as \* (import-memory: /preferences/\*) is one asterisk, not a backslash
+    // and an asterisk. Only \* is unescaped: \. would eat the dot out of a Windows path written in prose.
+    if (i % 2 === 0) return plain(entities(part).replace(/\\\*/g, '*'));
+    if (part.startsWith('`')) return <code key={i}>{chip(part)}</code>; // in a table, CSS keeps a code chip on one line
     if (part.startsWith('**')) return <strong key={i}>{inline(part.slice(2, -2), cell)}</strong>;
     if (part.startsWith('*')) return <em key={i}>{inline(part.slice(1, -1), cell)}</em>;
     const [, label, href] = /^\[(.*)\]\((.*)\)$/.exec(part)!;
-    return /^https?:\/\//.test(href) ? <a key={i} href={href} target="_blank" rel="noreferrer">{label}</a> : label;
+    const shown = inline(label, cell); // a label is inline text too: skills write [`a/path.md`](...)
+    return /^https?:\/\//.test(href) ? <a key={i} href={href} target="_blank" rel="noreferrer">{shown}</a> : shown;
   });
 }
 

@@ -243,33 +243,59 @@ def _frontmatter_field(text, key):
     return ""
 
 
+def _skill(d, source):
+    """One skill folder, or None when it holds no SKILL.md."""
+    main = d / "SKILL.md"
+    if not main.is_file():
+        return None
+    text = main.read_text(encoding="utf-8", errors="replace")
+    docs = [("SKILL.md", text)]
+    readme = d / "README.md"
+    if readme.is_file():
+        docs.append(("README.md", readme.read_text(encoding="utf-8", errors="replace")))
+    files = sorted(str(f.relative_to(d)).replace("\\", "/")
+                   for f in d.rglob("*") if f.is_file())
+    return {
+        "name": _frontmatter_field(text, "name") or d.name,
+        "slug": d.name,
+        "desc": _frontmatter_field(text, "description"),
+        "dir": d,
+        # Where the folder is, under ~/.claude/skills, so a page can name the real file.
+        "path": str(d.relative_to(SKILLS_DIR)).replace("\\", "/"),
+        "source": source,
+        "docs": docs,
+        "files": files,
+    }
+
+
 def skills():
     """Every skill installed on this machine, with the text of its docs.
 
+    Two shapes on disk. A skill installed here has a folder of its own directly under
+    ~/.claude/skills. A plugin skill syncs into ~/.claude/skills/synced/<bucket>/<slug>,
+    one level deeper, so a loop over the immediate children alone silently drops it: 21
+    of the skills on this machine live there, 16 of them nowhere else. Both shapes are
+    installed and live, so both are listed and tagged with where they came from. A synced
+    copy of a slug that already has a folder of its own is the same skill twice, and the
+    folder of its own wins.
+
     Account skills on claude.ai are not on disk, so they cannot be listed here.
     """
-    out = []
+    out, seen = [], set()
     if not SKILLS_DIR.is_dir():
         return out
-    for d in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir()):
-        main = d / "SKILL.md"
-        if not main.is_file():
+    tops = [(d, "installed") for d in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir())]
+    synced_dir = SKILLS_DIR / "synced"
+    buckets = sorted(p for p in synced_dir.iterdir() if p.is_dir()) if synced_dir.is_dir() else []
+    synced = sorted((c for b in buckets for c in b.iterdir() if c.is_dir()), key=lambda p: p.name)
+    for d, source in tops + [(d, "synced") for d in synced]:
+        if d.name in seen:
             continue
-        text = main.read_text(encoding="utf-8", errors="replace")
-        docs = [("SKILL.md", text)]
-        readme = d / "README.md"
-        if readme.is_file():
-            docs.append(("README.md", readme.read_text(encoding="utf-8", errors="replace")))
-        files = sorted(str(f.relative_to(d)).replace("\\", "/")
-                       for f in d.rglob("*") if f.is_file())
-        out.append({
-            "name": _frontmatter_field(text, "name") or d.name,
-            "slug": d.name,
-            "desc": _frontmatter_field(text, "description"),
-            "dir": d,
-            "docs": docs,
-            "files": files,
-        })
+        skill = _skill(d, source)
+        if skill:
+            seen.add(skill["slug"])
+            out.append(skill)
+    out.sort(key=lambda s: s["slug"])
     return out
 
 
@@ -632,9 +658,10 @@ def render_skills(sks, stamp):
     a("<div class='hero' style='padding-bottom:24px'>"
       "<p class='eyebrow'><a href='HOME.html'>&larr; Home</a></p>"
       f"<h1 class='display'>{len(sks)} skills</h1>"
-      "<p class='lede-hero'>Everything in <code>~/.claude/skills</code> on this machine. "
-      "Click one to read its <code>SKILL.md</code>, and its <code>README.md</code> when it "
-      "has one. Account skills on claude.ai are not on disk, so they are not here.</p></div>")
+      "<p class='lede-hero'>Everything in <code>~/.claude/skills</code> on this machine, the "
+      "plugin skills under <code>synced/</code> included. Click one to read its "
+      "<code>SKILL.md</code>, and its <code>README.md</code> when it has one. Account skills "
+      "on claude.ai are not on disk, so they are not here.</p></div>")
     for s in sks:
         a(f"<details class='skill' id='{esc(s['slug'])}'><summary>"
           f"<span class='nm'>{esc(s['name'])}</span>"

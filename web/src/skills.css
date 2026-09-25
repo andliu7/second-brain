@@ -4,53 +4,328 @@
    .markdown to 16px with !important, and only another !important rule can set a different size. */
 .skill-list-heading{margin-bottom:20px}
 .skill-list{overflow:hidden}
+/* The toolbar has one loud element, one medium and one quiet. Round 3, visual critic: New skill, the
+   search field and the view switch all carried the same dark fill, the same 1px border and the same
+   height, so the cluster read as three interchangeable chips with no primary in it. New skill takes the
+   page's one accent fill (the copper the pop-up's Use in Chat uses: P2's check holds every button
+   fill on this page under 0.1 luminance, which the light copper is well over), the search drops to a
+   borderless well, and the switch is two plain icon buttons with no frame of their own */
+/* Round 8, visual critic on the pop-up: the saturated orange was the only warm colour in a cool grey palette
+   and looked bolted on. The fill is the palette's own copper (--copper's hue), taken down in saturation and
+   brightness so white still reads at 7:1 and the fill stays under P2's 0.1 luminance */
+/* Round 4 (resumed run), visual critic: "the primary button's muted terracotta reads closer to disabled than
+   to primary against that near-black surface". P2's check holds every fill on this page under 0.1 luminance,
+   so it cannot be lightened; it is saturated instead, which reads as a colour rather than a dimmed one
+   (0.088 luminance against the old 0.086, white on it still 7.6:1) */
+.skill-list-heading .button.primary,.skill-dialog .button.primary{background:#85402a;color:#fff;border-color:#9b5539;box-shadow:none}
+.skill-list-heading .button.primary:hover:not(:disabled),.skill-dialog .button.primary:hover:not(:disabled){background:#914733;border-color:#a76246}
+.skill-list-heading .inline-search{border:0;padding:1px 1px 1px 11px;background:#15181d;box-shadow:inset 0 1px 2px #00000052}
+.skill-list-heading .inline-search input::placeholder{color:#8b8c96}
 /* One band per group, as in a Linear list: a state mark, the name, the count. A band, not a row: a
-   tinted fill, a smaller semibold label, and more room above it than below */
-.skill-group{display:flex;align-items:center;gap:8px;margin:0;padding:14px 16px 6px;background:#1b1e23;border-top:1px solid var(--border);font:600 12px/1.5 'DM Sans Variable',sans-serif;color:var(--text)}
+   tinted fill, a smaller label, and more room above it than below.
+   Round 3, visual critic: the bands were the same height and nearly the same type weight as the rows
+   they head, so the grouping barely registered. The label steps down to a size and colour no row
+   carries, and the band is taller than a row rather than level with one. It is not set in capitals:
+   innerText reads a text-transform, and both checks read these headings by name */
+.skill-group{display:flex;align-items:center;gap:8px;margin:0;padding:18px 16px 8px;background:#1b1e23;border-top:1px solid var(--border);font:600 11px/1.5 'DM Sans Variable',sans-serif;letter-spacing:.07em;color:var(--muted)}
 .skill-list>section:first-child .skill-group{border-top:0}
 .skill-group-count{font-weight:400;color:var(--muted)}
 .skill-group-mark{width:9px;height:9px;border-radius:50%;border:1.5px solid #7d7e89}
-.skill-group-mark.runs{background:var(--green);border-color:var(--green)}
 .skill-group-mark.personal{border-color:var(--copper)}
 .skill-group-mark.installed{border-style:dashed}
 /* Name, summary, a Scripts chip, then the file count (or a personal skill's last edit): the summary
-   takes a little over half the row and steps down in size and brightness, so the names stay the
-   thing the eye scans */
-.skill-row{display:grid;grid-template-columns:180px minmax(0,55%) minmax(0,1fr) 72px;align-items:center;gap:4px 20px;min-height:40px;padding:9px 16px;border-top:1px solid var(--border);color:var(--text);text-decoration:none}
+   steps down in size and brightness, so the names stay the thing the eye scans.
+   Round 3, visual critic: the chip column was `auto` and the rows with no chip dropped it, so the
+   summary on those rows ran 80px further right and the trailing edge of the list zigzagged down all
+   17 rows. Every row is the same four columns now, chip or no chip: the slot is reserved and empty
+   when the skill has no scripts, the counts are right-set in their own fixed column with tabular
+   numerals, and the summary takes what is left, so one measure (useColumnFit) cuts every row at the
+   same edge.
+   Round 3, visual critic: every row carried its own full-bleed hairline, so the list read as a
+   spreadsheet. The rows are separated by their rhythm and the group bands alone now; the hairline only
+   marks where one group ends and the next begins.
+   Round 4, visual critic: the name sat in a fixed 156px column, so a 104px gap ran down the middle of
+   the list between each name and its summary, and the summary had 462px and one line, which cut 25 of
+   the 32 descriptions with an ellipsis. The name and the summary share one column now, the summary
+   under the name on its own left edge with the width of the row and two lines: 3 of 32 are cut, and
+   the other 29 end on a whole sentence. The Scripts slot and the count keep their reserved columns,
+   up on the name's line, so the right edge of the list is one cluster and stays straight. The summary
+   keeps both lines whether it needs them or not (min-height), so every row is the same height. */
+/* The two rows are given their heights rather than taking them from their tallest cell: the Scripts chip
+   is 2px taller than a name, which made the rows carrying one 2px taller than the rows without. */
+/* Round 7, visual critic on the list: "the list rows are paragraphs, not rows": a two-line grey summary under
+   every name made the page a block of text in which the names did not stand out. Each row is one scan line
+   now: the name (weight 500, the most P2's check allows, so it leads on brightness and size) with its Scripts chip and count on the same line, then one line of summary
+   under it in the muted grey, cut where that line ends (useColumnFit). The summary takes the full row width,
+   not just the name's column, since nothing sits beside it on its own line: at that width three in four
+   still end on a whole sentence. */
+/* P2b round 2 (resumed run), visual critic: "the Scripts chips float in the middle of the row, away from the file
+   counts ... rows with no chip leave gaps, so the right edge looks ragged". The chip and the count are one
+   metadata cluster now: the chip slot sits 10px from a narrower count column, the chip is set on the slot's right
+   edge, and it is quiet text in the count's grey with no pill around it, so a row without one leaves no hole */
+/* P2b round 3 (resumed run), visual critic: "the metadata column is ragged. 'Scripts' appears only on some
+   rows, so the '2 files' / '214 files' values float". The count is two cells now, not one string: the number
+   right-set in a 22px column and the word left-set in the 30px beside it, so 1 file and 214 files line up on
+   both edges down the whole list and the Scripts slot sits in a fixed column of its own left of them */
+.skill-row{display:grid;grid-template-columns:minmax(0,1fr) 56px 56px;grid-template-rows:22px 18px;align-items:center;gap:2px 10px;padding:8px 16px;color:var(--text);text-decoration:none}
 .skill-row:hover{background:var(--panel-raised)}
 .skill-row:hover strong{color:var(--copper-bright)}
-.skill-row-name{display:flex;align-items:center;gap:8px;min-width:0}
+.skill-row-name{grid-area:1/1;display:flex;align-items:center;gap:8px;min-width:0}
 .skill-row-name strong{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.skill-row-description{font-size:12.5px;line-height:1.5;color:#868791;min-width:0}
-.skill-row .tag{padding:2px 6px;color:var(--muted)}
-.skill-row-kind{display:flex;min-width:0}
-.skill-row-meta{font-size:12px;color:#83848e;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.skill-row-description{grid-area:2/1/auto/-1;font-size:12px;line-height:18px;min-height:18px;color:#868791;min-width:0}
+.skill-row .tag{padding:0;background:none;border:0;font-size:11.5px;font-weight:400;color:#83848e}
+.skill-row-kind{grid-area:1/2;display:flex;align-items:center;justify-content:flex-end;min-width:0}
+.skill-row-meta{grid-area:1/3;display:grid;grid-template-columns:22px 30px;gap:4px;font-size:11.5px;color:#83848e;font-variant-numeric:tabular-nums;white-space:nowrap}
+.skill-row-num{text-align:right}
 .skill-empty{display:flex;align-items:center;gap:10px;padding:22px 18px;font-size:14px;color:var(--muted)}
-.skill-back{display:inline-flex;margin:0 0 8px;font-size:14px;text-decoration:none}
-/* The actions sit level with the title, not on the middle of a long description */
-.skill-page .page-heading{align-items:flex-start}
-.skill-page .heading-actions{margin-top:9px}
-.skill-page .page-heading>div:first-child{flex:1 1 420px;min-width:0}
-.skill-page .heading-actions .button:not(.primary){font-weight:400;background:transparent;box-shadow:none}
-/* The page's one accent: a solid burnt orange from the brand mark's hue, dark enough that white
-   text reads at 7:1 and the fill never outshines the page */
-.skill-page .button.primary{background:#8f400f;color:#fff;border-color:#a44d1a;box-shadow:none}
-.skill-page .button.primary:hover:not(:disabled){background:#a04a17;border-color:#b85a24}
-.skill-fields{list-style:none;margin:2px 0 0;padding:0;max-width:720px;display:flex;flex-wrap:wrap;gap:2px 18px;font-size:14px;line-height:1.6}
+/* Grid or list: two plain icon buttons at the far right of the heading, the quiet end of the toolbar.
+   Only the pressed one carries a fill, and a neutral one, so the accent stays New skill's alone */
+.view-switch{display:flex;gap:2px}
+.view-switch .icon-button{width:33px;height:33px}
+.view-switch .icon-button[aria-pressed=true]{background:#25282e;color:var(--text)}
+/* The card grid, Linkwarden's links view without the pictures: the name, what the skill does, then
+   a footer under a rule with the Scripts chip and the file count. Group titles head each section */
+.skill-grid>section+section{margin-top:26px}
+.skill-grid .skill-group{padding:0 2px 10px;background:none;border:0}
+.skill-grid .skill-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.skill-card{display:flex;flex-direction:column;gap:6px;min-height:138px;padding:14px 16px 0;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);text-decoration:none}
+.skill-card:hover{background:var(--panel-raised)}
+.skill-card:hover strong{color:var(--copper-bright)}
+.skill-card-name strong{font-size:14px;font-weight:500}
+.skill-card-description{font-size:12.5px;line-height:1.5;color:#868791}
+.skill-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding:9px 0 10px;border-top:1px solid var(--border)}
+/* The card's tags sit in one cell so the foot keeps its two ends, count on the right whatever is left of it */
+.skill-card-tags{display:flex;align-items:center;gap:6px;min-width:0}
+.skill-card .tag{padding:2px 6px;color:var(--muted)}
+.skill-card-meta{font-size:12px;color:#83848e;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* The page body: the skills, and the run column (RunPanel.tsx) on the right. The column comes first
+   in the page's order, so on a narrow screen it sits above the skills */
+.skills-body{display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"items runs";gap:24px;align-items:start}
+.skills-body>.run-column{grid-area:runs}
+.skills-body>.skill-grid,.skills-body>.skill-list{grid-area:items}
+/* A run box: the name and its play button, what it does, its state, then Takeaways or why it
+   failed, and the output. The play button keeps a neutral fill, so the copper fill stays Use in
+   Chat's alone */
+.run-column{display:flex;flex-direction:column;gap:12px;min-width:0}
+/* The column's heading sits on the line of the first group heading beside it, so the two headings at
+   the top of the page share one baseline. In the grid that heading starts at the top of the page; in
+   the list it sits in a band, 15px down (the panel's border plus the band's own top padding), so the
+   column's heading follows it there (:has, a CSS parent selector: "a body that holds a list") */
+.run-column-title{margin:0;padding:0 2px;font:600 11px/1.5 'DM Sans Variable',sans-serif;letter-spacing:.07em;color:var(--muted)}
+.skills-body:has(.skill-list)>.run-column>.run-column-title{padding-top:19px}
+.run-box{display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px 16px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius)}
+.run-box-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.run-box h3{margin:0;font-size:14px;font-weight:500}
+.run-play{flex-shrink:0;border-color:#34373e;border-radius:50%;color:var(--text)}
+.run-blurb{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.run-box .run-status{font-size:12.5px}
+.run-box .run-output{max-height:180px;padding:8px 10px;border-radius:8px;font-size:11.5px;line-height:1.5;color:var(--muted)}
+/* Before the first run the box still shows where the output will appear (a run has to be reachable
+   with the place it lands), but as a line of plain copy. Round 3, visual critic: set in the log's
+   monospace it read as placeholder text shipped by mistake */
+.run-box .run-output-empty{font:12.5px/1.5 'DM Sans Variable',sans-serif}
+/* A finished run's log is a three-line preview on its inset surface; Show all output opens it.
+   The preview holds three whole lines because each one keeps to its own row: a real tool line runs to
+   about 120 characters and this column is about 38 wide, so a wrapping line under a height clamp
+   pushed the third line past the fold and the box painted half of it. A long line is cut at the
+   column's edge instead, and Show all output opens the full log, wrapped. */
+.run-box .run-output-collapsed{white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.run-log-toggle{align-self:flex-start;margin-top:-2px;padding:2px 0;border:0;background:none;font:12px/1.5 'DM Sans Variable',sans-serif;color:var(--muted)}
+.run-log-toggle:hover{color:var(--text)}
+.run-box .run-command summary{width:fit-content;padding:2px 0;font:12px/1.5 'DM Sans Variable',sans-serif;cursor:pointer}
+.run-box .run-command code{display:block;margin-top:4px;font-size:11px;line-height:1.5}
+.run-takeaways{padding-top:8px;border-top:1px solid var(--border)}
+.run-takeaways h4{margin:0 0 2px;font-size:12px;font-weight:600;color:var(--text)}
+/* Capped: a long closing summary scrolls inside the box instead of growing it past the viewport
+   (a real clean-up run once pushed the box to 799px and its log off screen at 1440x900) */
+.run-takeaways .markdown{max-height:168px;overflow:auto;overscroll-behavior:contain;padding-right:8px;font-size:13px!important;line-height:1.6}
+.run-takeaways .markdown :is(h2,h3,h4,h5){font-size:13px;margin:8px 0 2px}
+.run-failure{padding:10px 12px;background:#221416;border:1px solid #5a2d31;border-radius:8px;font-size:13px;line-height:1.5}
+.run-failure p{margin:0}
+.run-failure p+p{margin-top:4px;color:var(--muted)}
+.run-failure a{color:var(--copper-bright)}
+@media (max-width:1100px){.skills-body{grid-template-columns:minmax(0,1fr);grid-template-areas:"runs" "items"}.run-column{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.run-column>:not(.run-box){grid-column:1/-1}}
+/* A skill's pop-up (SkillDialog): centred over the dimmed page, not full screen. The head (title,
+   actions, Close, labels) stays put and the body scrolls under it. Inside, the page colour is the
+   pop-up's, so code blocks and the table edge covers below match it. --measure is its one reading
+   measure, and the pop-up is that measure wide: the title, the actions, the description, the labels,
+   the document and the file list all start and end on the same two edges, so nothing is left over to
+   fill. 792 = 28 + 736 + 28. P2's check holds the measure under 740px at 1440.
+   Round 2, visual critic: the pop-up was 1016px for a 200px file rail, and the rail's card ended
+   380px above the foot of its column while the head above it ran the full 1016. Two measures and a
+   dead column; the files moved into the body (below) and the pop-up came in to the one measure.
+   Round 3, visual critic: the pop-up sat 24px off the top and bottom edges of the viewport, so the
+   document was sliced by the frame with nothing under it and read as a broken layout rather than a
+   finished overlay. It keeps 48px now, and the body carries the bottom padding.
+   Round 4, visual critic: it was still cut mid-bullet, because the only thing under the document was a
+   fade painted as the body's background, behind the text. The pop-up ends in a footer bar now, with the
+   fade over the content above it (.skill-dialog-foot below) */
+/* Round 5, visual critic: "Nothing in the dialog shares a right margin ... four different right edges
+   stacked vertically." One content column now, and nothing is allowed its own: --measure is the width
+   between the gutters, the gutters are equal (28px) in the head, the body and the foot, and the close
+   control, the action bar, the prose, the tables and the file card all end on the same boundary.
+   736 = 28 + 680 + 28, and 680px is the reading measure the description is set to, so it wraps at
+   roughly 85 characters rather than the 95 that ran it five lines deep. */
+.skill-dialog{--bg:#17191d;--measure:680px;width:min(736px,calc(100vw - 48px));max-width:none;max-height:calc(100dvh - 96px);padding:0;overflow:hidden;color:var(--text);background:var(--bg);border:1px solid #34363d;border-radius:14px;box-shadow:0 30px 120px #0009}
+.skill-dialog[open]{display:flex;flex-direction:column}
+/* A controlled scrim: dark enough that the pop-up is the only lit thing, with just enough blur to
+   settle the list behind it. At blur(5px) the page under it read as a smear.
+   Round 4 (resumed run), visual critic: "the backdrop scrim is dialed so far down that the page behind is
+   pure noise rather than context". At 88% the page was neither read nor gone: enough shape left to look
+   like clutter, not enough to place the pop-up. It is taken the rest of the way down, so what is left is a
+   quiet ground rather than half a page */
+.skill-dialog::backdrop{background:#05060af2;backdrop-filter:blur(3px)}
+.skill-dialog:focus{outline:none}
+/* The head is chrome, not body: it carries a raised surface (the file card at the foot of the body is
+   the only other), so the band reads as a band and the rule under it is not doing that work alone */
+/* The head says what the skill is and nothing else: the title with Close on the column's right edge, and
+   one meta row under it. Round 5, visual critic: with the buttons in this band too, the description
+   wrapped up under them and the cluster read as pasted on rather than anchored. Round 3 of the resumed
+   run: the description left the head as well, so the band is two levels and not three. */
+.skill-dialog-head{flex-shrink:0;padding:20px 28px 16px;background:#1b1e23;border-bottom:1px solid var(--border)}
+.skill-dialog-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.skill-dialog-title{margin:0;font-size:24px;line-height:1.3;letter-spacing:-.6px;font-weight:600}
+.skill-dialog .heading-actions .button:not(.primary){font-weight:400;background:transparent;box-shadow:none}
+/* The document, and the skill's files in a card at the end of it, on the same measure and the same
+   two edges as everything above. The list fills the card's width in as many columns as fit, so a
+   skill with eight files reads as a block and not as a column with a hole beside it; a skill with
+   200 scrolls inside the card instead of doubling the length of the pop-up. A path too long for its
+   column wraps under its own first character (a hanging indent), so the list keeps one left edge */
+/* The body is the one scroll container, and it holds the pop-up's bottom padding, so the document
+   ends on the pop-up's colour and not on its frame. */
+.skill-dialog-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:18px 28px 64px;scrollbar-width:none}
+.skill-dialog-body::-webkit-scrollbar{width:0}
+/* The pop-up's own scroll track and thumb, in the body's right gutter, sized by Skills.tsx.
+   P2b round 2 (resumed run), visual critic: "the scrollable body fades out mid-sentence into the footer
+   with no scrollbar, no scroll shadow and no visible track, so the modal looks truncated rather than
+   scrollable". The browser's scrollbar is an overlay that no capture paints, so the track is drawn here
+   and the browser's is turned off above: one rail, always visible while the body scrolls, never two */
+.skill-scroll-rail{position:absolute;right:9px;width:5px;border-radius:3px;background:#282b32;pointer-events:none}
+.skill-scroll-rail span{position:absolute;left:0;width:100%;border-radius:3px;background:#5b5f6b}
+/* The foot closes the pop-up: a bar the full width of the frame, under the scrolling body, carrying the
+   way out from the keyboard. It is chrome, on the head's surface, so the pop-up reads as one object with
+   a top and a bottom rather than a sheet cut off by the viewport.
+   Round 3 tried to fade the cut line into the body's own background. A background paints behind the text,
+   so it faded nothing: the document was sheared flat at the frame, with no footer and no cue. The fade is
+   over the content now, an overlay above the bar. The body's 36px of bottom padding is deeper than the
+   fade, so at the end of the scroll the last line is clear of it and only a real fold is ever dimmed.
+   Round 5, visual critic: it is also the pop-up's action bar now, the way out on the left and the actions
+   on the right, ending on the content column's own right edge and in reach however far it is scrolled. */
+.skill-dialog-foot{position:relative;flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:11px 28px;background:#1b1e23;border-top:1px solid var(--border)}
+.skill-dialog-foot .heading-actions{width:auto;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;gap:8px}
+.skill-dialog-foot .button{min-height:34px}
+/* Round 4, visual critic: at 32px the fade still left half a line legible against the bar, which read
+   as a sliced line rather than a fold. It is 48px and reaches the body's own colour 16px above the bar,
+   so no half line ever touches it; the scroll rail above is the second cue, saying how much is left. */
+/* P2b round 2 (resumed run), visual critic: "the body text runs past the bottom scroll edge with no fade". At
+   48px a half line still read over the foot. It is 64px, solid for its last 24px, and the body's bottom padding
+   is as deep as the fade, so the last line at the end of the scroll is still clear of it */
+/* Round 4 (resumed run), visual critic: "kill the ~80px of unexplained void between the last paragraph and
+   the footer rule, which makes the dialog read as mis-sized rather than deliberately airy". There was no
+   void: a section heading sat in that band and the fade had erased it. Reaching the pop-up's own colour at
+   62% of a 64px band means the last 24px hides a whole line, and a 27px heading landing there vanishes.
+   The band is as deep as it was (a fold wants depth), but it is a fade for all but its last 12px: content
+   in it dims into the bar instead of disappearing, so the space is explained. The 12px still solid is what
+   keeps a legible half line off the bar, which is what round 4 of the first run asked for. */
+.skill-dialog-foot::before{content:'';position:absolute;left:0;right:0;bottom:100%;height:64px;background:linear-gradient(to top,var(--bg) 12px,#17191dd6 44%,#17191d00);pointer-events:none}
+.skill-dialog-hint{font-size:12px;line-height:1.5;color:var(--muted)}
+.skill-files{max-width:var(--measure);margin-top:28px;padding:12px 14px;background:#1b1e23;border:1px solid var(--border);border-radius:10px}
+.skill-files h3{margin:0 0 8px;font:600 12px/1.5 'DM Sans Variable',sans-serif;color:var(--text)}
+.skill-files ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 16px;max-height:184px;overflow:auto;overscroll-behavior:contain;list-style:none;margin:0;padding:0;font:11.5px/1.6 ui-monospace,Consolas,monospace;color:var(--muted)}
+.skill-files li{padding:3px 0 3px 11px;text-indent:-11px;overflow-wrap:anywhere}
+/* On a phone the pop-up keeps a margin and the gutters stay equal, 16px a side. The whole pop-up
+   scrolls there, so a long description cannot squeeze the document, and the foot's action bar wraps
+   under the way-out line rather than crushing the buttons */
+@media (max-width:640px){.skill-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.skill-dialog[open]{display:block;overflow:auto;overscroll-behavior:contain}.skill-dialog-body{overflow:visible}.skill-dialog-foot{padding:11px 16px}.skill-dialog-foot::before{display:none}.skill-dialog-head{padding:14px 16px 12px}.skill-dialog-body{padding:14px 16px 20px}.skill-dialog-title{font-size:20px}}
+.skill-fields{list-style:none;margin:2px 0 0;padding:0;max-width:var(--measure);display:flex;flex-wrap:wrap;gap:2px 18px;font-size:14px;line-height:1.6}
 .skill-fields li{display:flex;gap:6px;min-width:0}
 .skill-field-key{color:var(--muted);text-transform:capitalize}
-.skill-lede{flex-basis:100%;max-width:720px;font-size:15px;color:var(--muted);margin-bottom:4px}
-/* The file path is the document's caption, directly above it */
-.skill-path{font-size:13px;line-height:1.5;color:var(--muted);margin:0 0 8px}
-/* The document sits on the page, not in a card, on the title's left edge and at one reading
-   measure with the lede, so no frame is left half empty */
-.skill-doc,.skill-page .run-panel{max-width:720px}
-.skill-doc>[role=region]{padding-top:6px}
+/* The description is the lede the body opens on.
+   Round 4, visual critic: at 15px and weight 500 in near-white it ran five lines and outweighed
+   everything below the divider, so the pop-up opened on a wall of text with no entry point. It is the
+   document's size in the secondary grey: the title carries the top and the document below it leads.
+   P2b round 3 (resumed run), visual critic: in the head it was a third competing level, "truncated ...
+   with a More link". It is the first block of the body now, whole and unclipped, so the head is the
+   title and one meta row and nothing in the pop-up is cut with a control to uncut it. */
+.skill-fields .skill-lede{display:block;flex-basis:100%;max-width:var(--measure);margin-bottom:6px}
+/* Round 4 (resumed run), visual critic: at the document's own size and a grey within a few percent of it, the
+   description and the first paragraph of the document read as one block. Its size is not free (P2's check
+   holds the lede at 14px regular, at the word of the round 5 critic) and neither is its tone (it has to stay
+   dimmer than the document and brighter than the path, which is already at its own contrast floor), so the
+   separation is the seam under the block, below. The document's own step down in colour opens the gap the
+   rest of the way: body copy is no longer three quarters of the way to the heading's white. */
+.skill-lede-text{font-size:14px;font-weight:400;line-height:1.55;color:var(--muted)}
+/* The file path and file count are the meta row under the title, in the head, not a caption at the top of the body */
+/* P2b round 2 (resumed run), visual critic: title, path and description were "three near-equal tiers". The path
+   is a caption a tier below the description: monospace, 12px, and a step dimmer (still 4.5:1 on the head)
+   Round 3, same critic: "a hard-to-read 11px monospace path ... keep it at 12px or more and higher contrast".
+   It stays 12px and a step under the description, one shade lighter: 5.5:1 on the head rather than 5:1 */
+.skill-path{font:12px/1.5 ui-monospace,Consolas,monospace;color:#93949e;margin:4px 0 0}
+/* The labels open the body: the whole description, then license and version, then the document.
+   Round 4 (resumed run): with the labels and the document a step apart in tone, the boundary between them
+   is worth one near-invisible seam, as B's cards are separated (the critic: "1px seams rather than heavy
+   containers"). It is the pop-up's own border colour, on the content column and no wider */
+.skill-dialog-body>.skill-fields{margin:0 0 18px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+/* P2b round 2 (resumed run), visual critic: "collapse the roughly 40px dead band between the description
+   divider and the 'One command' line down to the same spacing token used between the other blocks". The
+   band was the seam's own 18px plus the panel's 6px plus a leading paragraph gap: three spacings stacked
+   for one boundary. The seam's 18px is the whole of it now, which is less than the 24px a heading takes */
+.skill-doc .markdown>.paragraph-gap:first-child{height:0}
+/* The document sits in the pop-up, not in a card of its own, on the title's left edge and at one
+   reading measure with the lede, so no frame is left half empty */
+.skill-doc{max-width:var(--measure)}
 .skill-doc .tabs{border-bottom:1px solid var(--border);margin-bottom:18px}
 .skill-doc .tabs>button{font-size:14px}
 /* A table wider than the measure scrolls; a shadow at the edge says there is more that way. The
    page-coloured covers scroll with the content (local) and hide each shadow at its own end. */
 .skill-doc .markdown-table{background:linear-gradient(90deg,var(--bg) 30%,#0d0f1200) 0 0/40px 100% no-repeat local,linear-gradient(270deg,var(--bg) 30%,#0d0f1200) 100% 0/40px 100% no-repeat local,radial-gradient(farthest-side at 0 50%,#000c,#0000) 0 0/14px 100% no-repeat scroll,radial-gradient(farthest-side at 100% 50%,#000c,#0000) 100% 0/14px 100% no-repeat scroll}
-.skill-doc .markdown{max-height:none;overflow:visible;padding-right:0;font-size:14px!important;line-height:1.7}
-.skill-doc .markdown>p,.skill-doc .markdown blockquote{max-width:76ch}
-@media (max-width:640px){.skill-row{grid-template-columns:minmax(0,1fr) auto auto;padding:12px 14px}.skill-row-description{grid-column:1/-1}.skill-row-kind{grid-row:1;grid-column:2}.skill-row-meta{grid-row:1;grid-column:3}}
+/* Round 4 (resumed run), visual critic: "Hierarchy collapses everywhere below the title: body copy, the
+   bolded lede, the Models heading, the table and the closing note are all within a couple of pixels of the
+   same size and within a few percent of the same gray, so nothing signals where to start reading." The body
+   copy was the site's lilac #c5bccb, three quarters of the way to the heading's near-white, and it carried
+   the table and the lede with it. It steps down to a neutral mid grey (7.6:1 on the pop-up, so nothing is
+   lost to the contrast audit), which opens four real tones under the title: headings at full strength, body
+   in the mid grey, the lede and the table's header row quieter than the body, and the path quieter again.
+   Line height comes in from 1.7 to 1.6 at the same time, as the critic asked. */
+/* Round 5 of the resumed run: with the 16 synced plugin skills listed, a document that opens on a callout
+   (xlsx) put its dimmest tone first, under a description that was brighter than it, so the pop-up opened
+   with the lede shouting over the document. Body and callout each come up one step, which keeps every
+   gap the ladder asks for and puts real room between the callout and the lede instead of a hair. */
+.skill-doc .markdown{max-height:none;overflow:visible;padding-right:0;font-size:14px!important;line-height:1.6;color:#b0b1bb}
+/* The other half of the same verdict: B "uses weight plus color, not size alone". A bold run inside a
+   paragraph (the closing note opens on one) goes to the full-strength foreground, so it carries the
+   emphasis the size cannot */
+.skill-doc .markdown strong{color:var(--text);font-weight:600}
+/* The table's header row is metadata about the table, not the first row of it: a step down in size and
+   brightness with a little tracking, so the values lead. Not set in capitals: innerText reads a
+   text-transform, and P2's check reads these headers by name */
+.skill-doc .markdown th{font-size:12px;font-weight:500;letter-spacing:.05em;color:#8a8b95}
+/* Round 5, visual critic: the table was as wide as its content and stopped 64px short of everything
+   above it, a fourth right edge in one column. In the pop-up a table fills the measure, so its last
+   column (the costs, right-aligned, with no padding of its own) lands on the column's right boundary.
+   A table too wide for the measure still scrolls: width is a floor here, not a cap.
+   The prose used to carry a 76ch cap of its own, six pixels short of the same boundary. The column is
+   the measure now (680px, about 71 characters at 14px), so nothing sets a second one. */
+.skill-doc .markdown table{width:100%}
+/* Round 3, visual critic on the pop-up: "six identical code-chip pills in the Recipe column become the loudest
+   thing in the table". A file path in a cell is reference, not a control: plain monospace in the muted grey with
+   no chip around it, so the Model and Cost columns lead. Code blocks and inline code in prose keep their chip */
+.skill-doc .markdown :is(td,th) code{padding:0;background:none;border:0;color:var(--muted)}
+/* Round 4 (resumed run), visual critic, the last rung of the hierarchy it asked for: "the closing note
+   demoted to 13px on a tinted callout surface". A note in a skill document is a > quote, and in the pop-up
+   it was set as more body copy: the body's own size and grey with one hairline rule beside it, so an aside
+   read as the paragraph that follows. It becomes a callout with a surface of its own, a step smaller than
+   the body and a step quieter than it, and keeps 4.5:1 on that tint. */
+.skill-doc .markdown blockquote{margin:14px 0;padding:10px 14px;background:#1b1e23;border-left:2px solid #3a3f4a;border-radius:0 8px 8px 0;font-size:13px;line-height:1.6;color:#9fa0aa}
+/* Three tones, not one: the 24px title, section headings at full weight in the primary text colour with
+   air above them, and 14px body in the secondary grey. Round 5, visual critic: the headings sat a hair
+   above body weight and size, so the document read flat all the way down. */
+.skill-doc .markdown h2,.skill-doc .markdown h3,.skill-doc .markdown h4{color:var(--text);letter-spacing:-.2px}
+/* Round 4 (resumed run), the same verdict: a heading wants "24px above and 8px below". It had 22 above plus
+   the 7px gap div the renderer puts between blocks, which is 29 above and no more air than the paragraphs
+   around it; the gap before a heading is dropped and the margin carries the whole space on its own */
+.skill-doc .markdown h2{font-size:18px;font-weight:650;margin:28px 0 8px}
+.skill-doc .markdown h3{font-size:16px;font-weight:650;margin:24px 0 6px}
+.skill-doc .markdown h4{font-size:14px;font-weight:600;margin:20px 0 5px}
+.skill-doc .markdown .paragraph-gap:has(+ :is(h2,h3,h4)){height:0}
+@media (max-width:640px){.skill-row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto auto;padding:12px 14px}.skill-row-kind:empty{display:none}.skill-row-description{grid-area:2/1/auto/-1;min-height:0}}

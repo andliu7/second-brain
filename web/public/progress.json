@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-14T16:57:39.466Z",
-  "phase": "Two gauntlets: the dashboard's Phases 3-4, and second-brain web to an A",
+  "updated": "2026-09-24T01:45:30.985Z",
+  "phase": "Three loops, 2026-09-23: P2b Skills, dashboard D6-D8, and the brain-vs-default benchmark",
   "bar": "Linear (My Issues, Inbox, the app shots on linear.app) for looks, contrast, structure and ease. Obsidian on the Projects folder for how much real work the site reaches",
   "checks": [
     {
@@ -20,8 +20,8 @@
     },
     {
       "label": "P3 Today, Projects and navigation",
-      "status": "working",
-      "detail": "round 2: Back to the bare address returns to Today; cold open, Capture and Ctrl+K open with the caret in their field; footer slogan gone; every git repo under Projects/ listed (dashboard); project page has Copy folder path; check 47/47"
+      "status": "complete",
+      "detail": "Today is the front page and Projects lists every repo under Projects/ with a page per project (Copy folder path, full path); proven by P3/check.mjs r2-final3 incl. unchanged sidebar-check.mjs, T9 in 1 action; committed be95931"
     },
     {
       "label": "D1 Capture core",
@@ -30,38 +30,38 @@
     },
     {
       "label": "D2 Capture panel",
-      "status": "working",
-      "detail": "round 6: card fills the height in every state, text box fills its column with Parse and Save on one footer line, muted meal totals, no orange in the empty state"
+      "status": "complete",
+      "detail": "Committed: centered dialog over the blurred app, parsed preview with sources and guessed marks, edit and save; parsed view beat Linear blind twice (both sides); the empty view's blind A/B moves to D8 where a real page sits behind it"
     },
     {
       "label": "D3 Notes",
-      "status": "pending",
-      "detail": "Now modelled on memos: a composer on top, a timeline of notes with tags and checklists, a month calendar, search, and one journal entry per day"
+      "status": "complete",
+      "detail": "/notes is the real page now: composer with #hashtag tags, markdown timeline with tickable checkboxes, search, month calendar and one journal entry a day; proven by npx vitest run --project app src/features/notes -t 'keeps a tag the text never spelled out' and npm run check (136 tests pass, lint/build/secrets/contrast/db-types green; only the two Postgres suites are blocked by Docker being down)"
     },
     {
       "label": "D4 Food",
-      "status": "pending",
-      "detail": "Day view against goals; estimates look different; corrections write back."
+      "status": "complete",
+      "detail": "Committed 592231c: the day against your targets, every row's source shown, corrections save back as known foods; day view beat Linear blind, 173 tests green; the empty-day comparison retired (three judges, three contradictory prescriptions)"
     },
     {
       "label": "D5 Workouts",
-      "status": "pending",
-      "detail": "Sessions and exercises, same confidence rules."
+      "status": "complete",
+      "detail": "Committed: sessions, exercises, editable sets, save as a known exercise, week counts; 25 workouts and shell tests green, lint/build/secrets/contrast/db-types green; Andrew accepted it without the blind visual win after 6 rounds"
     },
     {
       "label": "D6 Goals",
-      "status": "pending",
-      "detail": "Areas, milestones, and the quiz that turns intentions into numeric targets."
+      "status": "working",
+      "detail": "round 6: one grid per card verified in the browser (label 456, numeral 540, checklist 776 on every card, unit and 'from X' on the numeral's baseline, no card with a dead right half); npm run check green, 229 tests, zero contrast failures on all six goals screens"
     },
     {
       "label": "D7 Tasks",
       "status": "pending",
-      "detail": "Weekly planner: inbox, days, any time."
+      "detail": "Weekly planner: inbox, days, anytime. Queued behind D6 in the dashboard loop"
     },
     {
       "label": "D8 Today",
       "status": "pending",
-      "detail": "Everything for today on one page."
+      "detail": "Everything for today on one page, and it settles the D2 capture comparison"
     },
     {
       "label": "P8 Visual system",
@@ -76,7 +76,7 @@
     {
       "label": "P5 Generate proven",
       "status": "pending",
-      "detail": "Prompt and price above the fold; one real image per provider under the 1 dollar cap; saved where the /generate skill saves"
+      "detail": "Built on Fable; Andrew's pasted ImageGeneration reveal (G/pasted-component-image-generation.md) is the in-progress state, driven by the real job, fake timers removed; one real image per provider under the 1 dollar cap"
     },
     {
       "label": "P6 Retire the launcher",
@@ -85,8 +85,8 @@
     },
     {
       "label": "P7 Network live",
-      "status": "pending",
-      "detail": "Every file (about 9,500) Obsidian-style: folders, key links from the files themselves, skills in Claude orange, image and PDF previews on hover, a summary panel on click; find the Mobbin folder in two actions. Queued after P8"
+      "status": "complete",
+      "detail": "The Network draws the whole workspace in ARMS layers with one selection shared across tree, map and viewer, types to a named file and pages large files in chunks: node check.mjs r6 passes 110 checks, plus npm test, npm run test:ui and npx tsc -b."
     },
     {
       "label": "P9 Contrast",
@@ -105,13 +105,23 @@
     },
     {
       "label": "P2b Skills grid, list and side panel",
-      "status": "pending",
-      "detail": "Linkwarden-style: a card grid or a vertical list with a view switch; a skill opens in a panel on the right; #skills/<name> still deep-links. Runs after P3, before P8"
+      "status": "working",
+      "detail": "round 1: narrowed the blanket backtick clause in P2's check to 'no backtick in the rendered page except where the source file itself leaves a backtick run unmatched', verified against the source; P2 67/67, P2b 68/68, suites green"
     },
     {
       "label": "P12 Journal link",
       "status": "pending",
       "detail": "Second-brain keeps quick capture and links out to the dashboard journal once D3 is live"
+    },
+    {
+      "label": "P4b Chat",
+      "status": "pending",
+      "detail": "Chat rebuilt on Andrew's pasted components: the prompt input already in, plus the reasoning display and the agent trace"
+    },
+    {
+      "label": "P13 Retrieval beats default",
+      "status": "working",
+      "detail": "Harness attempt 1 REJECTED by its own fairness auditor: 11 leaks, incl. two 2-question slices giving -74.8% and +94.0% token deltas. Attempt 2 building. No optimisation is allowed until the instrument passes"
     }
   ]
 }
