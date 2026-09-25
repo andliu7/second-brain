@@ -1,0 +1,5 @@
+/* components/ui/favorite-button.tsx. Copper is the app's accent, so a starred item stays inside the dark tokens. */
+.favorite-button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;background:transparent;border:1px solid transparent;border-radius:7px;color:var(--subtle)}
+.favorite-button:hover{color:var(--copper-bright);background:#ffffff08;border-color:var(--border)}
+.favorite-button[aria-pressed="true"]{color:var(--copper-bright)}
+@media (pointer:coarse){.favorite-button{width:40px;height:40px}}
