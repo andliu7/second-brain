@@ -3,6 +3,9 @@ second-brain/index.tsv
 second-brain/brain.json
 second-brain/log.md
 second-brain/memories/*.md
+second-brain/MEMORIES.md
+# the LLM wiki: decisions, research and meeting synthesis. Personal and third-party content
+second-brain/wiki/
 OS/HOME.html
 OS/SKILLS.html
 # run output: process lists, file paths, local state. Public repo

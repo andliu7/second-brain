@@ -1,0 +1,7 @@
+# This repo is public. Everything below quotes Andrew's own notes and repos
+# back at him, so it stays local. run.mjs and this file are the only things
+# here that are safe to push, and even run.mjs carries machine paths.
+questions.json
+results*.json
+results*.md
+archive-*/

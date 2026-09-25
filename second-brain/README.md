@@ -149,6 +149,7 @@ install.py    one-time setup for this machine
 index.tsv     the index (fingerprint in the header line)
 log.md        append-only audit of reindexes, repairs and writes
 memories/     what you asked it to remember
+bench/        two-arm retrieval gauntlet: questions.json, run.mjs, results.json
 TESTPROMPTS.md  how to verify the claims yourself with /context
 QMD-NOTES.md    what was taken from the four reference projects, and what was not
 ```

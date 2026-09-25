@@ -28,6 +28,7 @@ from brainlib import (  # noqa: E402
     Row, append_rows, knobs_fingerprint, load_config, norm, read_index,
     read_lines_with_offsets, tokenize, validate_row, write_index,
 )
+import catalogue  # noqa: E402
 import idx as indexer  # noqa: E402
 
 BRAIN_DIR = Path(__file__).resolve().parent
@@ -120,10 +121,13 @@ def main() -> int:
     write_index(index_path, rows, fp)
     (BRAIN_DIR / "index.cache").unlink(missing_ok=True)
     indexer.log(BRAIN_DIR, "remember", f"{a.kind} | {title} -> {target.name}")
+    # Same command, so the catalogue cannot drift from the memory files either.
+    catalogued = catalogue.rebuild()
 
     print(f"remembered [{a.kind}] {title}")
     print(f"  file  : {target}  (bytes {start}-{end})")
     print(f"  index : +1 row, {len(rows)} total")
+    print(f"  list  : MEMORIES.md, {catalogued} memories")
     return 0
 
 
