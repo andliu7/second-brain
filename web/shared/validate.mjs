@@ -5,9 +5,11 @@ const MAX_ASSET_BYTES = 25 * MiB;
 const MAX_EMBEDDED_BYTES = 160 * MiB;
 const MAX_TEXT_CHARS = 220 * MiB;
 // 'overview' was the front page before Today; workspaces and backups from then still carry it in their activity.
-const PAGES = ['today', 'projects', 'overview', 'files', 'skills', 'goals', 'network', 'chat', 'generate', 'settings'];
+const PAGES = ['today', 'projects', 'overview', 'board', 'files', 'skills', 'goals', 'network', 'chat', 'generate', 'settings'];
 const RASTER_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif', 'image/bmp']);
 const MIME = /^[a-z0-9][a-z0-9!#$&^_.+\-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+\-]{0,126}$/i;
+// The category ids of src/lib/categories.ts, which this shared module cannot import. Keep the two lists the same.
+const CATEGORY_IDS = ['project', 'family', 'academic', 'professional', 'fitness', 'relationships', 'urgent', 'other'];
 
 function invalid(path, reason) {
   throw new Error(`Invalid workspace: ${path} ${reason}`);
@@ -224,6 +226,82 @@ export function validateWorkspace(value) {
       triples.add(triple);
       timestamp(edge.created, path + '.created');
     });
+  }
+  // The kanban board came later than the workspace, so a saved workspace without one is still valid.
+  if (value.board !== undefined) {
+    object(value.board, 'board');
+    oneOf(value.board.view, 'board.view', ['board', 'sticky']);
+    records(value.board.columns, 'board.columns', 100, (column, path) => string(column.name, `${path}.name`, 256, true));
+    const columnIds = new Set(value.board.columns.map(c => c.id));
+    const docIds = new Set(value.docs.map(d => d.id));
+    records(value.board.cards, 'board.cards', 10000, (card, path) => {
+      string(card.title, `${path}.title`, 1024, true);
+      string(card.notes, `${path}.notes`, MiB);
+      if (!columnIds.has(card.column)) invalid(`${path}.column`, 'must name an existing column');
+      if (card.category !== undefined) oneOf(card.category, `${path}.category`, CATEGORY_IDS);
+      if (card.minutes !== undefined && (!Number.isSafeInteger(card.minutes) || card.minutes < 0)) invalid(`${path}.minutes`, 'must be a whole number of minutes');
+      optionalString(card.sourceTodoId, `${path}.sourceTodoId`, 1024);
+      records(card.checklist, `${path}.checklist`, 1000, (item, itemPath) => {
+        string(item.title, `${itemPath}.title`, 4096, true);
+        boolean(item.done, `${itemPath}.done`);
+      });
+      array(card.attachments, `${path}.attachments`, 100);
+      for (let i = 0; i < card.attachments.length; i++) if (!docIds.has(card.attachments[i])) invalid(`${path}.attachments[${i}]`, 'must name an existing doc');
+      if (card.due !== undefined) { string(card.due, `${path}.due`, 10); dateOnly(card.due, `${path}.due`); }
+      optionalString(card.eventId, `${path}.eventId`, 1024);
+      if (card.sticky !== undefined) {
+        object(card.sticky, `${path}.sticky`);
+        for (const key of ['x', 'y', 'rotate']) if (!Number.isFinite(card.sticky[key])) invalid(`${path}.sticky.${key}`, 'must be a finite number');
+      }
+    });
+  }
+  // The daily todo card and the to-buy list came later still, so both are optional too.
+  if (value.todos !== undefined) {
+    object(value.todos, 'todos');
+    string(value.todos.day, 'todos.day', 10, true); dateOnly(value.todos.day, 'todos.day');
+    const todo = (item, path) => {
+      string(item.text, `${path}.text`, 1024, true);
+      boolean(item.done, `${path}.done`);
+      oneOf(item.category, `${path}.category`, CATEGORY_IDS);
+      if (item.minutes !== undefined && (!Number.isSafeInteger(item.minutes) || item.minutes < 0 || item.minutes > 1440)) invalid(`${path}.minutes`, 'must be an integer from 0 to 1440');
+      optionalString(item.goal, `${path}.goal`, 1024);
+      if (item.time !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.time)) invalid(`${path}.time`, 'must be HH:MM');
+      optionalString(item.defaultKey, `${path}.defaultKey`, 64);
+    };
+    records(value.todos.items, 'todos.items', 1000, todo);
+    object(value.todos.history, 'todos.history');
+    const days = Object.keys(value.todos.history);
+    if (days.length > 366) invalid('todos.history', 'exceeds 366 days');
+    for (const day of days) { dateOnly(day, `todos.history.${day}`); records(value.todos.history[day], `todos.history.${day}`, 1000, todo); }
+    array(value.todos.removedDefaults, 'todos.removedDefaults', 100);
+    for (let i = 0; i < value.todos.removedDefaults.length; i++) string(value.todos.removedDefaults[i], `todos.removedDefaults[${i}]`, 64, true);
+  }
+  if (value.buyList !== undefined) {
+    records(value.buyList, 'buyList', 10000, (item, path) => {
+      string(item.name, `${path}.name`, 1024, true);
+      oneOf(item.category, `${path}.category`, CATEGORY_IDS);
+      string(item.image, `${path}.image`, 8192);
+      string(item.notes, `${path}.notes`, 65536);
+      array(item.links, `${path}.links`, 100);
+      for (let i = 0; i < item.links.length; i++) string(item.links[i], `${path}.links[${i}]`, 8192, true);
+      records(item.options, `${path}.options`, 100, (option, optionPath) => {
+        string(option.store, `${optionPath}.store`, 256);
+        if (option.price !== null && (typeof option.price !== 'number' || !Number.isFinite(option.price) || option.price < 0)) invalid(`${optionPath}.price`, 'must be null or a non-negative number');
+        string(option.currency, `${optionPath}.currency`, 8);
+        if (option.rating !== null && (typeof option.rating !== 'number' || !Number.isFinite(option.rating) || option.rating < 0 || option.rating > 5)) invalid(`${optionPath}.rating`, 'must be null or a number from 0 to 5');
+        string(option.notes, `${optionPath}.notes`, 4096);
+        string(option.link, `${optionPath}.link`, 8192);
+      });
+    });
+  }
+  // Favourites are optional too; each list holds distinct, non-empty ids.
+  if (value.favorites !== undefined) {
+    object(value.favorites, 'favorites');
+    for (const kind of ['skills', 'projects']) {
+      array(value.favorites[kind], `favorites.${kind}`, 10000);
+      const seen = new Set();
+      for (let i = 0; i < value.favorites[kind].length; i++) id(value.favorites[kind][i], `favorites.${kind}[${i}]`, seen);
+    }
   }
   boundedData(value, 'workspace', 0, { nodes: 0, chars: 0 }, new Set());
   return value;

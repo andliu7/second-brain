@@ -1,0 +1,9 @@
+/* QuoteBoard.tsx and components/ui/text-flipping-board.tsx. Cells size from the board's width so 22 columns fit a phone. */
+.quote-board{padding:14px;overflow:hidden;max-width:100%}
+.flap-board{display:flex;flex-direction:column;gap:3px;width:100%;font-family:'Manrope Variable',ui-monospace,monospace;font-weight:700;font-variant-numeric:tabular-nums}
+.flap-row{display:flex;gap:2px;width:100%}
+.flap-cell{position:relative;flex:1 1 0;min-width:0;aspect-ratio:3/4;background:#0a0b0e;border:1px solid #1d2026;border-radius:3px;overflow:hidden;perspective:120px;color:var(--text);font-size:clamp(9px,2.8cqw,16px)}
+.flap-cell::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:#000;opacity:.7}
+.flap-cell[data-blank]{color:transparent}
+.flap-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center;backface-visibility:hidden;line-height:1}
+.quote-board .flap-board{container-type:inline-size}

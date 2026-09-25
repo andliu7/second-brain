@@ -1,0 +1,129 @@
+/* The board (Kanban.tsx), its sticky-note mode (components/ui/sticky-note.tsx), the swatch row, the
+   checklist and the heat calendar. Imported by Kanban.tsx, like projects.css by Projects.tsx, so it sits
+   outside the cascade layer index.css puts styles.css in. Dark ground, one accent: the category colours
+   (--cat, set inline from lib/categories.ts) are the only saturated things here. */
+
+/* Header controls */
+.kanban-switch{display:flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:8px;background:#101216}
+.kanban-switch .icon-button{width:32px;height:30px}
+.kanban-switch .icon-button[aria-pressed=true]{background:#25282e;color:var(--text)}
+
+/* Columns: a horizontal rail that scrolls inside itself, so a phone never scrolls the page sideways */
+.kanban-board{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 2px 14px;scroll-snap-type:x proximity}
+.kanban-column{flex:0 0 272px;max-width:85vw;scroll-snap-align:start;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);min-height:160px}
+.kanban-column-head{display:flex;align-items:center;gap:2px;padding:8px 8px 6px 6px}
+.kanban-column-name{flex:1;min-width:0;padding:5px 8px;background:transparent;border-color:transparent;font:600 13px/1.4 'DM Sans Variable',sans-serif;color:var(--text)}
+.kanban-column-name:hover,.kanban-column-name:focus{background:#101216;border-color:var(--border)}
+.kanban-column-count{font-size:12px;color:var(--subtle);padding:0 6px;font-variant-numeric:tabular-nums}
+.kanban-column-head .icon-button{width:26px;height:26px;flex-shrink:0}
+.kanban-column-head .icon-button:hover:not(:disabled){background:var(--panel-raised);color:var(--text)}
+.kanban-column-head .icon-button:disabled{opacity:.3}
+.kanban-cards{display:flex;flex-direction:column;padding:0 8px;min-height:24px}
+/* The drop indicator: a line that is there between every pair of cards, invisible until the drag is over it */
+.kanban-slot{height:2px;margin:3px 2px;border-radius:1px;background:var(--copper);opacity:0;transition:opacity .12s}
+.kanban-slot[data-active]{opacity:1}
+
+/* Cards */
+.kanban-card{position:relative;overflow:hidden;background:var(--panel-raised);border:1px solid var(--border);border-radius:9px;cursor:grab;outline:none;box-shadow:0 1px 2px #0003}
+.kanban-card:hover{border-color:#34373e}
+.kanban-card:focus-visible{border-color:var(--copper);box-shadow:0 0 0 2px #d5987c40}
+.kanban-card[data-dragging]{opacity:.35}
+.kanban-card[data-category]::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cat)}
+.kanban-cover{display:block;width:100%;max-height:120px;object-fit:cover;border-bottom:1px solid var(--border)}
+.kanban-card-body{display:flex;flex-direction:column;gap:6px;padding:10px 11px 9px 13px}
+.kanban-card-body strong{font-size:13.5px;font-weight:500;line-height:1.4;overflow-wrap:anywhere}
+.kanban-card-body p{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kanban-chip{gap:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;cursor:default}
+.kanban-chip button{display:inline-flex;padding:0;margin-left:2px;border:0;background:none;color:inherit}
+.kanban-card-meta{display:flex;align-items:center;gap:8px;min-height:18px;font-size:12px;color:var(--muted)}
+.kanban-due{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.kanban-due[data-overdue]{color:var(--danger)}
+.kanban-meta-button{display:inline-flex;align-items:center;gap:3px;padding:2px 4px;margin:-2px 0;border:0;border-radius:4px;background:none;color:var(--muted);font-size:12px}
+.kanban-meta-button:hover,.kanban-meta-button[aria-expanded=true]{background:#ffffff0a;color:var(--text)}
+/* The category dot is the last thing on the meta row; pressing it opens the swatch row below */
+.kanban-dot{margin-left:auto;width:14px;height:14px;padding:0;border-radius:50%;border:1.5px dashed var(--subtle);background:var(--cat,transparent);flex-shrink:0}
+.kanban-card[data-category] .kanban-dot{border-style:solid;border-color:transparent}
+.kanban-dot:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+/* Swatches: the categories, round, the only saturated colour on the page */
+.swatches{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0}
+.swatch{width:20px;height:20px;padding:0;border-radius:50%;border:1.5px solid transparent;background:var(--cat);color:#fff;display:inline-flex;align-items:center;justify-content:center}
+.swatch.none{background:transparent;border:1.5px dashed var(--subtle);color:var(--text)}
+.swatch:hover{transform:scale(1.12)}
+.swatch:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+/* Checklist */
+.checklist{display:flex;flex-direction:column;gap:2px}
+.checklist-item{display:flex;align-items:center;gap:4px;font-size:13px}
+.checklist-item label{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:3px 0;cursor:pointer}
+.checklist-item input{margin:0;accent-color:var(--copper)}
+.checklist-item span{overflow-wrap:anywhere}
+.checklist-item[data-done] span{color:var(--subtle);text-decoration:line-through}
+.checklist-item .icon-button{width:22px;height:22px;opacity:0}
+.checklist-item:hover .icon-button,.checklist-item .icon-button:focus-visible{opacity:1}
+.checklist-add{display:flex;gap:4px;margin-top:4px}
+.checklist-add input{flex:1;padding:6px 9px;font-size:13px}
+.checklist-add .icon-button{width:32px;height:32px;border-color:var(--border)}
+
+/* Add card, the inline form at the foot of a column */
+.kanban-add{display:inline-flex;align-items:center;gap:5px;margin:6px 8px 8px;padding:5px 6px;border-radius:6px;color:var(--muted)}
+.kanban-add:hover{background:var(--panel-raised);color:var(--text)}
+.kanban-add-form{display:flex;flex-direction:column;gap:6px;padding:6px 8px 8px}
+.kanban-add-form textarea{resize:none;font-size:13px;padding:8px 10px}
+.kanban-add-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.kanban-add-actions .button{min-height:30px;padding:5px 12px}
+
+/* The delete zone, under the board while a card is being dragged */
+.kanban-burn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;padding:18px;border:1px dashed #5a3a3c;border-radius:var(--radius);color:#b98b8b;font-size:13px;transition:background .12s,color .12s}
+.kanban-burn[data-active]{background:#51252738;border-color:#9c4548;color:var(--danger)}
+.kanban-empty{display:flex;align-items:center;gap:10px;margin:0;font-size:14px;color:var(--muted)}
+
+/* Card editor and calendar import: the app's <dialog> language (see .skill-dialog), in the board's own class */
+.kanban-dialog{width:min(560px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 48px);padding:0;overflow:auto;color:var(--text);background:#17191d;border:1px solid #34363d;border-radius:14px;box-shadow:0 30px 120px #0009}
+.kanban-dialog::backdrop{background:#0009}
+.kanban-dialog form{display:flex;flex-direction:column;gap:14px;padding:18px 20px 16px}
+.kanban-dialog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:-2px}
+.kanban-dialog-head h2{margin:0;font-size:19px;letter-spacing:-.4px}
+.kanban-dialog-head .icon-button:hover{background:var(--panel-raised);color:var(--text)}
+.kanban-field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.kanban-field input,.kanban-field textarea,.kanban-field select{font-size:14px;font-weight:400;color:var(--text)}
+.kanban-field textarea{resize:vertical}
+.kanban-field .checklist{font-weight:400;color:var(--text)}
+.kanban-dialog-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kanban-attachments{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-weight:400}
+.kanban-attachments select{padding:6px 9px;font-size:13px}
+.kanban-dialog-foot{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;padding-top:6px;border-top:1px solid var(--border)}
+.kanban-events{display:flex;flex-direction:column;max-height:50dvh;overflow:auto;border:1px solid var(--border);border-radius:8px}
+.kanban-event{display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid var(--border);cursor:pointer}
+.kanban-event:first-child{border-top:0}
+.kanban-event[data-imported]{color:var(--subtle)}
+.kanban-event input{margin:0;accent-color:var(--copper)}
+.kanban-event span{display:flex;flex-direction:column;min-width:0}
+.kanban-event strong{font-size:14px;font-weight:500}
+.kanban-event small{font-size:12px;color:var(--muted)}
+@media (max-width:640px){.kanban-dialog{max-height:calc(100dvh - 24px)}.kanban-dialog-row{grid-template-columns:1fr}.kanban-dialog-foot{grid-template-columns:auto 1fr auto auto;gap:8px}}
+
+/* Sticky mode: a dotted canvas, notes rotated a little, dragged by framer-motion */
+.sticky-canvas{position:relative;min-height:70dvh;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel) radial-gradient(#ffffff14 1px,transparent 1px) 0 0/22px 22px;touch-action:none}
+.sticky-canvas .kanban-empty{padding:24px}
+.sticky{position:absolute;left:0;top:0;width:168px;min-height:150px;perspective:900px;cursor:grab;outline:none;--cat:#f2e6a8;--ink:#1b1b1f}
+.sticky:focus-visible .sticky-face{box-shadow:0 0 0 2px var(--copper),0 12px 30px #0006}
+.sticky:active{cursor:grabbing}
+.sticky-faces{position:relative;width:100%;min-height:150px;transform-style:preserve-3d}
+.sticky-face{position:absolute;inset:0;display:flex;flex-direction:column;gap:6px;padding:14px 14px 12px;background:var(--cat);color:var(--ink);border-radius:2px;box-shadow:0 8px 24px #0006,0 1px 2px #0004;backface-visibility:hidden;overflow:hidden;font-size:13px;line-height:1.4}
+/* The top edge reads as tape: a pale band the note hangs from */
+.sticky-face::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:#ffffff33}
+.sticky-face.back{transform:rotateY(180deg)}
+.sticky-face strong{font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.sticky-face p{margin:0;font-size:12.5px;opacity:.85;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.sticky-face small{font-size:11px;opacity:.7;margin-top:auto}
+.sticky-face.back small{margin:0 0 2px}
+.sticky-face .checklist-item{font-size:12.5px}
+.sticky-face .checklist-item input{accent-color:var(--ink)}
+.sticky-face .checklist-item[data-done] span{color:inherit;opacity:.55}
+/* The right-click menu, in a portal at the pointer, over a layer that closes it on any click */
+.sticky-menu-layer{position:fixed;inset:0;z-index:20}
+.sticky-menu{position:fixed;display:flex;flex-direction:column;gap:2px;min-width:168px;padding:6px;background:#17191d;border:1px solid #34363d;border-radius:10px;box-shadow:0 20px 60px #0009}
+.sticky-menu [role=menuitem]{display:flex;align-items:center;gap:9px;padding:8px 10px;border:0;border-radius:6px;background:none;color:var(--text);font-size:13px;text-align:left}
+.sticky-menu [role=menuitem]:hover,.sticky-menu [role=menuitem]:focus-visible{background:var(--panel-raised);outline:none}
+.sticky-menu .swatches{padding:4px 10px 8px}

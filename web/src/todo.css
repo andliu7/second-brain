@@ -1,0 +1,40 @@
+/* TodoCard.tsx. Dark tokens from styles.css; the category colour (--cat, set per row) is the only saturated one. */
+.todo-card{display:flex;flex-direction:column;overflow:hidden;max-width:100%}
+.todo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px 14px;border-bottom:1px solid var(--border);transition:color .3s}
+.todo-head h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.todo-time{font-size:13px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.todo-head[data-done]{color:var(--green)}
+.todo-head[data-done] h2,.todo-head[data-done] .todo-time{color:var(--green)}
+.todo-body{position:relative;padding:12px 14px 14px;background-image:radial-gradient(#ffffff12 1px,transparent 1px);background-size:14px 14px}
+.todo-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.todo-item{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:10px;padding:9px 8px 9px 12px;background:var(--panel-raised);border:1px solid var(--border);border-left:3px solid var(--cat,var(--border));border-radius:8px;cursor:grab;min-width:0}
+.todo-item:active{cursor:grabbing}
+.todo-item[data-done] .todo-text{text-decoration:line-through;color:var(--subtle)}
+.todo-history .todo-item{opacity:.5;cursor:default}
+.todo-main{min-width:0;display:flex;flex-direction:column;gap:5px}
+.todo-text{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.todo-chips{display:flex;flex-wrap:wrap;gap:5px}
+.todo-cat{border-color:var(--cat);color:var(--cat);background:transparent}
+.todo-options{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 10px;padding:10px 0 2px;border-top:1px solid var(--border);cursor:default}
+.todo-options label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.todo-options input,.todo-options select{padding:7px 9px;font-size:13px}
+.todo-options-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.todo-options .today-note{grid-column:1/-1}
+.todo-add{display:grid;grid-template-columns:1fr auto auto;gap:6px;margin-top:10px}
+.todo-add input{padding:8px 10px;font-size:13px}
+.todo-add select{padding:6px 26px 6px 8px;font-size:12px;max-width:130px}
+.todo-history{margin-top:14px;padding-top:10px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:10px}
+.todo-history h3{font-size:12px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+/* The checkbox: a real input (visually hidden) and a box whose tick strokes in. */
+.acheck{display:inline-flex;margin-top:1px;cursor:pointer}
+.acheck-box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--subtle);display:inline-flex;align-items:center;justify-content:center;color:#111;background:transparent;transition:background .2s,border-color .2s,transform .2s}
+.acheck-box path{stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .25s ease .05s}
+.acheck input:checked+.acheck-box{background:var(--green);border-color:var(--green);transform:scale(1.05)}
+.acheck input:checked+.acheck-box path{stroke-dashoffset:0}
+.acheck input:focus-visible+.acheck-box{outline:2px solid var(--copper-bright);outline-offset:2px}
+.acheck input:disabled+.acheck-box{cursor:default}
+/* Confetti: pieces fly out from the top centre of the body, then fade. */
+.confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit}
+.confetti-piece{position:absolute;top:50%;left:50%;width:8px;height:12px;border-radius:2px;opacity:0;animation:confetti-burst 1.4s cubic-bezier(.2,.7,.3,1) var(--delay) forwards}
+@keyframes confetti-burst{0%{opacity:1;transform:translate(-50%,-50%) rotate(0)}70%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + cos(var(--angle)) * var(--dist)),calc(-50% + sin(var(--angle)) * var(--dist) + 40px)) rotate(var(--spin))}}
+@media (max-width:480px){.todo-add{grid-template-columns:1fr auto}.todo-add select{grid-column:1/-1;max-width:none}}
