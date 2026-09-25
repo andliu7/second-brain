@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 const Network = lazy(() => import('./Network'));
-import { ArrowDownToLine, ArrowUpRight, Archive, Brain, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Circle, CircleCheck, Clock3, Code2, Command, Database, Download, File, FileText, Folder, FolderGit2, FolderOpen, HardDrive, ImagePlus, Layers3, Loader2, Menu, MessageSquare, MoreHorizontal, Paperclip, Pencil, Pin, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Sparkles, Target, Trash2, Upload, WandSparkles, X, Zap } from 'lucide-react';
+const Home = lazy(() => import('./Home'));
+import { ArrowDownToLine, ArrowUpRight, Archive, Brain, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Circle, CircleCheck, Clock3, Code2, Columns3, Command, Database, Download, File, FileText, Folder, FolderOpen, HardDrive, ImagePlus, Layers3, Loader2, Menu, MessageSquare, MoreHorizontal, Paperclip, Pencil, Pin, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, ShoppingCart, Sparkles, Target, Trash2, Upload, WandSparkles, X, Zap } from 'lucide-react';
 import type { Connections, Conversation, Doc, Generation, Goal, Page, Source, Workspace } from './types';
 import { activity, download, loadWorkspace, makeDoc, now, parseBackup, readData, saveWorkspace, uid } from './lib/storage';
 import { api, getConnections, getSources, setAccessToken } from './lib/api';
@@ -9,16 +10,23 @@ import { Markdown } from './Markdown';
 import { Skills, type InstalledSkill } from './Skills';
 import { Today } from './Today';
 import { Projects, type ProjectsData } from './Projects';
+import { Kanban } from './Kanban';
+import { BuyList } from './BuyList';
 import { MapSearch } from './MapSearch';
 
 type Update = (workspace: Workspace) => Workspace;
 type Commit = (update: Update, message?: string) => Promise<boolean>;
 type Confirm = { title: string; description: string; action: () => Promise<unknown>; label?: string; danger?: boolean };
 type Editor = { doc: Doc; fresh: boolean };
+// Projects has no row: Today links to it. Files and Generate are gone as pages (Andrew's decision of
+// 2026-09-24): notes still live in workspace.docs, reached from search and Pinned, and Generate is a
+// mode of Chat.
 const navigation: { id: Page; label: string; icon: typeof Brain; hint?: string }[] = [
-  { id: 'today', label: 'Today', icon: CalendarDays }, { id: 'projects', label: 'Projects', icon: FolderGit2 }, { id: 'skills', label: 'Skills', icon: Zap }, { id: 'files', label: 'Files', icon: Folder }, { id: 'chat', label: 'Chat', icon: MessageSquare }, { id: 'generate', label: 'Generate', icon: WandSparkles }, { id: 'network', label: 'Network', icon: Layers3 }, { id: 'goals', label: 'Goals', icon: Target },
+  { id: 'agenda', label: 'Today', icon: CalendarDays }, { id: 'board', label: 'Board', icon: Columns3 }, { id: 'buy', label: 'Buy', icon: ShoppingCart }, { id: 'skills', label: 'Skills', icon: Zap }, { id: 'chat', label: 'Chat', icon: MessageSquare }, { id: 'network', label: 'Network', icon: Layers3 }, { id: 'goals', label: 'Goals', icon: Target },
 ];
-const labels: Record<Page, string> = { today: 'Today', projects: 'Projects', network: 'Network', files: 'Files', skills: 'Skills', goals: 'Goals', chat: 'Chat', generate: 'Generate', settings: 'Settings' };
+// The pages the address can name. 'files' and 'generate' are not here on purpose: #files and #generate
+// fall through to the home page, the same as any unknown hash.
+const labels: Partial<Record<Page, string>> = { today: 'Home', agenda: 'Today', projects: 'Projects', board: 'Board', buy: 'Buy', network: 'Network', skills: 'Skills', goals: 'Goals', chat: 'Chat', settings: 'Settings' };
 const providerNames: Record<string, string> = { claude: 'Claude', openai: 'OpenAI', gemini: 'Gemini', kie: 'Kie.ai', fal: 'fal.ai' };
 const defaultModels: Record<string, string> = { claude: 'claude-sonnet-5', openai: 'gpt-5.4', gemini: 'gemini-3.5-flash' };
 const formatDate = (value: string) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -27,9 +35,10 @@ const excerpt = (text: string, length = 140) => text.replace(/^#+\s/gm, '').repl
 const isText = (doc: Doc) => doc.kind !== 'file' || !doc.data || /^(text\/|application\/(json|xml|javascript))/.test(doc.mime || '') || /\.(md|txt|csv|json|yaml|yml|ts|tsx|js|jsx|py|css|html|xml|log)$/i.test(doc.name);
 const documentIcon = (doc: Doc) => doc.mime?.startsWith('image/') ? ImagePlus : FileText;
 function withActivity(w: Workspace, text: string, page: Page): Workspace { return { ...w, activity: [activity(text, page), ...w.activity].slice(0, 100) }; }
-// The address is #<page>, or #skills/<rest> for one skill's page (see Skills.tsx), or #projects/<rest>
+// The address is #<page>, or #skills/<rest> for one skill's pop-up (see Skills.tsx), or #projects/<rest>
 // for one project's page (see Projects.tsx). A folder name with a space arrives percent-encoded.
-// No hash at all is Today, the cold open, so browser Back to the bare address returns there.
+// No hash at all, and #today, is the home page (Home.tsx, the workspace as a globe), the cold open, so
+// browser Back to the bare address returns there. The old Today page is #agenda, "Today" in the nav.
 function readHash() { let hash = location.hash.slice(1) || 'today'; try { hash = decodeURIComponent(hash); } catch { /* keep it as typed */ } const [base, ...rest] = hash.split('/'); return base in labels ? { page: base as Page, path: base === 'skills' || base === 'projects' || base === 'network' ? rest.join('/') : '' } : null; }
 function IconButton({ label, children, onClick, className = '', disabled = false }: { label: string; children: ReactNode; onClick: () => void; className?: string; disabled?: boolean }) { return <button type="button" className={`icon-button ${className}`} aria-label={label} title={label} onClick={onClick} disabled={disabled}>{children}</button>; }
 function Empty({ icon: Icon = FolderOpen, title, children, action }: { icon?: typeof Brain; title: string; children: ReactNode; action?: ReactNode }) { return <div className="empty-state"><div className="empty-icon"><Icon size={24}/></div><h3>{title}</h3><p>{children}</p>{action}</div>; }
@@ -55,6 +64,7 @@ export default function App() {
   const [editor, setEditor] = useState<Editor | null>(null); const [preview, setPreview] = useState<Doc | null>(null); const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [searchOpen, setSearchOpen] = useState(false); const [search, setSearch] = useState(''); const [mapHits, setMapHits] = useState(0);
   const [sourcesOpen, setSourcesOpen] = useState(false); const [attached, setAttached] = useState<string[]>([]); const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<'chat' | 'generate'>('chat');
   const importRef = useRef<HTMLInputElement>(null);
   const notify = (text: string, error = false) => setToast({ text, error });
   const commit: Commit = (update, message) => new Promise(resolve => {
@@ -69,17 +79,19 @@ export default function App() {
   // older server, a test) reads as empty lists, never as a crash.
   async function loadProjects() { try { const reply = await api<Partial<ProjectsData>>('projects'); setProjects({ repos: reply.repos || [], courses: reply.courses || [], blueberry: reply.blueberry || null, rootPath: reply.rootPath }); setProjectsError(''); } catch (error) { setProjectsError(error instanceof Error ? error.message : 'Could not read projects'); } }
   useEffect(() => { void load(); void connect(); }, []);
-  useEffect(() => { if (page === 'skills' || installed === null) void loadSkills(); if (page === 'today' || page === 'projects') void loadProjects(); }, [page]);
-  // Every move to another page, or to another skill or project inside one, starts at the top of it.
-  useEffect(() => { document.documentElement.scrollTop = 0; }, [page, subPath]);
+  useEffect(() => { if (page === 'skills' || installed === null) void loadSkills(); if (page === 'agenda' || page === 'projects') void loadProjects(); }, [page]);
+  // Every move to another page, or to another project inside one, starts at the top of it. Opening or closing
+  // a skill's pop-up does not: the grid or list stays where it was scrolled to, under the pop-up.
+  const shownPage = useRef(page);
+  useEffect(() => { if (page !== 'skills' || shownPage.current !== 'skills') document.documentElement.scrollTop = 0; shownPage.current = page; }, [page, subPath]);
   useEffect(() => { if (!toast) return; const timeout = setTimeout(() => setToast(null), toast.error ? 10000 : 4500); return () => clearTimeout(timeout); }, [toast]);
   useEffect(() => { const onHash = () => { const next = readHash(); if (next) { setPage(next.page); setSubPath(next.path); } }; const onKey = (event: KeyboardEvent) => { if ((event.metaKey || event.ctrlKey) && event.key === 'k') { event.preventDefault(); setSearchOpen(value => !value); } }; window.addEventListener('hashchange', onHash); window.addEventListener('keydown', onKey); return () => { window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey); }; }, []);
   function navigate(next: Page, path = '') { setPage(next); setSubPath(path); location.hash = path ? next + '/' + path : next; setMenuOpen(false); }
-  // A skill written in the browser opens as a page, like an installed one, wherever it is clicked.
+  // A skill written in the browser opens in the Skills pop-up, like an installed one, wherever it is clicked.
   const openDoc = (doc: Doc) => { if (doc.kind !== 'skill') return setPreview(doc); setPage('skills'); setSubPath('personal/' + doc.id); location.hash = 'skills/personal/' + doc.id; };
   // Use in Chat for an installed skill: its SKILL.md goes to Chat as context held in memory, never saved as a copy.
   const chatWithSkill = (skill: InstalledSkill) => { const doc = { ...makeDoc(skill.name, skill.skill, 'skill'), id: 'installed:' + skill.slug }; setLiveContext(docs => [...docs.filter(item => item.id !== doc.id), doc]); setAttached(ids => ids.includes(doc.id) ? ids : [...ids, doc.id]); navigate('chat'); notify(`${skill.name} attached to Chat`); };
-  const duplicateSkill = (skill: InstalledSkill) => setEditor({ doc: { ...makeDoc(skill.name, skill.skill, 'skill'), source: `~/.claude/skills/${skill.slug}/SKILL.md` }, fresh: true });
+  const duplicateSkill = (skill: InstalledSkill) => setEditor({ doc: { ...makeDoc(skill.name, skill.skill, 'skill'), source: `~/.claude/skills/${skill.path}/SKILL.md` }, fresh: true });
   function newDoc(kind: Doc['kind'] = 'note') { setEditor({ doc: makeDoc('', '', kind), fresh: true }); }
   // Quick capture on Today: the first line of the thought becomes the note's title.
   function captureNote(text: string) { const doc = makeDoc(text.split('\n')[0].slice(0, 80), text, 'note', ['Quick capture']); return commit(w => withActivity({ ...w, docs: [doc, ...w.docs] }, `Captured ${doc.name}`, 'files'), 'Thought captured'); }
@@ -90,27 +102,32 @@ export default function App() {
   const attachDoc = (doc: Doc) => { setAttached(ids => ids.includes(doc.id) ? ids : [...ids, doc.id]); setPreview(null); navigate('chat'); notify(`${doc.name} attached to Chat`); };
   const exportDoc = (doc: Doc) => download(doc.kind === 'note' || doc.kind === 'skill' ? `${doc.name.replace(/\.md$/, '')}.md` : doc.name, doc.data || new Blob([doc.content], { type: doc.mime || 'text/markdown' }));
   if (!workspace) return <div className="boot-screen"><div className="brand-icon"><Brain size={27}/></div><h1>Second Brain</h1>{loadError ? <><p className="error-text">{loadError}</p><button className="button" onClick={() => void load()}>Retry opening workspace</button></> : <><Loader2 className="spin" size={20}/><p>Opening your workspace…</p></>}</div>;
-  const files = workspace.docs.filter(doc => doc.kind !== 'skill'); const skills = workspace.docs.filter(doc => doc.kind === 'skill');
+  const skills = workspace.docs.filter(doc => doc.kind === 'skill');
   const searchText = search.trim().toLowerCase();
-  return <div className="app-shell">
+  return <div className={`app-shell ${page === 'today' ? 'app-home' : ''}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     {menuOpen && <button aria-label="Close navigation" className="sidebar-scrim" onClick={() => setMenuOpen(false)}/>}
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`} aria-label="Workspace navigation">
       <button className="brand" onClick={() => navigate('today')}><span className="brand-icon"><Brain size={22}/></span><span><strong>Second Brain<span className="brand-dot">.</span></strong></span></button>
       <div className="nav-label">WORKSPACE</div>
-      <nav>{navigation.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={18}/><span>{label}</span>{id === 'files' && <small>{files.length}</small>}{id === 'skills' && <small>{(installed?.length || 0) + skills.length}</small>}{id === 'chat' && <span className="nav-ai">AI</span>}</button>)}</nav>
+      <nav>{navigation.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={18}/><span>{label}</span>{id === 'skills' && <small>{(installed?.length || 0) + skills.length}</small>}{id === 'chat' && <span className="nav-ai">AI</span>}</button>)}</nav>
       <div className="sidebar-bottom"><button className={`nav-item ${page === 'settings' ? 'active' : ''}`} onClick={() => navigate('settings')} aria-current={page === 'settings' ? 'page' : undefined}><Settings2 size={18}/><span>Settings</span></button><div className="profile"><span className="profile-avatar">Y</span><span><strong>Your space</strong><small>Local storage</small></span><span className="status-dot"/></div></div>
     </aside>
     <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><IconButton label="Open navigation" className="menu-button" onClick={() => setMenuOpen(true)}><Menu size={20}/></IconButton><span className="breadcrumb-root">Workspace</span><ChevronRight size={13}/><strong>{labels[page]}</strong><span className="local-badge"><span className="status-dot"/>Local</span></div><div className="topbar-actions"><span className="save-status">{saving ? <><Loader2 size={12} className="spin"/> Saving…</> : <><CheckCheck size={13}/> Saved on device</>}</span><button className="search-trigger" onClick={() => setSearchOpen(true)}><Search size={15}/><span>Search workspace</span><kbd>Ctrl K</kbd></button></div></header>
       <main id="main-content" className={`main-content page-${page}`} tabIndex={-1}>
         {page === 'network' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening your network…</p></div>}><Network notify={notify} path={subPath}/></Suspense>}
-        {page === 'today' && <Today data={projects} error={projectsError} installed={installed} pinned={workspace.docs.filter(doc => doc.pinned)} openDoc={openDoc} newDoc={() => newDoc()} capture={captureNote}/>}
+        {page === 'today' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening your workspace…</p></div>}><Home notify={notify} openMenu={() => setMenuOpen(true)} openSearch={() => setSearchOpen(true)} newDoc={() => newDoc()}/></Suspense>}
+        {page === 'agenda' && <Today data={projects} error={projectsError} workspace={workspace} commit={commit} openDoc={openDoc} newDoc={() => newDoc()} capture={captureNote}/>}
         {page === 'projects' && <Projects path={subPath} data={projects} error={projectsError} refresh={() => { setProjects(null); void loadProjects(); }}/>}
-        {page === 'files' && <Library docs={files} newDoc={() => newDoc('note')} importFiles={() => importRef.current?.click()} openDoc={openDoc} pinDoc={pinDoc} sources={() => setSourcesOpen(true)} connections={connections} connectionError={connectionError}/>}
-        {page === 'skills' && <Skills path={subPath} installed={installed} error={skillsError} personal={skills} newSkill={() => newDoc('skill')} chat={chatWithSkill} duplicate={duplicateSkill} mine={{ attach: attachDoc, edit: doc => setEditor({ doc, fresh: false }), pin: pinDoc, download: exportDoc, remove: deleteDoc }}/>}
+        {page === 'board' && <Kanban workspace={workspace} commit={commit}/>}
+        {page === 'buy' && <><PageHeading title="Buy"/><BuyList workspace={workspace} commit={commit}/></>}
+        {page === 'skills' &&<Skills path={subPath} installed={installed} error={skillsError} personal={skills} newSkill={() => newDoc('skill')} chat={chatWithSkill} duplicate={duplicateSkill} mine={{ attach: attachDoc, edit: doc => setEditor({ doc, fresh: false }), pin: pinDoc, download: exportDoc, remove: deleteDoc }}/>}
         {page === 'goals' && <Goals workspace={workspace} commit={commit} confirm={setConfirm}/>}
-        {page === 'chat' && <Chat workspace={workspace} commit={commit} connections={connections} liveContext={liveContext} attached={attached} setAttached={setAttached} activeId={activeChat} setActiveId={setActiveChat} navigate={navigate} notify={notify} confirm={setConfirm}/>}
-        {page === 'generate' && <Generate workspace={workspace} commit={commit} connections={connections} navigate={navigate} notify={notify} confirm={setConfirm}/>}
+        {page === 'chat' && <>
+          <div className="tabs page-modes" role="group" aria-label="Chat mode">{(['chat', 'generate'] as const).map(mode => <button key={mode} type="button" className={chatMode === mode ? 'selected' : ''} aria-pressed={chatMode === mode} onClick={() => setChatMode(mode)}>{mode === 'chat' ? <><MessageSquare size={14}/>Chat</> : <><WandSparkles size={14}/>Generate</>}</button>)}</div>
+          {chatMode === 'chat' ? <Chat workspace={workspace} commit={commit} connections={connections} liveContext={liveContext} attached={attached} setAttached={setAttached} activeId={activeChat} setActiveId={setActiveChat} navigate={navigate} notify={notify} confirm={setConfirm}/>
+            : <Generate workspace={workspace} commit={commit} connections={connections} navigate={navigate} notify={notify} confirm={setConfirm}/>}
+        </>}
         {page === 'settings' && <Settings workspace={workspace} commit={commit} connections={connections} error={connectionError} checking={checking} refresh={connect} confirm={setConfirm} notify={notify}/>}
       </main>
     </div>
@@ -122,17 +139,6 @@ export default function App() {
     {searchOpen && <Modal title="Search your workspace" close={() => { setSearchOpen(false); setSearch(''); }} wide><div className="global-search"><Search size={20}/><input aria-label="Search files, goals and conversations" autoFocus placeholder="Find a file on this computer, a note, skill, goal, or conversation…" value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); document.querySelector<HTMLButtonElement>('.search-results .search-result')?.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey })); } }}/></div><div className="search-results">{!searchText ? <Empty icon={Search} title="Everything, within reach">Every file under the map's roots on this computer, plus the titles, content, and tags of your saved workspace. Enter opens the first result; Ctrl+Enter also opens a file on this computer, Shift+Enter reveals it in Explorer.</Empty> : <><MapSearch query={searchText} onCount={setMapHits} onPick={(id, name, action) => { setSearchOpen(false); setSearch(''); navigate('network', id); if (action) void api<{ runnable?: boolean }>('graph/open', { id, reveal: action === 'reveal' }).then(reply => notify(reply.runnable ? `${name} is a script, so it was revealed in Explorer rather than run` : action === 'reveal' ? `Revealed ${name} in Explorer` : `Opened ${name} on this computer`)).catch(error => notify(error instanceof Error ? error.message : 'Could not open the file', true)); }}/>{workspace.docs.filter(doc => `${doc.name} ${doc.content} ${doc.tags.join(' ')}`.toLowerCase().includes(searchText)).slice(0, 20).map(doc => <button className="search-result" key={doc.id} onClick={() => { setSearchOpen(false); openDoc(doc); }}><FileText size={18}/><span><strong>{doc.name}</strong><small>{doc.kind} · {excerpt(doc.content, 80)}</small></span><ArrowUpRight size={15}/></button>)}{workspace.goals.filter(goal => `${goal.title} ${goal.description}`.toLowerCase().includes(searchText)).map(goal => <button className="search-result" key={goal.id} onClick={() => { setSearchOpen(false); navigate('goals'); }}><Target size={18}/><span><strong>{goal.title}</strong><small>Goal · {goal.category}</small></span><ArrowUpRight size={15}/></button>)}{workspace.conversations.filter(chat => `${chat.title} ${chat.messages.map(message => message.content).join(' ')}`.toLowerCase().includes(searchText)).map(chat => <button className="search-result" key={chat.id} onClick={() => { setSearchOpen(false); setActiveChat(chat.id); navigate('chat'); }}><MessageSquare size={18}/><span><strong>{chat.title}</strong><small>Conversation · {chat.messages.length} messages</small></span><ArrowUpRight size={15}/></button>)}{!mapHits && !workspace.docs.some(doc => `${doc.name} ${doc.content} ${doc.tags.join(' ')}`.toLowerCase().includes(searchText)) && !workspace.goals.some(goal => `${goal.title} ${goal.description}`.toLowerCase().includes(searchText)) && !workspace.conversations.some(chat => `${chat.title} ${chat.messages.map(message => message.content).join(' ')}`.toLowerCase().includes(searchText)) && <Empty icon={Search} title="No matches yet">Try another word or a shorter search.</Empty>}</>}</div></Modal>}
     {toast && <div className={`toast ${toast.error ? 'toast-error' : ''}`} role={toast.error ? 'alert' : 'status'}>{toast.error ? <Circle size={17}/> : <CircleCheck size={17}/>}<span>{toast.text}</span><IconButton label="Dismiss notification" onClick={() => setToast(null)}><X size={15}/></IconButton></div>}
   </div>;
-}
-
-function Library({ docs, newDoc, importFiles, openDoc, pinDoc, sources, connections, connectionError }: { docs: Doc[]; newDoc: () => void; importFiles: () => void; openDoc: (doc: Doc) => void; pinDoc: (doc: Doc) => void; sources: () => void; connections: Connections | null; connectionError: string }) {
-  const [query, setQuery] = useState(''); const [tag, setTag] = useState('all'); const [filter, setFilter] = useState('all'); const [view, setView] = useState<'grid' | 'list'>('list');
-  const tags = [...new Set(docs.flatMap(doc => doc.tags))]; const filtered = docs.filter(doc => `${doc.name} ${doc.content} ${doc.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()) && (tag === 'all' || doc.tags.includes(tag)) && (filter === 'all' || filter === 'pinned' && doc.pinned || doc.kind === filter));
-  return <><PageHeading title="Files & notes"><button className="button primary" onClick={newDoc}><Plus size={16}/>New note</button></PageHeading>
-    <div className={`source-banner ${connections?.local ? 'connected' : ''}`}><div className="source-banner-icon"><FolderOpen size={23}/></div><div><div className="source-banner-title"><strong>Bring your existing world with you.</strong><span className={`connection-tag ${connections?.local ? 'online' : ''}`}><span className="status-dot"/>{connections?.local ? 'Local library connected' : connectionError ? 'Server unavailable' : 'Local library not connected'}</span></div><p>Browse your connected project folders. Save a copy here to read, organize, and use as context.</p></div><button className="button small" onClick={sources}>Browse library <ArrowUpRight size={14}/></button></div>
-    <div className="library-toolbar"><div className="tabs" aria-label="File filters"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>All files<span>{docs.length}</span></button><button className={filter === 'pinned' ? 'selected' : ''} onClick={() => setFilter('pinned')}><Pin size={13}/>Pinned</button><button className={filter === 'note' ? 'selected' : ''} onClick={() => setFilter('note')}>Notes</button></div><div className="library-tools"><label className="inline-search"><Search size={15}/><input aria-label="Search files" placeholder="Search files…" value={query} onChange={event => setQuery(event.target.value)}/></label><select aria-label="Filter by tag" value={tag} onChange={event => setTag(event.target.value)}><option value="all">All tags</option>{tags.map(item => <option key={item}>{item}</option>)}</select><IconButton label={view === 'list' ? 'Switch to grid view' : 'Switch to list view'} onClick={() => setView(view === 'list' ? 'grid' : 'list')}><Layers3 size={16}/></IconButton><button className="button small" onClick={importFiles}><Upload size={15}/>Import files</button></div></div>
-    {filtered.length > 0 ? <div className={view === 'grid' ? 'document-grid' : 'document-table'}>{view === 'list' && <div className="document-table-heading"><span>NAME</span><span>TAGS</span><span>UPDATED</span><span/></div>}{filtered.map(doc => { const Icon = documentIcon(doc); return <article className={`document-card ${view === 'list' ? 'document-row' : ''}`} key={doc.id}><button className="document-open" onClick={() => openDoc(doc)}><span className={`doc-symbol ${doc.kind}`}><Icon size={20}/></span><span className="document-name"><strong>{doc.name}</strong><small>{view === 'grid' ? excerpt(doc.content, 130) || 'Open saved file' : `${doc.kind === 'note' ? 'Note' : doc.mime?.split('/')[1]?.toUpperCase() || 'File'}${doc.size ? ' · ' + bytes(doc.size) : ''}`}</small></span>{view === 'grid' && <ArrowUpRight size={16} className="card-arrow"/>}</button><div className="document-tags">{doc.tags.slice(0, 2).map(item => <button className="tag" key={item} onClick={() => setTag(item)}>{item}</button>)}{!doc.tags.length && <span className="muted">—</span>}</div><time className="document-date" dateTime={doc.updated}>{formatDate(doc.updated)}</time><IconButton label={doc.pinned ? `Unpin ${doc.name}` : `Pin ${doc.name}`} onClick={() => pinDoc(doc)} className={`pin-button ${doc.pinned ? 'is-pinned' : ''}`}><Pin size={15}/></IconButton></article>; })}</div> : <div className="panel library-empty"><Empty icon={FolderOpen} title={query || tag !== 'all' || filter !== 'all' ? 'Nothing matches this view' : 'Make space for your next idea.'}>{query || tag !== 'all' || filter !== 'all' ? 'Try another search or clear your filters.' : 'Add notes, documents, images, and references. They will stay together in your personal library.'}</Empty>{!query && tag === 'all' && filter === 'all' && <button className="button primary" onClick={newDoc}><Plus size={16}/>Create your first note</button>}</div>}
-    <div className="library-footer"><span>{filtered.length} items in this view</span><span><ShieldCheck size={13}/>Personal copies · Saved on this device</span></div>
-  </>;
 }
 
 function EditorModal({ editor, close, save }: { editor: Editor; close: () => void; save: (doc: Doc, fresh: boolean) => Promise<boolean> }) {

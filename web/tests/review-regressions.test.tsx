@@ -21,10 +21,12 @@ beforeEach(() => {
   }));
 });
 
-async function openPage(name: string) {
+// Generate is a mode of Chat: the second button of the Chat | Generate control at the top of that page.
+async function openGenerate() {
   render(<App />);
   await screen.findByRole('button', { name: /Capture a thought/ });
-  await userEvent.click(screen.getByRole('button', { name }));
+  await userEvent.click(screen.getByRole('button', { name: /^Chat\s*AI?$/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Generate' }));
 }
 
 function rejectResultPersistence() {
@@ -48,20 +50,6 @@ async function downloadText(value: Blob | string) {
 }
 
 describe('independent review regressions', () => {
-  it('does not carry the Files Notes filter into Skills', async () => {
-    const workspace = storage.initialWorkspace();
-    workspace.docs.push(storage.makeDoc('Evidence review', 'Check the supporting evidence.', 'skill'));
-    await storage.saveWorkspace(workspace);
-    const user = userEvent.setup();
-    render(<App />);
-    await screen.findByRole('button', { name: /Capture a thought/ });
-    await user.click(screen.getByRole('button', { name: /^Files\s*\d*$/ }));
-    await user.click(screen.getByRole('button', { name: 'Notes', exact: true }));
-    await user.click(screen.getByRole('button', { name: /^Skills\s*\d*$/ }));
-    expect(await screen.findByText('Evidence review')).toBeInTheDocument();
-    expect(screen.queryByText('Nothing matches this view')).not.toBeInTheDocument();
-  });
-
   it.each(['complete', 'queued'] as const)('recovers a %s provider result when the result cannot be persisted', async status => {
     const user = userEvent.setup();
     const downloads = vi.spyOn(storage, 'download').mockImplementation(() => {});
@@ -69,7 +57,7 @@ describe('independent review regressions', () => {
     providerResult = status === 'complete'
       ? { status, model: 'fixture-image-model', images: [png] }
       : { status, model: 'fixture-image-model', images: [], job: ticket };
-    await openPage('Generate');
+    await openGenerate();
     if (status === 'queued') await user.selectOptions(screen.getByLabelText('Provider'), 'fal');
     await user.type(screen.getByLabelText('What do you imagine?'), 'A recoverable generated garden');
     await user.click(screen.getByRole('button', { name: /Generate image/ }));
@@ -89,7 +77,7 @@ describe('independent review regressions', () => {
     await storage.saveWorkspace(workspace);
     const downloads = vi.spyOn(storage, 'download').mockImplementation(() => {});
     rejectResultPersistence();
-    await openPage('Generate');
+    await openGenerate();
     await userEvent.click(screen.getByRole('button', { name: /Check status/ }));
     await waitFor(() => expect(downloads).toHaveBeenCalled());
     const artifacts = await Promise.all(downloads.mock.calls.map(([, data]) => downloadText(data)));

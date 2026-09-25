@@ -25,12 +25,15 @@ describe('real workspace flows in a test DOM (not visual QA)',()=>{
   await user.click(within(dialog).getByRole('button',{name:/Save note|Create note|Save skill|Save$/i}));
   await waitFor(async()=>expect((await loadWorkspace()).docs.some(d=>d.name==='Research decision')).toBe(true));
   app.unmount();render(<App/>);await ready();
-  await user.click(screen.getByRole('button',{name:/^Files\s*\d*$/}));
+  // Files is no longer a page: a saved note is reached through the workspace search (Ctrl K).
+  await user.keyboard('{Control>}k{/Control}');
+  await user.type(screen.getByLabelText('Search files, goals and conversations'),'Research');
   expect(await screen.findByText('Research decision')).toBeInTheDocument();
  });
  it('quick capture stores independent rapid updates without losing data',async()=>{
   const user=userEvent.setup();render(<App/>);await ready();
-  const capture=screen.getByLabelText('Your quick thought');
+  await user.click(screen.getByRole('button',{name:'Today'})); // quick capture lives on the Today page, behind the home globe's burger
+  const capture=await screen.findByLabelText('Your quick thought');
   await user.type(capture,'A durable thought');await user.click(screen.getByRole('button',{name:'Save note'}));
   await waitFor(()=>expect(capture).toHaveValue(''));
   await user.type(capture,'A second durable thought');await user.click(screen.getByRole('button',{name:'Save note'}));
@@ -56,7 +59,8 @@ describe('real workspace flows in a test DOM (not visual QA)',()=>{
   expect((await loadWorkspace()).conversations[0].messages).toHaveLength(2);
  });
  it('supports all three generation provider paths without an empty model record',async()=>{
-  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:'Generate'}));
+  // Generate is a mode of Chat, the second button of the Chat | Generate control at the top of that page.
+  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^Chat\s*AI?$/}));await user.click(screen.getByRole('button',{name:'Generate'}));
   for(const provider of ['gemini','fal','kie']){
    await user.selectOptions(screen.getByLabelText('Provider'),provider);
    await user.clear(screen.getByLabelText('What do you imagine?'));await user.type(screen.getByLabelText('What do you imagine?'),'TEST FIXTURE '+provider);

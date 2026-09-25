@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
 
@@ -25,9 +25,12 @@ function stubFetch(projectsReply: object) {
 beforeEach(() => stubFetch(projects));
 const section = (name: RegExp) => screen.getByRole('heading', { level: 2, name }).closest('section') as HTMLElement;
 
+// The bare address is the home globe (Home.tsx) since 2026-09-24; Today is #agenda, "Today" in the nav.
+const openAgenda = () => { location.hash = '#agenda'; render(<App />); };
+
 describe('Today and Projects, live from disk', () => {
   it('opens on Today: courses with git state, uncommitted repos, the newest STATUS.md entry, skill runs', async () => {
-    render(<App />);
+    openAgenda();
     expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
     expect(await within(section(/Courses/)).findByText('assignment-1')).toBeInTheDocument();
     expect(within(section(/Courses/)).getByText('2 uncommitted')).toBeInTheDocument();
@@ -41,24 +44,46 @@ describe('Today and Projects, live from disk', () => {
     expect(within(status).getByText('Two measured checks now run')).toBeInTheDocument();
     expect(within(status).queryByText('An older entry')).not.toBeInTheDocument();
     expect(await within(section(/Skill runs/)).findByText('Done in 42s')).toBeInTheDocument();
-    expect(within(section(/Skill runs/)).getByRole('link', { name: /Clean up/ })).toHaveAttribute('href', '#skills/clean-up');
+    expect(within(section(/Skill runs/)).getByRole('link', { name: /Clean up/ })).toHaveAttribute('href', '#skills');
     expect(within(section(/Pinned/)).getByText('Welcome to your second brain')).toBeInTheDocument();
     expect(within(section(/Quick capture/)).getByLabelText('Your quick thought')).toBeInTheDocument();
     // No hero, no slogan, no stat cards: the header is the title and one action.
     expect(document.querySelector('.page-heading')?.textContent).toBe('TodayCapture a thought');
     expect(document.querySelectorAll('main .eyebrow, main .stat-card, main .welcome')).toHaveLength(0);
-    // One workspace: no switcher, and the nav in the order the piece names.
+    // One workspace: no switcher, and the nav in the order the piece names. Projects has no row (Today
+    // links to it), Files is gone and Generate lives inside Chat (Andrew's decisions of 2026-09-24).
     expect(screen.queryByText('Personal workspace')).not.toBeInTheDocument();
     expect(screen.queryByText('YOUR PERSONAL WORKSPACE')).not.toBeInTheDocument();
     const nav = within(screen.getByRole('navigation'));
-    expect(nav.getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI$/g, ''))).toEqual(['Today', 'Projects', 'Skills', 'Files', 'Chat', 'Generate', 'Network', 'Goals']);
+    expect(nav.getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI$/g, ''))).toEqual(['Today', 'Board', 'Buy', 'Skills', 'Chat', 'Network', 'Goals']);
+    expect(screen.getByRole('link', { name: /^Projects/ })).toHaveAttribute('href', '#projects');
+    expect(screen.getByRole('link', { name: /^Projects/ })).toHaveTextContent('4 repos');
+  });
+
+  // P2b round 6: the Run button moved off the skill's page and into the run column on Skills, and a skill
+  // now opens in a pop-up that holds no Run. "the run row links to #skills/clean-up" measured the page
+  // that layout replaced; the replacement is the same claim about the layout that is there now, and it
+  // says more than the old one did: one click on the row reaches the enabled Run itself, focused, with
+  // its output area, and no pop-up over it.
+  it("a Skill runs row goes to the run column on Skills, not to the skill's pop-up", async () => {
+    const user = userEvent.setup();
+    openAgenda();
+    await screen.findByRole('heading', { level: 1, name: 'Today' });
+    await user.click(await within(section(/Skill runs/)).findByRole('link', { name: /Clean up/ }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Skills' })).toBeInTheDocument();
+    expect(location.hash).toBe('#skills');
+    const play = await screen.findByRole('button', { name: 'Run Clean up' });
+    expect(play).toBeEnabled();
+    expect(play).toHaveFocus();
+    expect(screen.getByRole('log', { name: 'Clean up output' })).toBeInTheDocument();
+    expect(document.querySelector('dialog[open]')).toBeNull();
   });
 
   it('lists every repo and course project on Projects, each opening to its details', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    openAgenda();
     await screen.findByRole('heading', { level: 1, name: 'Today' });
-    await user.click(screen.getByRole('button', { name: 'Projects' }));
+    await user.click(screen.getByRole('link', { name: /^Projects/ }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Projects' })).toBeInTheDocument();
     for (const item of [...projects.repos, ...projects.courses[0].projects]) expect(screen.getByRole('link', { name: new RegExp('^' + item.name) })).toHaveAttribute('href', '#projects/' + item.path);
     expect(screen.getByRole('link', { name: /^Pibble/ })).toHaveTextContent('clean');
@@ -77,21 +102,23 @@ describe('Today and Projects, live from disk', () => {
     expect(screen.getByText('CMSC423, computational genomics')).toBeInTheDocument();
   });
 
-  it('returns to Today when the address goes back to having no hash, as browser Back to the cold open does', async () => {
-    render(<App />);
+  // The cold open is the home globe now, so Back to the bare address lands there, not on Today.
+  it('returns to the home page when the address goes back to having no hash, as browser Back to the cold open does', async () => {
+    openAgenda();
     await screen.findByRole('heading', { level: 1, name: 'Today' });
     location.hash = '#projects/grignard/grignard-app-source';
     expect(await screen.findByRole('heading', { level: 1, name: 'grignard-app-source' })).toBeInTheDocument();
     location.hash = '';
-    expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('.app-shell')).toHaveClass('app-home'));
+    expect(screen.queryByRole('heading', { level: 1, name: 'Today' })).toBeNull();
   });
 
   it('opens with the caret in quick capture, but never takes focus from the nav', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    openAgenda();
     await screen.findByRole('heading', { level: 1, name: 'Today' });
     expect(screen.getByLabelText('Your quick thought')).toHaveFocus();
-    await user.click(screen.getByRole('button', { name: 'Projects' }));
+    await user.click(screen.getByRole('link', { name: /^Projects/ }));
     await user.click(screen.getByRole('button', { name: 'Today' }));
     await screen.findByLabelText('Your quick thought');
     expect(screen.getByRole('button', { name: 'Today' })).toHaveFocus();
@@ -101,14 +128,14 @@ describe('Today and Projects, live from disk', () => {
     // What Chrome does: showModal() focuses the dialog's first focusable element, the Close X.
     HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); this.querySelector('button')?.focus(); };
     const user = userEvent.setup();
-    render(<App />);
+    openAgenda();
     await screen.findByRole('heading', { level: 1, name: 'Today' });
     await user.click(screen.getByRole('button', { name: 'Capture a thought' }));
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveFocus();
   });
 
   it('has no footer slogan', async () => {
-    render(<App />);
+    openAgenda();
     await screen.findByRole('heading', { level: 1, name: 'Today' });
     expect(document.body.textContent).not.toMatch(/A little less scattered|A little more you|SECOND BRAIN/);
   });
