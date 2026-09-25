@@ -4,6 +4,7 @@
 // list; #projects/<path> is one project's page, where <path> is its folder under Projects/.
 import { useState } from 'react';
 import { ArrowLeft, Check, Copy, GitBranch, Loader2, RefreshCw } from 'lucide-react';
+import { copyText } from './lib/clipboard';
 import './projects.css';
 
 // The shapes build_home.py --json prints. dirty is null when git could not answer. rootPath,
@@ -50,7 +51,7 @@ function ProjectPage({ path, data, error }: { path: string; data: ProjectsData |
   const git = repo.branch !== 'not a repo';
   // The full path with forward slashes, which PowerShell, git and editors all accept on Windows.
   const folder = (data?.rootPath ? data.rootPath.replace(/\\/g, '/').replace(/\/+$/, '') : 'Projects') + '/' + repo.path;
-  async function copy() { try { await navigator.clipboard.writeText(folder); setCopied('yes'); } catch { setCopied('failed'); } }
+  async function copy() { setCopied(await copyText(folder) ? 'yes' : 'failed'); }
   const rows: [string, string][] = [
     ['Folder', folder],
     ...(course ? [['Course', course.title || course.name] as [string, string]] : []),

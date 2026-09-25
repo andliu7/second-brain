@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink, File, FileCode2, FileText, FolderOpen, Folder, Globe, Image, Layers3, Loader2, Plug, Clock3, Brain, Zap, FileType2 } from 'lucide-react';
 import { Markdown } from './Markdown';
 import { api } from './lib/api';
+import { copyText } from './lib/clipboard';
 import { bytes, colorOf, type GraphNode, type Model } from './lib/network';
 
 export type Linked = { id: string; name: string; kind: string; layer: string; type?: string };
@@ -54,7 +55,7 @@ export function FileViewer({ model, index, detail, loading, error, onSelect, not
     catch (error) { notify(error instanceof Error ? error.message : 'Could not open the file', true); }
     finally { setOpening(''); }
   }
-  async function copy() { if (!detail?.path) return; try { await navigator.clipboard.writeText(detail.path); setCopied(true); notify('Path copied'); } catch { notify('The clipboard is not available here. Select the path and copy it.', true); } }
+  async function copy() { if (!detail?.path) return; if (await copyText(detail.path)) { setCopied(true); notify('Path copied'); } else { notify('The clipboard is not available here. Select the path and copy it.', true); } }
   const pick = (link: Linked) => { const target = model.byId.get(link.id); if (target !== undefined) onSelect(target); };
   // Where a linked file lives, so two files with the same name (a DESIGN-TOKENS.md in two repos) read apart.
   const where = (link: Linked) => { const i = model.byId.get(link.id); if (i === undefined) return ''; const root = model.roots[model.nodes[i].root]?.path || ''; return model.paths[i] && root ? model.paths[i].slice(root.length + 1).split('/').slice(0, -1).join('/') : ''; };

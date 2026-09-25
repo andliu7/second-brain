@@ -3,10 +3,22 @@ import { chat, generate, generationStatus, providerKey, defaultModels } from './
 const limits = new Map();
 export function tokenMatches(actual, expected) { if (typeof actual !== 'string' || typeof expected !== 'string') return false; const a=Buffer.from(actual); const b=Buffer.from(expected); return a.length === b.length && timingSafeEqual(a,b); }
 function send(res, status, value) { res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}); res.end(JSON.stringify(value)); }
+// Hosts allowed to reach the acting API. localhost always; anything else only when
+// BRAIN_ALLOWED_HOSTS names it, so the default stays exactly as closed as before. Used for
+// a private Tailscale name, which is why a bare hostname is accepted and a public one is not.
+export function allowedHost(host) {
+  if (!host) return false;
+  const name = String(host).split(':')[0].toLowerCase();
+  if (name === 'localhost' || name === '127.0.0.1') return true;
+  return (process.env.BRAIN_ALLOWED_HOSTS || '').toLowerCase().split(',')
+    .map(h => h.trim()).filter(Boolean).includes(name);
+}
 export function validateOrigin(req, local) {
   const host = req.headers.host;
-  if (!host || (local && !/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host))) return false;
-  if (req.headers['sec-fetch-site'] === 'cross-site') return false;
+  if (!host || (local && !allowedHost(host))) return false;
+  // Google sends the browser back to the calendar callback after consent, a cross-site navigation
+  // by design; the state check in calendar.mjs is what guards that one route.
+  if (req.headers['sec-fetch-site'] === 'cross-site' && String(req.url || '').split('?')[0] !== '/api/calendar/callback') return false;
   if (req.headers.origin) { try { if (new URL(req.headers.origin).host !== host) return false; } catch { return false; } }
   return true;
 }
@@ -35,6 +47,7 @@ export async function handleApi(req,res,{local=false}={}) {
       if (!local) return send(res,404,{error:'The Network map is available only when running the app on your computer.'});
       const graph = await import('./graph.mjs'); const id = url.searchParams.get('id') || '';
       if (route === 'graph') return send(res,200,await graph.buildGraph());
+      if (route === 'graph/grouped') return send(res,200,await graph.groupedGraph(url.searchParams.get('signature') || ''));
       if (route === 'graph/node') return send(res,200,await graph.nodeDetail(id));
       if (route === 'graph/text') return send(res,200,await graph.textChunk(id, Number(url.searchParams.get('offset') || 0)));
       if (route === 'graph/reads') return send(res,200,graph.log);
@@ -45,11 +58,15 @@ export async function handleApi(req,res,{local=false}={}) {
       }
       return send(res,404,{error:'API route not found.'});
     }
+    // Google Calendar uses secrets from this computer's env file and a token under its user profile, so it is local only too.
+    if (route.startsWith('calendar') && req.method === 'GET') { if (!local) return send(res,404,{error:'Google Calendar is available only when running the app on your computer.'}); const {handleCalendar} = await import('./calendar.mjs'); return await handleCalendar(route, url, req, res); }
+    if (route === 'link-preview' && req.method === 'GET') { if (!local) return send(res,404,{error:'Link previews are available only when running the app on your computer.'}); const {linkPreview} = await import('./link-preview.mjs'); return send(res,200,await linkPreview(url.searchParams.get('url') || '')); }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
     // Open on device runs explorer.exe on this computer, only ever after a click in the panel.
     if (route === 'graph/open') { if (!local) return send(res,404,{error:'Open on device works only when running the app on your computer.'}); const {openOnDevice} = await import('./graph.mjs'); return send(res,200,await openOnDevice(String(body?.id || ''), Boolean(body?.reveal))); }
     if (route === 'source') { if (!local) return send(res,404,{error:'Local file access is disabled on hosted deployments.'}); const {readSource} = await import('./library.mjs'); return send(res,200,await readSource(body?.id)); }
+    if (route === 'calendar/todo') { if (!local) return send(res,404,{error:'Google Calendar is available only when running the app on your computer.'}); const {handleCalendar} = await import('./calendar.mjs'); return await handleCalendar(route, url, req, res, body); }
     if (route === 'run') { if (!local) return send(res,404,{error:'Skill runs are available only when running the app on your computer.'}); const {startRun} = await import('./runner.mjs'); startRun(String(body?.id || '')); return send(res,202,{ok:true}); }
     if (!['chat','generate','generation-status'].includes(route)) return send(res,404,{error:'API route not found.'});
     if (route !== 'generation-status') {
