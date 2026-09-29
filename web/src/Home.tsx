@@ -14,6 +14,11 @@
 // edge that opens the colours as a popover. The key moves left of the detail panel while it is
 // open, rather than under it. Whether the title shows and whether the categories are open are
 // remembered in this browser.
+//
+// Today at a glance (2026-09-29, HomeToday.tsx): a Today tab at the bottom left opens a card of
+// today's todos, the next calendar item and a quick capture, in the categories' place. The two
+// share the left side, so the categories step away while Today is open rather than sit under it.
+// Whether Today is open is remembered like the rest.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ExternalLink, Eye, EyeOff, FolderOpen, FolderTree, Loader2, Menu, Palette, Pencil, RefreshCw, Search, X } from 'lucide-react';
 import { api } from './lib/api';
@@ -23,11 +28,13 @@ import { SphereCanvas } from './SphereCanvas';
 import { FileTree } from './FileTree';
 import { FileViewer, KindIcon, kindLabel, type NodeDetail } from './FileViewer';
 import { HomeSearch } from './HomeSearch';
+import { HomeToday } from './HomeToday';
+import type { Workspace } from './types';
 import { TextReveal } from './components/ui/text-reveal';
 import './network.css';
 import './home.css';
 
-type Props = { notify: (text: string, error?: boolean) => void; openMenu: () => void; openSearch: () => void; newDoc: () => void };
+type Props = { notify: (text: string, error?: boolean) => void; openMenu: () => void; openSearch: () => void; newDoc: () => void; workspace: Workspace; commit: (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>; capture: (text: string) => Promise<boolean> };
 type Panel = '' | 'file' | 'tree';
 const cache = new Map<string, NodeDetail>();
 // A remembered choice, read and written in try/catch: storage can be blocked or full, and then the default holds.
@@ -35,13 +42,14 @@ const recall = (key: string, fallback: string) => { try { return localStorage.ge
 const keep = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* the choice lasts this visit only */ } };
 const asGraph = (reply: GraphPayload) => { if (!Array.isArray(reply?.nodes) || !Array.isArray(reply?.edges)) throw new Error('The map did not arrive. Is the local server running?'); return reply; };
 
-export default function Home({ notify, openMenu, openSearch, newDoc }: Props) {
+export default function Home({ notify, openMenu, openSearch, newDoc, workspace, commit, capture }: Props) {
   const [full, setFull] = useState<GraphPayload | null>(null); const [grouped, setGrouped] = useState<GraphPayload | null>(null); const [loadError, setLoadError] = useState('');
   const [selectedId, setSelectedId] = useState(''); const [hovered, setHovered] = useState(-1); const [panel, setPanel] = useState<Panel>(''); const [query, setQuery] = useState(''); const [focus, setFocus] = useState({ index: -1, seq: 0 });
   const [detail, setDetail] = useState<NodeDetail | null>(null); const [detailError, setDetailError] = useState(''); const [loading, setLoading] = useState(false); const [opening, setOpening] = useState('');
   const stage = useRef<HTMLDivElement>(null);
   const [titleShown, setTitleShown] = useState(() => recall('home.title', 'shown') !== 'hidden');
   const [categoriesOpen, setCategoriesOpen] = useState(() => recall('home.categories', 'open') !== 'closed');
+  const [todayOpen, setTodayOpen] = useState(() => recall('home.today', 'closed') === 'open');
   const [keyOpen, setKeyOpen] = useState(false); const keyRef = useRef<HTMLDivElement>(null); const keyButton = useRef<HTMLButtonElement>(null);
   const fullModel = useMemo(() => full ? buildModel(full) : null, [full]);
   const model = useMemo(() => grouped ? buildModel(grouped) : null, [grouped]);
@@ -86,6 +94,7 @@ export default function Home({ notify, openMenu, openSearch, newDoc }: Props) {
   };
   const showTitle = (shown: boolean) => { setTitleShown(shown); keep('home.title', shown ? 'shown' : 'hidden'); };
   const openCategories = (open: boolean) => { setCategoriesOpen(open); keep('home.categories', open ? 'open' : 'closed'); };
+  const openToday = (open: boolean) => { setTodayOpen(open); keep('home.today', open ? 'open' : 'closed'); };
   // The key's popover closes on Escape and on a click anywhere outside it. Escape is caught on the
   // way down (capture), so it closes the popover alone and not the detail panel behind it too.
   useEffect(() => {
@@ -142,12 +151,13 @@ export default function Home({ notify, openMenu, openSearch, newDoc }: Props) {
       <button type="button" ref={keyButton} className="button small" aria-expanded={keyOpen} aria-controls="home-key" onClick={() => setKeyOpen(open => !open)}><Palette size={14}/>Key</button>
       {keyOpen && <div className="home-key" id="home-key" role="dialog" aria-label="Key">{SOURCES.map(source => <span key={source.key}><i style={{ background: COLORS[source.key] }}/>{source.name}<small>{(counts[source.key] || 0).toLocaleString()}</small></span>)}</div>}
     </div>}
-    {categories.length > 0 && <aside className={`home-cats ${categoriesOpen ? '' : 'home-cats-closed'}`} aria-label="Categories">
+    {categories.length > 0 && !todayOpen && <aside className={`home-cats ${categoriesOpen ? '' : 'home-cats-closed'}`} aria-label="Categories">
       <button type="button" className="home-cats-head" aria-expanded={categoriesOpen} aria-controls="home-cats-list" onClick={() => openCategories(!categoriesOpen)}><span>Categories</span><ChevronDown size={15}/></button>
       {categoriesOpen && <ul id="home-cats-list">{categories.map(category => <li key={category.id}>
         <button type="button" aria-pressed={selectedId === category.id} title={`${category.count.toLocaleString()} files and folders`} onClick={() => pickCategory(category.id)}><span>{category.name}</span><small>{category.count.toLocaleString()}</small></button>
       </li>)}</ul>}
     </aside>}
+    <HomeToday workspace={workspace} commit={commit} capture={capture} open={todayOpen} setOpen={openToday} crowded={panel !== ''}/>
     {loadError ? <div className="home-error"><div className="error-banner" role="alert"><p>{loadError}</p><button className="button small" onClick={() => void load(true)}><RefreshCw size={14}/>Try again</button></div></div>
       : !model ? <div className="home-loading"><Loader2 className="spin" size={18}/><p>Reading every file under the configured roots…</p></div>
       : <p className="home-foot muted">{sphereIndex < 0 ? 'Drag to turn, scroll to zoom, click a node to open it. ' : ''}{full!.nodes.length.toLocaleString()} files and folders · {model.nodes.length.toLocaleString()} nodes on the globe · {model.edges.length.toLocaleString()} links from the files</p>}

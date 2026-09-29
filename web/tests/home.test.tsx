@@ -10,6 +10,8 @@ import App from '../src/App';
 import { PERSPECTIVE, RADIUS } from '../src/SphereCanvas';
 import { TextReveal } from '../src/components/ui/text-reveal';
 import { buildModel } from '../src/lib/network';
+import type { Workspace } from '../src/types';
+import { today } from '../src/lib/storage';
 import { ARC_LIFT, arcMid, curveAt, fibonacci, intro, Messages, nodeProgress, sphereLayout, toFront, apply, turn, identity } from '../src/lib/sphere';
 
 const node = (id: string, name: string, kind: string, parent: number, extra: Partial<{ layer: string; root: number; size: number; members: string[] }> = {}) => ({ id, name, kind, layer: extra.layer ?? '', parent, root: extra.root ?? 0, size: extra.size ?? 0, mtime: 0, ...(extra.members ? { members: extra.members } : {}) });
@@ -30,6 +32,12 @@ const details: Record<string, object> = {
 };
 let requests: { url: string; body: any }[] = []; let arcs: [number, number, number][] = []; let firstFrame: [number, number, number][] = [];
 const notify = vi.fn();
+// The workspace Home is handed, and App's commit and capture as stand-ins: commit applies the update
+// to `stored`, the way App's saves it, so a test reads what was committed. The calendar is not
+// connected unless a test says otherwise.
+let stored: Workspace; let calendar: { connected: boolean; events: unknown[] };
+const commit = vi.fn(async (update: (w: Workspace) => Workspace) => { stored = update(stored); return true; });
+const capture = vi.fn(async (_text: string) => true);
 // A 2D context that records every dot drawn, whether a stamped disc (drawImage) or an arc: the
 // ones of the first frame are kept apart.
 function context() {
@@ -38,14 +46,16 @@ function context() {
   return new Proxy(ctx, { get: (target, key) => key in target ? target[key] : () => {}, set: (target, key, value) => { target[key] = value; return true; } });
 }
 beforeEach(() => {
-  requests = []; arcs = []; firstFrame = []; notify.mockClear();
+  requests = []; arcs = []; firstFrame = []; notify.mockClear(); commit.mockClear(); capture.mockClear();
+  stored = { version: 1, docs: [], goals: [], conversations: [], generations: [], activity: [], todos: { day: today(), items: [{ id: 't1', text: 'Read chapter 4', done: false, category: 'other' }], history: {}, removedDefaults: ['read', 'write'] } };
+  calendar = { connected: false, events: [] };
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => context());
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get() { return 800; } });
   Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get() { return 600; } });
   vi.stubGlobal('fetch', vi.fn(async (url: string, options?: RequestInit) => {
     const path = String(url); const body = options?.body ? JSON.parse(String(options.body)) : undefined; requests.push({ url: path, body });
     const params = new URL(path, 'http://localhost').searchParams;
-    const reply = path.includes('/graph/node') ? details[params.get('id')!] : path.includes('/graph/grouped') ? (params.get('signature') === 'sig1' ? grouped : { error: 'wrong signature' }) : path.includes('/graph/open') ? { ok: true, reveal: body?.reveal } : path.endsWith('/graph') ? full
+    const reply = path.endsWith('/calendar/status') ? { connected: calendar.connected } : path.includes('/calendar/events') ? { events: calendar.events } : path.includes('/graph/node') ? details[params.get('id')!] : path.includes('/graph/grouped') ? (params.get('signature') === 'sig1' ? grouped : { error: 'wrong signature' }) : path.includes('/graph/open') ? { ok: true, reveal: body?.reveal } : path.endsWith('/graph') ? full
       : path.endsWith('/status') ? { local: true, authRequired: false, providers: {}, models: {} } : path.endsWith('/projects') ? { repos: [], courses: [], blueberry: null, routines: [] } : path.endsWith('/tasks') ? { tasks: [] } : path.endsWith('/skills') ? { skills: [] } : { sources: [] };
     return new Response(JSON.stringify(reply), { status: 200, headers: { 'content-type': 'application/json' } });
   }));
@@ -54,7 +64,7 @@ beforeEach(() => {
 afterEach(() => { delete (HTMLElement.prototype as any).clientWidth; delete (HTMLElement.prototype as any).clientHeight; });
 const frame = () => act(() => new Promise<void>(resolve => requestAnimationFrame(() => setTimeout(resolve, 0))));
 async function ready() {
-  render(<Home notify={notify} openMenu={() => {}} openSearch={() => {}} newDoc={() => {}}/>);
+  render(<Home notify={notify} openMenu={() => {}} openSearch={() => {}} newDoc={() => {}} workspace={stored} commit={commit} capture={capture}/>);
   await screen.findByRole('button', { name: 'Key' }); // the key is a button at the right edge now, its colours in a popover
   await waitFor(() => expect(window.__sphere?.renders()).toBeGreaterThan(0));
   return document.querySelector('canvas') as HTMLCanvasElement;
@@ -297,6 +307,81 @@ describe('around the globe', () => {
     expect(within(card).getByRole('link', { name: /full run on Skills/ })).toHaveAttribute('href', '#skills');
     await user.click(within(card).getByRole('button', { name: 'Dismiss run' }));
     expect(screen.queryByRole('region', { name: 'Clean up run' })).toBeNull();
+  });
+});
+
+// Today at a glance (HomeToday.tsx): the tab at the bottom left and the card it opens in the
+// categories' place, with today's todos, the next calendar item and a quick capture.
+describe('today at a glance', () => {
+  beforeEach(() => { localStorage.clear(); });
+  const tab = () => screen.getByRole('button', { name: 'Today at a glance' });
+  const card = () => screen.queryByRole('complementary', { name: 'Today at a glance' });
+
+  it('opens from its tab in the categories place, and Escape or the tab again closes it with focus back on the tab', async () => {
+    const user = userEvent.setup(); await ready();
+    expect(card()).toBeNull(); expect(tab()).toHaveAttribute('aria-expanded', 'false');
+    await user.click(tab());
+    expect(card()).toBeInTheDocument(); expect(tab()).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByRole('complementary', { name: 'Categories' })).toBeNull();
+    await user.click(within(card()!).getByRole('textbox', { name: 'Quick capture' }));
+    await user.keyboard('{Escape}');
+    expect(card()).toBeNull(); expect(document.activeElement).toBe(tab());
+    expect(screen.getByRole('complementary', { name: 'Categories' })).toBeInTheDocument();
+    await user.click(tab()); await user.click(tab());
+    expect(card()).toBeNull(); expect(document.activeElement).toBe(tab());
+  });
+
+  it('ticks a todo through commit, and the tick is still there on the next visit', async () => {
+    const user = userEvent.setup(); await ready();
+    await user.click(tab());
+    const box = within(card()!).getByRole('checkbox', { name: 'Read chapter 4' });
+    expect(box).not.toBeChecked();
+    await user.click(box);
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(stored.todos!.items).toEqual([{ id: 't1', text: 'Read chapter 4', done: true, category: 'other' }]);
+    cleanup(); await ready();
+    expect(within(card()!).getByRole('checkbox', { name: 'Read chapter 4' })).toBeChecked();
+  });
+
+  it('saves a quick capture with Save or Ctrl+Enter, and clears the box once it is saved', async () => {
+    const user = userEvent.setup(); await ready();
+    await user.click(tab());
+    const box = within(card()!).getByRole('textbox', { name: 'Quick capture' });
+    const save = within(card()!).getByRole('button', { name: 'Save' });
+    expect(save).toBeDisabled();
+    await user.type(box, '  Ask about the lab  '); await user.click(save);
+    expect(capture).toHaveBeenLastCalledWith('Ask about the lab'); await waitFor(() => expect(box).toHaveValue(''));
+    await user.type(box, 'Second thought'); await user.keyboard('{Control>}{Enter}{/Control}');
+    expect(capture).toHaveBeenLastCalledWith('Second thought'); await waitFor(() => expect(box).toHaveValue(''));
+    expect(capture).toHaveBeenCalledTimes(2);
+  });
+
+  it('remembers being open in this browser', async () => {
+    const user = userEvent.setup(); await ready();
+    await user.click(tab());
+    expect(localStorage.getItem('home.today')).toBe('open');
+    cleanup(); await ready();
+    expect(card()).toBeInTheDocument();
+    await user.click(tab());
+    expect(localStorage.getItem('home.today')).toBe('closed');
+  });
+
+  it('shows the next calendar item only when a calendar is connected', async () => {
+    const user = userEvent.setup(); await ready();
+    await user.click(tab());
+    await waitFor(() => expect(requests.some(r => r.url === '/api/calendar/status')).toBe(true)); await frame();
+    expect(card()!.querySelector('.home-today-next')).toBeNull();
+    expect(requests.some(r => r.url.includes('/api/calendar/events'))).toBe(false);
+    cleanup();
+    const at = (hours: number) => new Date(Date.now() + hours * 3600000).toISOString();
+    calendar = { connected: true, events: [
+      { id: 'later', title: 'Office hours', start: at(30), end: at(31), allDay: false },
+      { id: 'past', title: 'Breakfast', start: at(-3), end: at(-2), allDay: false },
+      { id: 'soon', title: 'CMSC423 lecture', start: at(2), end: at(3), allDay: false },
+    ] };
+    await ready();
+    expect(await within(card()!).findByText('CMSC423 lecture')).toBeInTheDocument();
+    expect(card()!.textContent).not.toContain('Office hours'); expect(card()!.textContent).not.toContain('Breakfast');
   });
 });
 

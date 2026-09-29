@@ -49,8 +49,9 @@
 .home-key span{display:flex;align-items:center;gap:8px}
 .home-key i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .home-key small{margin-left:auto;padding-left:14px;color:var(--sub);font-size:11.5px;font-variant-numeric:tabular-nums}
-/* The categories: the globe's departments down the left, open unless it was closed here last time. */
-.home-cats{position:absolute;left:12px;top:64px;z-index:5;width:220px;max-height:calc(100% - 110px);display:flex;flex-direction:column;background:#111a30e6;border:1px solid #2a3552;border-radius:9px;backdrop-filter:blur(6px);overflow:hidden}
+/* The categories: the globe's departments down the left, open unless it was closed here last time.
+   They stop 86 px short of the bottom, clear of the Today tab under them. */
+.home-cats{position:absolute;left:12px;top:64px;z-index:5;width:220px;max-height:calc(100% - 150px);display:flex;flex-direction:column;background:#111a30e6;border:1px solid #2a3552;border-radius:9px;backdrop-filter:blur(6px);overflow:hidden}
 .home-cats-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border:0;background:none;color:var(--ink);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .home-cats-head svg{color:var(--sub);transition:transform .16s}
 .home-cats-closed .home-cats-head svg{transform:rotate(-90deg)}
@@ -60,6 +61,28 @@
 .home-cats li button small{margin-left:auto;color:var(--sub);font-size:11.5px;font-variant-numeric:tabular-nums}
 .home-cats li button:hover{background:var(--tint-3)}
 .home-cats li button[aria-pressed="true"]{background:#e9ae8e26;box-shadow:inset 2px 0 0 #e9ae8e}
+/* Today at a glance (HomeToday.tsx): the tab at the bottom left, above the foot line, and its card
+   from the categories' top down to just above the tab, in their place while it is open. The card is
+   never wider than the top row, so the Key button at the right edge stays clear of it. Night
+   tokens throughout: .home takes them in either theme (styles.css). */
+.home-today{display:contents}
+.home-today-tab{position:absolute;left:12px;bottom:44px;z-index:6;gap:4px;background:var(--sheet-fade);border-color:var(--line);color:var(--ink)}
+.home-today-tab[aria-expanded="true"]{background:var(--btn-hover)}
+.home-today-card{position:absolute;left:12px;top:64px;bottom:84px;z-index:6;width:min(300px,calc(100% - 110px));display:flex;flex-direction:column;gap:12px;padding:14px;overflow:auto;background:var(--sheet-fade);border:1px solid var(--line);border-radius:9px;backdrop-filter:blur(6px);box-shadow:var(--shadow-2);animation:home-today-in .22s ease-out}
+@keyframes home-today-in{from{transform:translateX(calc(-100% - 12px));opacity:0}to{transform:none;opacity:1}}
+.home-today-card h2{margin:0;font-size:15px;font-weight:600;color:var(--ink)}
+.home-today-card>p{margin:0;font-size:13px}
+.home-today-todos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.home-today-todos li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--ink)}
+.home-today-todos li[data-done] span{color:var(--mut);text-decoration:line-through}
+.home-today-next{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:7px;background:var(--tint-2);color:var(--ink)}
+.home-today-next svg{flex-shrink:0;color:var(--sub)}
+.home-today-next span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-today-next small{margin-left:auto;flex-shrink:0;color:var(--sub);font-size:12px}
+.home-today-card textarea{min-height:76px;resize:vertical;padding:8px 10px;border:1px solid var(--field-line);border-radius:7px;background:var(--soft);color:var(--ink);font-size:13.5px}
+.home-today-card textarea::placeholder{color:var(--mut)}
+.home-today-card .button{align-self:flex-end}
+@media (prefers-reduced-motion:reduce){.home-today-card{animation:none}}
 .home-foot{position:absolute;left:14px;bottom:10px;margin:0;font-size:12px;pointer-events:none;z-index:5;max-width:calc(100% - 28px)}
 .home-loading,.home-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--sub);font-size:14px;padding:20px}
 .home-loading p{margin:0}
@@ -81,7 +104,11 @@
 .home-members li>button:first-child small{margin-left:auto;color:var(--sub);font-size:11px;flex-shrink:0}
 .home-members .viewer-note{padding:0 14px 14px}
 /* Narrower than the top row and the title side by side: the title and search drop under the top
-   row, and the categories move to the bottom left. On a phone the detail panel covers nearly the
+   row, the categories move to the bottom left above the Today tab, and the Today card starts under
+   the search rather than beside it. On a phone the detail panel covers nearly the
    whole width, so the Key button steps aside while it is open rather than hang off the left edge. */
-@media (max-width:1100px){.home-head{top:60px}.home-cats{top:auto;bottom:34px;max-height:40vh}}
+@media (max-width:1100px){.home-head{top:60px}.home-cats{top:auto;bottom:84px;max-height:40vh}.home-today-card{top:150px}}
+/* With the detail panel open, a narrow screen has no room for the Today card beside it: the tab and
+   card step aside, as the Key button does on a phone, and come back when the panel closes. */
+@media (max-width:780px){.home-today-crowded{display:none}}
 @media (max-width:700px){.home-title{font-size:21px}.home-cats{width:min(220px,calc(100% - 24px))}.home-right-shifted{display:none}.home-key{max-width:calc(100vw - 24px)}}
