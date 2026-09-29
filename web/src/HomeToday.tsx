@@ -4,7 +4,7 @@
 //   workspace, commit: App's, as TodoCard takes them; a tick commits the whole todo list
 //   capture: App's captureNote, the same quick capture the Today page uses
 //   open, setOpen: owned by Home, which remembers the choice beside the title and categories
-//   crowded: the detail panel is open, so a narrow screen has no room for this card as well
+//   crowded: the side panel (tree or file) is open, so a narrow screen has no room for this card as well
 // The plain version of the "Peel" Andrew asked for (the page peeling back to show a layer under
 // it): Peel needed a Chrome-only API and outside code, so this is a CSS slide and nothing else.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
@@ -12,6 +12,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { Workspace } from './types';
 import type { CalendarEvent } from './Kanban';
 import { rollover } from './lib/todos';
+import { today } from './lib/storage';
 import { api } from './lib/api';
 import { AnimatedCheckbox } from '@/components/ui/animated-checkbox';
 import './todo.css';
@@ -26,7 +27,9 @@ const whenOf = (event: CalendarEvent) => event.allDay
 export function HomeToday({ workspace, commit, capture, open, setOpen, crowded }: Props) {
   const tab = useRef<HTMLButtonElement>(null);
   // Memoised on the stored list, as in TodoCard, so the ids rollover mints for a returning default hold still between renders.
-  const todos = useMemo(() => rollover(workspace.todos), [workspace.todos]);
+  // Keyed on the local day as well, so any render after midnight (opening the card, a tick) shows the new day.
+  const day = today();
+  const todos = useMemo(() => rollover(workspace.todos, day), [workspace.todos, day]);
   const [next, setNext] = useState<CalendarEvent | null>(null);
   const [text, setText] = useState(''); const [saving, setSaving] = useState(false);
 

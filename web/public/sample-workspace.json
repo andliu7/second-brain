@@ -12,8 +12,8 @@
         "mechanisms"
       ],
       "pinned": true,
-      "created": "2026-09-09T01:00:00.000Z",
-      "updated": "2026-09-27T02:15:00.000Z"
+      "created": "2026-09-10T01:00:00.000Z",
+      "updated": "2026-09-28T02:15:00.000Z"
     },
     {
       "id": "doc-orgo-ir",
@@ -25,8 +25,8 @@
         "spectroscopy"
       ],
       "pinned": false,
-      "created": "2026-09-16T23:00:00.000Z",
-      "updated": "2026-09-23T22:00:00.000Z"
+      "created": "2026-09-17T23:00:00.000Z",
+      "updated": "2026-09-24T22:00:00.000Z"
     },
     {
       "id": "doc-cs-heaps",
@@ -39,8 +39,8 @@
         "algorithms"
       ],
       "pinned": false,
-      "created": "2026-09-19T20:00:00.000Z",
-      "updated": "2026-09-28T00:40:00.000Z"
+      "created": "2026-09-20T20:00:00.000Z",
+      "updated": "2026-09-29T00:40:00.000Z"
     },
     {
       "id": "doc-cs-p2",
@@ -52,8 +52,8 @@
         "projects"
       ],
       "pinned": false,
-      "created": "2026-09-22T18:00:00.000Z",
-      "updated": "2026-09-28T12:10:00.000Z"
+      "created": "2026-09-23T18:00:00.000Z",
+      "updated": "2026-09-29T12:10:00.000Z"
     },
     {
       "id": "doc-lab-log",
@@ -65,8 +65,8 @@
         "research"
       ],
       "pinned": false,
-      "created": "2026-09-13T21:00:00.000Z",
-      "updated": "2026-09-25T21:30:00.000Z"
+      "created": "2026-09-14T21:00:00.000Z",
+      "updated": "2026-09-26T21:30:00.000Z"
     },
     {
       "id": "doc-reading",
@@ -77,8 +77,8 @@
         "books"
       ],
       "pinned": false,
-      "created": "2026-08-29T16:00:00.000Z",
-      "updated": "2026-09-18T16:00:00.000Z"
+      "created": "2026-08-30T16:00:00.000Z",
+      "updated": "2026-09-19T16:00:00.000Z"
     },
     {
       "id": "doc-idea-flash",
@@ -91,8 +91,8 @@
         "projects"
       ],
       "pinned": false,
-      "created": "2026-09-22T03:00:00.000Z",
-      "updated": "2026-09-22T03:00:00.000Z"
+      "created": "2026-09-23T03:00:00.000Z",
+      "updated": "2026-09-23T03:00:00.000Z"
     },
     {
       "id": "doc-idea-club",
@@ -104,8 +104,8 @@
         "club"
       ],
       "pinned": false,
-      "created": "2026-09-24T17:00:00.000Z",
-      "updated": "2026-09-24T17:00:00.000Z"
+      "created": "2026-09-25T17:00:00.000Z",
+      "updated": "2026-09-25T17:00:00.000Z"
     },
     {
       "id": "doc-idea-app",
@@ -116,12 +116,12 @@
         "Idea"
       ],
       "pinned": false,
-      "created": "2026-09-17T13:00:00.000Z",
-      "updated": "2026-09-17T13:00:00.000Z"
+      "created": "2026-09-18T13:00:00.000Z",
+      "updated": "2026-09-18T13:00:00.000Z"
     },
     {
       "id": "doc-j-today",
-      "name": "Monday, September 28, 2026",
+      "name": "Tuesday, September 29, 2026",
       "content": "Up early. Orgo quiz is Thursday, so today is mechanisms and one heap problem before lab.",
       "kind": "note",
       "tags": [
@@ -129,24 +129,24 @@
         "school"
       ],
       "pinned": false,
-      "created": "2026-09-28T11:45:00.000Z",
-      "updated": "2026-09-28T11:45:00.000Z"
+      "created": "2026-09-29T11:45:00.000Z",
+      "updated": "2026-09-29T11:45:00.000Z"
     },
     {
       "id": "doc-j-1",
-      "name": "Sunday, September 27, 2026",
+      "name": "Monday, September 28, 2026",
       "content": "Long day. Lab ran over but the yield was the best yet. Called home; Mom says the dog learned to open the pantry.",
       "kind": "note",
       "tags": [
         "Journal"
       ],
       "pinned": false,
-      "created": "2026-09-28T02:00:00.000Z",
-      "updated": "2026-09-28T02:00:00.000Z"
+      "created": "2026-09-29T02:00:00.000Z",
+      "updated": "2026-09-29T02:00:00.000Z"
     },
     {
       "id": "doc-j-2",
-      "name": "Saturday, September 26, 2026",
+      "name": "Sunday, September 27, 2026",
       "content": "Office hours helped: build heap is O(n) because most nodes are near the bottom and barely move.",
       "kind": "note",
       "tags": [
@@ -154,12 +154,12 @@
         "school"
       ],
       "pinned": false,
-      "created": "2026-09-27T01:30:00.000Z",
-      "updated": "2026-09-27T01:30:00.000Z"
+      "created": "2026-09-28T01:30:00.000Z",
+      "updated": "2026-09-28T01:30:00.000Z"
     },
     {
       "id": "doc-j-4",
-      "name": "Thursday, September 24, 2026",
+      "name": "Friday, September 25, 2026",
       "content": "Ran 5k without stopping for the first time. Slow, but done.",
       "kind": "note",
       "tags": [
@@ -167,24 +167,24 @@
         "running"
       ],
       "pinned": false,
-      "created": "2026-09-25T02:10:00.000Z",
-      "updated": "2026-09-25T02:10:00.000Z"
+      "created": "2026-09-26T02:10:00.000Z",
+      "updated": "2026-09-26T02:10:00.000Z"
     },
     {
       "id": "doc-j-8",
-      "name": "Sunday, September 20, 2026",
+      "name": "Monday, September 21, 2026",
       "content": "Rough exam week ahead. Made a plan on the board and felt better right away.",
       "kind": "note",
       "tags": [
         "Journal"
       ],
       "pinned": false,
-      "created": "2026-09-21T00:00:00.000Z",
-      "updated": "2026-09-21T00:00:00.000Z"
+      "created": "2026-09-22T00:00:00.000Z",
+      "updated": "2026-09-22T00:00:00.000Z"
     },
     {
       "id": "doc-j-15",
-      "name": "Sunday, September 13, 2026",
+      "name": "Monday, September 14, 2026",
       "content": "First day in the lab. Everyone is kind; I broke nothing.",
       "kind": "note",
       "tags": [
@@ -192,32 +192,32 @@
         "research"
       ],
       "pinned": false,
-      "created": "2026-09-14T01:00:00.000Z",
-      "updated": "2026-09-14T01:00:00.000Z"
+      "created": "2026-09-15T01:00:00.000Z",
+      "updated": "2026-09-15T01:00:00.000Z"
     },
     {
       "id": "doc-j-month",
-      "name": "Friday, August 28, 2026",
+      "name": "Saturday, August 29, 2026",
       "content": "Move-in weekend. New room, same bad lamp. Wrote the goals for the semester.",
       "kind": "note",
       "tags": [
         "Journal"
       ],
       "pinned": false,
-      "created": "2026-08-29T00:30:00.000Z",
-      "updated": "2026-08-29T00:30:00.000Z"
+      "created": "2026-08-30T00:30:00.000Z",
+      "updated": "2026-08-30T00:30:00.000Z"
     },
     {
       "id": "doc-j-year",
-      "name": "Sunday, September 28, 2025",
+      "name": "Monday, September 29, 2025",
       "content": "Freshman year, week one. Signed up for chem club and immediately got lost finding the building.",
       "kind": "note",
       "tags": [
         "Journal"
       ],
       "pinned": false,
-      "created": "2025-09-29T00:30:00.000Z",
-      "updated": "2025-09-29T00:30:00.000Z"
+      "created": "2025-09-30T00:30:00.000Z",
+      "updated": "2025-09-30T00:30:00.000Z"
     },
     {
       "id": "doc-resume",
@@ -228,8 +228,8 @@
         "Resume"
       ],
       "pinned": false,
-      "created": "2026-09-03T19:00:00.000Z",
-      "updated": "2026-09-25T19:00:00.000Z"
+      "created": "2026-09-04T19:00:00.000Z",
+      "updated": "2026-09-26T19:00:00.000Z"
     },
     {
       "id": "doc-skill-lab",
@@ -240,8 +240,8 @@
         "writing"
       ],
       "pinned": false,
-      "created": "2026-09-10T20:00:00.000Z",
-      "updated": "2026-09-22T20:00:00.000Z"
+      "created": "2026-09-11T20:00:00.000Z",
+      "updated": "2026-09-23T20:00:00.000Z"
     },
     {
       "id": "doc-file-yield",
@@ -252,8 +252,8 @@
         "research"
       ],
       "pinned": false,
-      "created": "2026-09-25T21:40:00.000Z",
-      "updated": "2026-09-25T21:40:00.000Z",
+      "created": "2026-09-26T21:40:00.000Z",
+      "updated": "2026-09-26T21:40:00.000Z",
       "mime": "text/csv",
       "size": 53,
       "data": "data:text/csv;base64,dHJpYWwsbWFzc19nLHlpZWxkX3BjdAoxLDIuNDEsNjgKMiwyLjM4LDcxCjMsMi40NCw3NAo="
@@ -265,9 +265,9 @@
       "title": "Finish the semester with a 3.6",
       "description": "Mostly means not letting orgo slide.",
       "category": "Academic",
-      "due": "2026-12-12",
+      "due": "2026-12-13",
       "archived": false,
-      "created": "2026-08-19T14:00:00.000Z",
+      "created": "2026-08-20T14:00:00.000Z",
       "milestones": [
         {
           "id": "ms-gpa-1",
@@ -291,9 +291,9 @@
       "title": "Run a 5k under 30 minutes",
       "description": "Couch to 5k, three runs a week.",
       "category": "Fitness",
-      "due": "2026-11-07",
+      "due": "2026-11-08",
       "archived": false,
-      "created": "2026-08-24T11:00:00.000Z",
+      "created": "2026-08-25T11:00:00.000Z",
       "milestones": [
         {
           "id": "ms-5k-1",
@@ -317,9 +317,9 @@
       "title": "Earn a summer research spot",
       "description": "Ask Dr. Okafor about the summer program by winter break.",
       "category": "Professional",
-      "due": "2027-01-06",
+      "due": "2027-01-07",
       "archived": false,
-      "created": "2026-08-29T15:00:00.000Z",
+      "created": "2026-08-30T15:00:00.000Z",
       "milestones": [
         {
           "id": "ms-r-1",
@@ -343,9 +343,9 @@
       "title": "Learn to cook five dinners",
       "description": "Done over the summer.",
       "category": "Personal",
-      "due": "2026-08-14",
+      "due": "2026-08-15",
       "archived": true,
-      "created": "2026-05-31T22:00:00.000Z",
+      "created": "2026-06-01T22:00:00.000Z",
       "milestones": [
         {
           "id": "ms-old-1",
@@ -364,19 +364,19 @@
     {
       "id": "chat-heap",
       "title": "Why is build heap O(n)?",
-      "updated": "2026-09-26T23:05:00.000Z",
+      "updated": "2026-09-27T23:05:00.000Z",
       "messages": [
         {
           "id": "m-h-1",
           "role": "user",
           "content": "Why is building a heap O(n) and not O(n log n)?",
-          "created": "2026-09-26T23:00:00.000Z"
+          "created": "2026-09-27T23:00:00.000Z"
         },
         {
           "id": "m-h-2",
           "role": "assistant",
           "content": "Most nodes sit near the bottom. Half the nodes are leaves and never move, a quarter move at most one level, and so on. The sum n/4 + 2n/8 + 3n/16 + ... converges to n, so the total work is linear.",
-          "created": "2026-09-26T23:01:00.000Z",
+          "created": "2026-09-27T23:01:00.000Z",
           "provider": "claude",
           "model": "sample-model",
           "trace": {
@@ -420,13 +420,13 @@
           "id": "m-h-3",
           "role": "user",
           "content": "So sift down from the middle, not sift up from the start?",
-          "created": "2026-09-26T23:04:00.000Z"
+          "created": "2026-09-27T23:04:00.000Z"
         },
         {
           "id": "m-h-4",
           "role": "assistant",
           "content": "Exactly. Sifting up from the start would be O(n log n), because the deep nodes are the ones doing the long trips.",
-          "created": "2026-09-26T23:05:00.000Z",
+          "created": "2026-09-27T23:05:00.000Z",
           "provider": "claude",
           "model": "sample-model"
         }
@@ -435,19 +435,19 @@
     {
       "id": "chat-email",
       "title": "Email to ask about summer research",
-      "updated": "2026-09-23T01:02:00.000Z",
+      "updated": "2026-09-24T01:02:00.000Z",
       "messages": [
         {
           "id": "m-e-1",
           "role": "user",
           "content": "Help me write a short email asking my rotation PI about the summer program.",
-          "created": "2026-09-23T01:00:00.000Z"
+          "created": "2026-09-24T01:00:00.000Z"
         },
         {
           "id": "m-e-2",
           "role": "assistant",
           "content": "Subject: Summer research in the lab\n\nHi Dr. Okafor,\n\nI have really enjoyed the rotation, especially working on the recrystallization yields. I would love to keep going over the summer. Is there a chance of a spot, and what should I do to apply?\n\nThank you,\nSam",
-          "created": "2026-09-23T01:02:00.000Z",
+          "created": "2026-09-24T01:02:00.000Z",
           "provider": "claude",
           "model": "sample-model"
         }
@@ -461,7 +461,7 @@
       "provider": "gemini",
       "model": "sample-image-model",
       "aspect": "16:9",
-      "created": "2026-09-24T02:00:00.000Z",
+      "created": "2026-09-25T02:00:00.000Z",
       "status": "complete",
       "images": [
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAgCAIAAADbtmxLAAABLElEQVR42u3OP0tCURzG8eflnFei5Us4LyKQIAKRtDBFpD9yTcRSQ5OLEg0FQUNDQ9DQ4CA4NDQIDQkOgoOLDWe53Hv+mN4fHkT4LD/ufQ5fzDp7VsHUjVsFk/a+VTBuHVgFv81Dq+DnNkFqPnryMv6PYT1Jx1cj6Cf4vkkRkdYImhW+qscUNDWCaohBJUPBGKQaol/OUjAGqYbolfIUjEGqIT6dAgVjkGqIj+I5EU2NZoX3i0s60hr9BG9nDilfjfF/vBaurIKXfMUqeM5VrYLH01ro2C5nMc4inEU52+HBU7PFQ6YRIlWB9JS+gO5JMxSLFEhP3ztw03cr+m9B8PS+BvGhdeQuZ7kC6SkehPdDI9lZ3OoF0hPBD9eJe71wC8xB6z23QdugjQv6A4zS2zp5Ub7fAAAAAElFTkSuQmCC"
@@ -473,697 +473,697 @@
       "id": "act-0-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-28T12:24:00.000Z"
+      "created": "2026-09-29T12:24:00.000Z"
     },
     {
       "id": "act-0-1",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-28T14:43:00.000Z"
+      "created": "2026-09-29T14:43:00.000Z"
     },
     {
       "id": "act-0-2",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-28T16:53:00.000Z"
+      "created": "2026-09-29T16:53:00.000Z"
     },
     {
       "id": "act-0-3",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-28T18:17:00.000Z"
+      "created": "2026-09-29T18:17:00.000Z"
     },
     {
       "id": "act-1-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-27T12:34:00.000Z"
+      "created": "2026-09-28T12:34:00.000Z"
     },
     {
       "id": "act-2-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-26T12:40:00.000Z"
+      "created": "2026-09-27T12:40:00.000Z"
     },
     {
       "id": "act-2-1",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-26T14:43:00.000Z"
+      "created": "2026-09-27T14:43:00.000Z"
     },
     {
       "id": "act-3-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-25T12:09:00.000Z"
+      "created": "2026-09-26T12:09:00.000Z"
     },
     {
       "id": "act-4-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-24T12:59:00.000Z"
+      "created": "2026-09-25T12:59:00.000Z"
     },
     {
       "id": "act-4-1",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-24T14:39:00.000Z"
+      "created": "2026-09-25T14:39:00.000Z"
     },
     {
       "id": "act-4-2",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-24T16:37:00.000Z"
+      "created": "2026-09-25T16:37:00.000Z"
     },
     {
       "id": "act-4-3",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-24T18:47:00.000Z"
+      "created": "2026-09-25T18:47:00.000Z"
     },
     {
       "id": "act-5-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-23T12:07:00.000Z"
+      "created": "2026-09-24T12:07:00.000Z"
     },
     {
       "id": "act-5-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-23T14:44:00.000Z"
+      "created": "2026-09-24T14:44:00.000Z"
     },
     {
       "id": "act-5-2",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-23T16:33:00.000Z"
+      "created": "2026-09-24T16:33:00.000Z"
     },
     {
       "id": "act-6-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-22T12:15:00.000Z"
+      "created": "2026-09-23T12:15:00.000Z"
     },
     {
       "id": "act-6-1",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-22T14:08:00.000Z"
+      "created": "2026-09-23T14:08:00.000Z"
     },
     {
       "id": "act-6-2",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-22T16:58:00.000Z"
+      "created": "2026-09-23T16:58:00.000Z"
     },
     {
       "id": "act-6-3",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-22T18:51:00.000Z"
+      "created": "2026-09-23T18:51:00.000Z"
     },
     {
       "id": "act-7-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-21T12:47:00.000Z"
+      "created": "2026-09-22T12:47:00.000Z"
     },
     {
       "id": "act-7-1",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-21T14:37:00.000Z"
+      "created": "2026-09-22T14:37:00.000Z"
     },
     {
       "id": "act-7-2",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-21T16:22:00.000Z"
+      "created": "2026-09-22T16:22:00.000Z"
     },
     {
       "id": "act-8-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-20T12:58:00.000Z"
+      "created": "2026-09-21T12:58:00.000Z"
     },
     {
       "id": "act-9-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-19T12:06:00.000Z"
+      "created": "2026-09-20T12:06:00.000Z"
     },
     {
       "id": "act-9-1",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-19T14:57:00.000Z"
+      "created": "2026-09-20T14:57:00.000Z"
     },
     {
       "id": "act-10-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-18T12:59:00.000Z"
+      "created": "2026-09-19T12:59:00.000Z"
     },
     {
       "id": "act-10-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-18T14:23:00.000Z"
+      "created": "2026-09-19T14:23:00.000Z"
     },
     {
       "id": "act-10-2",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-18T16:54:00.000Z"
+      "created": "2026-09-19T16:54:00.000Z"
     },
     {
       "id": "act-10-3",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-18T18:01:00.000Z"
+      "created": "2026-09-19T18:01:00.000Z"
     },
     {
       "id": "act-10-4",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-18T20:25:00.000Z"
+      "created": "2026-09-19T20:25:00.000Z"
     },
     {
       "id": "act-11-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-17T12:36:00.000Z"
+      "created": "2026-09-18T12:36:00.000Z"
     },
     {
       "id": "act-12-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-16T12:27:00.000Z"
+      "created": "2026-09-17T12:27:00.000Z"
     },
     {
       "id": "act-12-1",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-16T14:24:00.000Z"
+      "created": "2026-09-17T14:24:00.000Z"
     },
     {
       "id": "act-12-2",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-16T16:53:00.000Z"
+      "created": "2026-09-17T16:53:00.000Z"
     },
     {
       "id": "act-12-3",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-16T18:37:00.000Z"
+      "created": "2026-09-17T18:37:00.000Z"
     },
     {
       "id": "act-12-4",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-16T20:43:00.000Z"
+      "created": "2026-09-17T20:43:00.000Z"
     },
     {
       "id": "act-13-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-15T12:13:00.000Z"
+      "created": "2026-09-16T12:13:00.000Z"
     },
     {
       "id": "act-13-1",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-15T14:50:00.000Z"
+      "created": "2026-09-16T14:50:00.000Z"
     },
     {
       "id": "act-14-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-14T12:21:00.000Z"
+      "created": "2026-09-15T12:21:00.000Z"
     },
     {
       "id": "act-14-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-14T14:11:00.000Z"
+      "created": "2026-09-15T14:11:00.000Z"
     },
     {
       "id": "act-14-2",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-14T16:07:00.000Z"
+      "created": "2026-09-15T16:07:00.000Z"
     },
     {
       "id": "act-14-3",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-14T18:43:00.000Z"
+      "created": "2026-09-15T18:43:00.000Z"
     },
     {
       "id": "act-14-4",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-14T20:55:00.000Z"
+      "created": "2026-09-15T20:55:00.000Z"
     },
     {
       "id": "act-15-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-13T12:05:00.000Z"
+      "created": "2026-09-14T12:05:00.000Z"
     },
     {
       "id": "act-15-1",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-13T14:56:00.000Z"
+      "created": "2026-09-14T14:56:00.000Z"
     },
     {
       "id": "act-15-2",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-13T16:54:00.000Z"
+      "created": "2026-09-14T16:54:00.000Z"
     },
     {
       "id": "act-15-3",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-13T18:49:00.000Z"
+      "created": "2026-09-14T18:49:00.000Z"
     },
     {
       "id": "act-16-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-12T12:03:00.000Z"
+      "created": "2026-09-13T12:03:00.000Z"
     },
     {
       "id": "act-16-1",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-12T14:44:00.000Z"
+      "created": "2026-09-13T14:44:00.000Z"
     },
     {
       "id": "act-16-2",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-12T16:19:00.000Z"
+      "created": "2026-09-13T16:19:00.000Z"
     },
     {
       "id": "act-16-3",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-12T18:29:00.000Z"
+      "created": "2026-09-13T18:29:00.000Z"
     },
     {
       "id": "act-16-4",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-09-12T20:33:00.000Z"
+      "created": "2026-09-13T20:33:00.000Z"
     },
     {
       "id": "act-17-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-11T12:42:00.000Z"
+      "created": "2026-09-12T12:42:00.000Z"
     },
     {
       "id": "act-17-1",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-11T14:09:00.000Z"
+      "created": "2026-09-12T14:09:00.000Z"
     },
     {
       "id": "act-17-2",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-11T16:10:00.000Z"
+      "created": "2026-09-12T16:10:00.000Z"
     },
     {
       "id": "act-17-3",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-11T18:02:00.000Z"
+      "created": "2026-09-12T18:02:00.000Z"
     },
     {
       "id": "act-17-4",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-11T20:59:00.000Z"
+      "created": "2026-09-12T20:59:00.000Z"
     },
     {
       "id": "act-18-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-10T12:10:00.000Z"
+      "created": "2026-09-11T12:10:00.000Z"
     },
     {
       "id": "act-18-1",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-10T14:08:00.000Z"
+      "created": "2026-09-11T14:08:00.000Z"
     },
     {
       "id": "act-19-0",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-09T12:10:00.000Z"
+      "created": "2026-09-10T12:10:00.000Z"
     },
     {
       "id": "act-19-1",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-09T14:23:00.000Z"
+      "created": "2026-09-10T14:23:00.000Z"
     },
     {
       "id": "act-19-2",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-09T16:24:00.000Z"
+      "created": "2026-09-10T16:24:00.000Z"
     },
     {
       "id": "act-19-3",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-09T18:10:00.000Z"
+      "created": "2026-09-10T18:10:00.000Z"
     },
     {
       "id": "act-19-4",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-09T20:26:00.000Z"
+      "created": "2026-09-10T20:26:00.000Z"
     },
     {
       "id": "act-20-0",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-08T12:56:00.000Z"
+      "created": "2026-09-09T12:56:00.000Z"
     },
     {
       "id": "act-20-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-08T14:40:00.000Z"
+      "created": "2026-09-09T14:40:00.000Z"
     },
     {
       "id": "act-20-2",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-08T16:27:00.000Z"
+      "created": "2026-09-09T16:27:00.000Z"
     },
     {
       "id": "act-20-3",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-08T18:23:00.000Z"
+      "created": "2026-09-09T18:23:00.000Z"
     },
     {
       "id": "act-22-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-06T12:08:00.000Z"
+      "created": "2026-09-07T12:08:00.000Z"
     },
     {
       "id": "act-22-1",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-06T14:36:00.000Z"
+      "created": "2026-09-07T14:36:00.000Z"
     },
     {
       "id": "act-23-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-09-05T12:53:00.000Z"
+      "created": "2026-09-06T12:53:00.000Z"
     },
     {
       "id": "act-23-1",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-09-05T14:14:00.000Z"
+      "created": "2026-09-06T14:14:00.000Z"
     },
     {
       "id": "act-26-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-09-02T12:18:00.000Z"
+      "created": "2026-09-03T12:18:00.000Z"
     },
     {
       "id": "act-27-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-09-01T12:28:00.000Z"
+      "created": "2026-09-02T12:28:00.000Z"
     },
     {
       "id": "act-27-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-09-01T14:18:00.000Z"
+      "created": "2026-09-02T14:18:00.000Z"
     },
     {
       "id": "act-28-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-08-31T12:31:00.000Z"
+      "created": "2026-09-01T12:31:00.000Z"
     },
     {
       "id": "act-31-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-08-28T12:55:00.000Z"
+      "created": "2026-08-29T12:55:00.000Z"
     },
     {
       "id": "act-33-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-08-26T12:20:00.000Z"
+      "created": "2026-08-27T12:20:00.000Z"
     },
     {
       "id": "act-33-1",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-08-26T14:05:00.000Z"
+      "created": "2026-08-27T14:05:00.000Z"
     },
     {
       "id": "act-37-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-08-22T12:31:00.000Z"
+      "created": "2026-08-23T12:31:00.000Z"
     },
     {
       "id": "act-37-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-08-22T14:47:00.000Z"
+      "created": "2026-08-23T14:47:00.000Z"
     },
     {
       "id": "act-39-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-08-20T12:57:00.000Z"
+      "created": "2026-08-21T12:57:00.000Z"
     },
     {
       "id": "act-41-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-08-18T12:29:00.000Z"
+      "created": "2026-08-19T12:29:00.000Z"
     },
     {
       "id": "act-41-1",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-08-18T14:47:00.000Z"
+      "created": "2026-08-19T14:47:00.000Z"
     },
     {
       "id": "act-47-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-08-12T12:06:00.000Z"
+      "created": "2026-08-13T12:06:00.000Z"
     },
     {
       "id": "act-50-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-08-09T12:05:00.000Z"
+      "created": "2026-08-10T12:05:00.000Z"
     },
     {
       "id": "act-51-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-08-08T12:35:00.000Z"
+      "created": "2026-08-09T12:35:00.000Z"
     },
     {
       "id": "act-62-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-28T12:00:00.000Z"
+      "created": "2026-07-29T12:00:00.000Z"
     },
     {
       "id": "act-62-1",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-07-28T14:04:00.000Z"
+      "created": "2026-07-29T14:04:00.000Z"
     },
     {
       "id": "act-63-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-07-27T12:22:00.000Z"
+      "created": "2026-07-28T12:22:00.000Z"
     },
     {
       "id": "act-63-1",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-07-27T14:58:00.000Z"
+      "created": "2026-07-28T14:58:00.000Z"
     },
     {
       "id": "act-64-0",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-07-26T12:13:00.000Z"
+      "created": "2026-07-27T12:13:00.000Z"
     },
     {
       "id": "act-65-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-07-25T12:55:00.000Z"
+      "created": "2026-07-26T12:55:00.000Z"
     },
     {
       "id": "act-65-1",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-07-25T14:52:00.000Z"
+      "created": "2026-07-26T14:52:00.000Z"
     },
     {
       "id": "act-66-0",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-07-24T12:58:00.000Z"
+      "created": "2026-07-25T12:58:00.000Z"
     },
     {
       "id": "act-66-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-24T14:42:00.000Z"
+      "created": "2026-07-25T14:42:00.000Z"
     },
     {
       "id": "act-67-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-23T12:32:00.000Z"
+      "created": "2026-07-24T12:32:00.000Z"
     },
     {
       "id": "act-67-1",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-07-23T14:28:00.000Z"
+      "created": "2026-07-24T14:28:00.000Z"
     },
     {
       "id": "act-69-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-21T12:22:00.000Z"
+      "created": "2026-07-22T12:22:00.000Z"
     },
     {
       "id": "act-70-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-07-20T12:47:00.000Z"
+      "created": "2026-07-21T12:47:00.000Z"
     },
     {
       "id": "act-70-1",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-07-20T14:20:00.000Z"
+      "created": "2026-07-21T14:20:00.000Z"
     },
     {
       "id": "act-77-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-07-13T12:09:00.000Z"
+      "created": "2026-07-14T12:09:00.000Z"
     },
     {
       "id": "act-78-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-07-12T12:33:00.000Z"
+      "created": "2026-07-13T12:33:00.000Z"
     },
     {
       "id": "act-78-1",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-12T14:52:00.000Z"
+      "created": "2026-07-13T14:52:00.000Z"
     },
     {
       "id": "act-79-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-07-11T12:29:00.000Z"
+      "created": "2026-07-12T12:29:00.000Z"
     },
     {
       "id": "act-81-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-09T12:58:00.000Z"
+      "created": "2026-07-10T12:58:00.000Z"
     },
     {
       "id": "act-84-0",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-07-06T12:11:00.000Z"
+      "created": "2026-07-07T12:11:00.000Z"
     },
     {
       "id": "act-84-1",
       "text": "Opened the map",
       "page": "network",
-      "created": "2026-07-06T14:49:00.000Z"
+      "created": "2026-07-07T14:49:00.000Z"
     },
     {
       "id": "act-88-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-02T12:12:00.000Z"
+      "created": "2026-07-03T12:12:00.000Z"
     },
     {
       "id": "act-89-0",
       "text": "Finished a todo",
       "page": "today",
-      "created": "2026-07-01T12:14:00.000Z"
+      "created": "2026-07-02T12:14:00.000Z"
     },
     {
       "id": "act-89-1",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-07-01T14:15:00.000Z"
+      "created": "2026-07-02T14:15:00.000Z"
     },
     {
       "id": "act-94-0",
       "text": "Moved a card",
       "page": "board",
-      "created": "2026-06-26T12:44:00.000Z"
+      "created": "2026-06-27T12:44:00.000Z"
     },
     {
       "id": "act-99-0",
       "text": "Ticked a milestone",
       "page": "goals",
-      "created": "2026-06-21T12:44:00.000Z"
+      "created": "2026-06-22T12:44:00.000Z"
     },
     {
       "id": "act-99-1",
       "text": "Asked a question",
       "page": "chat",
-      "created": "2026-06-21T14:40:00.000Z"
+      "created": "2026-06-22T14:40:00.000Z"
     },
     {
       "id": "act-102-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-06-18T12:37:00.000Z"
+      "created": "2026-06-19T12:37:00.000Z"
     },
     {
       "id": "act-105-0",
       "text": "Ran a skill",
       "page": "skills",
-      "created": "2026-06-15T12:29:00.000Z"
+      "created": "2026-06-16T12:29:00.000Z"
     }
   ],
   "relations": [
@@ -1172,28 +1172,28 @@
       "source": "doc:doc-idea-flash",
       "target": "doc:doc-orgo-sn",
       "relation": "references",
-      "created": "2026-09-22T03:00:00.000Z"
+      "created": "2026-09-23T03:00:00.000Z"
     },
     {
       "id": "rel-2",
       "source": "doc:doc-idea-flash",
       "target": "doc:doc-cs-heaps",
       "relation": "related_to",
-      "created": "2026-09-22T03:00:00.000Z"
+      "created": "2026-09-23T03:00:00.000Z"
     },
     {
       "id": "rel-3",
       "source": "doc:doc-cs-p2",
       "target": "goal:goal-gpa",
       "relation": "supports",
-      "created": "2026-09-22T18:00:00.000Z"
+      "created": "2026-09-23T18:00:00.000Z"
     },
     {
       "id": "rel-4",
       "source": "doc:doc-lab-log",
       "target": "doc:doc-skill-lab",
       "relation": "uses_skill",
-      "created": "2026-09-25T21:00:00.000Z"
+      "created": "2026-09-26T21:00:00.000Z"
     }
   ],
   "board": {
@@ -1220,7 +1220,7 @@
         "column": "doing",
         "category": "project",
         "project": true,
-        "due": "2026-10-07",
+        "due": "2026-10-08",
         "attachments": [
           "doc-cs-p2"
         ],
@@ -1229,20 +1229,20 @@
             "id": "st-p2-1",
             "title": "Read the spec",
             "done": true,
-            "doneOn": "2026-09-16",
+            "doneOn": "2026-09-17",
             "detail": "Due date and grading rubric are on the course site."
           },
           {
             "id": "st-p2-2",
             "title": "Trie loads the dictionary",
             "done": true,
-            "doneOn": "2026-09-20"
+            "doneOn": "2026-09-21"
           },
           {
             "id": "st-p2-3",
             "title": "Flag misspelled words",
             "done": true,
-            "doneOn": "2026-09-25",
+            "doneOn": "2026-09-26",
             "detail": "Handles punctuation now."
           },
           {
@@ -1265,7 +1265,7 @@
         "column": "doing",
         "category": "professional",
         "project": true,
-        "due": "2026-10-16",
+        "due": "2026-10-17",
         "attachments": [
           "doc-lab-log",
           "doc-file-yield"
@@ -1275,13 +1275,13 @@
             "id": "st-lab-1",
             "title": "Collect three trials",
             "done": true,
-            "doneOn": "2026-09-23"
+            "doneOn": "2026-09-24"
           },
           {
             "id": "st-lab-2",
             "title": "TLC plates",
             "done": true,
-            "doneOn": "2026-09-26"
+            "doneOn": "2026-09-27"
           },
           {
             "id": "st-lab-3",
@@ -1301,7 +1301,7 @@
         "notes": "Chapters 7 and 8.",
         "column": "todo",
         "category": "academic",
-        "due": "2026-10-01",
+        "due": "2026-10-02",
         "minutes": 90,
         "attachments": [
           "doc-orgo-sn"
@@ -1325,7 +1325,7 @@
         "notes": "The portal closes Friday.",
         "column": "todo",
         "category": "urgent",
-        "due": "2026-09-30",
+        "due": "2026-10-01",
         "attachments": [],
         "checklist": []
       },
@@ -1335,7 +1335,7 @@
         "notes": "",
         "column": "todo",
         "category": "family",
-        "due": "2026-10-03",
+        "due": "2026-10-04",
         "attachments": [],
         "checklist": []
       },
@@ -1386,10 +1386,10 @@
     ]
   },
   "todos": {
-    "day": "2026-09-28",
+    "day": "2026-09-29",
     "removedDefaults": [],
     "history": {
-      "2026-09-27": [
+      "2026-09-28": [
         {
           "id": "todo-h1-0",
           "done": true,
@@ -1419,7 +1419,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-26": [
+      "2026-09-27": [
         {
           "id": "todo-h2-0",
           "done": true,
@@ -1435,7 +1435,7 @@
           "minutes": 5
         }
       ],
-      "2026-09-25": [
+      "2026-09-26": [
         {
           "id": "todo-h3-0",
           "done": true,
@@ -1458,7 +1458,7 @@
           "minutes": 60
         }
       ],
-      "2026-09-24": [
+      "2026-09-25": [
         {
           "id": "todo-h4-0",
           "done": true,
@@ -1481,7 +1481,7 @@
           "minutes": 60
         }
       ],
-      "2026-09-23": [
+      "2026-09-24": [
         {
           "id": "todo-h5-0",
           "done": true,
@@ -1497,7 +1497,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-22": [
+      "2026-09-23": [
         {
           "id": "todo-h6-0",
           "done": true,
@@ -1513,7 +1513,7 @@
           "minutes": 60
         }
       ],
-      "2026-09-21": [
+      "2026-09-22": [
         {
           "id": "todo-h7-0",
           "done": true,
@@ -1543,7 +1543,7 @@
           "minutes": 60
         }
       ],
-      "2026-09-20": [
+      "2026-09-21": [
         {
           "id": "todo-h8-0",
           "done": true,
@@ -1559,7 +1559,7 @@
           "minutes": 20
         }
       ],
-      "2026-09-19": [
+      "2026-09-20": [
         {
           "id": "todo-h9-0",
           "done": true,
@@ -1575,7 +1575,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-18": [
+      "2026-09-19": [
         {
           "id": "todo-h10-0",
           "done": true,
@@ -1591,7 +1591,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-17": [
+      "2026-09-18": [
         {
           "id": "todo-h11-0",
           "done": true,
@@ -1607,7 +1607,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-16": [
+      "2026-09-17": [
         {
           "id": "todo-h12-0",
           "done": true,
@@ -1630,7 +1630,7 @@
           "minutes": 20
         }
       ],
-      "2026-09-15": [
+      "2026-09-16": [
         {
           "id": "todo-h13-0",
           "done": true,
@@ -1639,7 +1639,7 @@
           "minutes": 20
         }
       ],
-      "2026-09-14": [
+      "2026-09-15": [
         {
           "id": "todo-h14-0",
           "done": true,
@@ -1662,7 +1662,7 @@
           "minutes": 20
         }
       ],
-      "2026-09-13": [
+      "2026-09-14": [
         {
           "id": "todo-h15-0",
           "done": true,
@@ -1692,7 +1692,7 @@
           "minutes": 60
         }
       ],
-      "2026-09-11": [
+      "2026-09-12": [
         {
           "id": "todo-h17-0",
           "done": true,
@@ -1701,7 +1701,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-10": [
+      "2026-09-11": [
         {
           "id": "todo-h18-0",
           "done": true,
@@ -1731,7 +1731,7 @@
           "minutes": 30
         }
       ],
-      "2026-09-09": [
+      "2026-09-10": [
         {
           "id": "todo-h19-0",
           "done": true,
@@ -1761,7 +1761,7 @@
           "minutes": 5
         }
       ],
-      "2026-09-08": [
+      "2026-09-09": [
         {
           "id": "todo-h20-0",
           "done": true,
@@ -1791,7 +1791,7 @@
           "minutes": 45
         }
       ],
-      "2026-09-07": [
+      "2026-09-08": [
         {
           "id": "todo-h21-0",
           "done": true,
@@ -1952,42 +1952,42 @@
       "text": "Ask the TA whether the final is cumulative",
       "kind": "task",
       "done": false,
-      "created": "2026-09-27T14:00:00.000Z"
+      "created": "2026-09-28T14:00:00.000Z"
     },
     {
       "id": "misc-2",
       "text": "A study playlist that is only lo-fi covers of video game music",
       "kind": "idea",
       "done": false,
-      "created": "2026-09-26T03:00:00.000Z"
+      "created": "2026-09-27T03:00:00.000Z"
     },
     {
       "id": "misc-3",
       "text": "Dining hall has pho on Wednesdays",
       "kind": "note",
       "done": false,
-      "created": "2026-09-23T16:00:00.000Z"
+      "created": "2026-09-24T16:00:00.000Z"
     },
     {
       "id": "misc-4",
       "text": "Return the library book",
       "kind": "task",
       "done": true,
-      "created": "2026-09-19T19:00:00.000Z"
+      "created": "2026-09-20T19:00:00.000Z"
     },
     {
       "id": "misc-5",
       "text": "Make the heap visualizer into a club workshop",
       "kind": "idea",
       "done": false,
-      "created": "2026-09-19T00:00:00.000Z"
+      "created": "2026-09-20T00:00:00.000Z"
     },
     {
       "id": "misc-6",
       "text": "Priya prefers texts over email",
       "kind": "note",
       "done": false,
-      "created": "2026-09-16T22:00:00.000Z"
+      "created": "2026-09-17T22:00:00.000Z"
     }
   ],
   "resume": {
@@ -2055,110 +2055,178 @@
       "Spanish (conversational)"
     ]
   },
-  "drawing": {
-    "viewport": {
-      "zoom": 1
+  "whiteboards": [
+    {
+      "id": "wb-spell",
+      "name": "Spell checker plan",
+      "updated": "2026-09-27T00:00:00.000Z",
+      "viewport": {
+        "zoom": 1
+      },
+      "elements": [
+        {
+          "id": "wb-box-1",
+          "type": "geometry",
+          "shape": "rectangle",
+          "angle": 0,
+          "opacity": 1,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              180,
+              70
+            ]
+          ],
+          "text": {
+            "children": [
+              {
+                "text": "Trie of words"
+              }
+            ],
+            "type": "paragraph",
+            "align": "center"
+          }
+        },
+        {
+          "id": "wb-box-2",
+          "type": "geometry",
+          "shape": "rectangle",
+          "angle": 0,
+          "opacity": 1,
+          "points": [
+            [
+              260,
+              0
+            ],
+            [
+              440,
+              70
+            ]
+          ],
+          "text": {
+            "children": [
+              {
+                "text": "Edit distance"
+              }
+            ],
+            "type": "paragraph",
+            "align": "center"
+          }
+        },
+        {
+          "id": "wb-box-3",
+          "type": "geometry",
+          "shape": "rectangle",
+          "angle": 0,
+          "opacity": 1,
+          "points": [
+            [
+              130,
+              140
+            ],
+            [
+              310,
+              210
+            ]
+          ],
+          "text": {
+            "children": [
+              {
+                "text": "Top 3 suggestions"
+              }
+            ],
+            "type": "paragraph",
+            "align": "center"
+          }
+        },
+        {
+          "id": "wb-stroke-1",
+          "type": "freehand",
+          "shape": "feltTipPen",
+          "points": [
+            [
+              130,
+              230
+            ],
+            [
+              200,
+              238
+            ],
+            [
+              310,
+              226
+            ]
+          ]
+        }
+      ]
     },
-    "elements": [
-      {
-        "id": "wb-box-1",
-        "type": "geometry",
-        "shape": "rectangle",
-        "angle": 0,
-        "opacity": 1,
-        "points": [
-          [
-            0,
-            0
-          ],
-          [
-            180,
-            70
-          ]
-        ],
-        "text": {
-          "children": [
-            {
-              "text": "Trie of words"
-            }
-          ],
-          "type": "paragraph",
-          "align": "center"
-        }
+    {
+      "id": "wb-sn2",
+      "name": "SN2 backside attack",
+      "updated": "2026-09-21T20:00:00.000Z",
+      "viewport": {
+        "zoom": 1
       },
-      {
-        "id": "wb-box-2",
-        "type": "geometry",
-        "shape": "rectangle",
-        "angle": 0,
-        "opacity": 1,
-        "points": [
-          [
-            260,
-            0
+      "elements": [
+        {
+          "id": "wb-sn2-1",
+          "type": "geometry",
+          "shape": "rectangle",
+          "angle": 0,
+          "opacity": 1,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              180,
+              70
+            ]
           ],
-          [
-            440,
-            70
-          ]
-        ],
-        "text": {
-          "children": [
-            {
-              "text": "Edit distance"
-            }
+          "text": {
+            "children": [
+              {
+                "text": "Nucleophile"
+              }
+            ],
+            "type": "paragraph",
+            "align": "center"
+          }
+        },
+        {
+          "id": "wb-sn2-2",
+          "type": "geometry",
+          "shape": "rectangle",
+          "angle": 0,
+          "opacity": 1,
+          "points": [
+            [
+              320,
+              0
+            ],
+            [
+              500,
+              70
+            ]
           ],
-          "type": "paragraph",
-          "align": "center"
+          "text": {
+            "children": [
+              {
+                "text": "Inverted product"
+              }
+            ],
+            "type": "paragraph",
+            "align": "center"
+          }
         }
-      },
-      {
-        "id": "wb-box-3",
-        "type": "geometry",
-        "shape": "rectangle",
-        "angle": 0,
-        "opacity": 1,
-        "points": [
-          [
-            130,
-            140
-          ],
-          [
-            310,
-            210
-          ]
-        ],
-        "text": {
-          "children": [
-            {
-              "text": "Top 3 suggestions"
-            }
-          ],
-          "type": "paragraph",
-          "align": "center"
-        }
-      },
-      {
-        "id": "wb-stroke-1",
-        "type": "freehand",
-        "shape": "feltTipPen",
-        "points": [
-          [
-            130,
-            230
-          ],
-          [
-            200,
-            238
-          ],
-          [
-            310,
-            226
-          ]
-        ]
-      }
-    ]
-  },
+      ]
+    }
+  ],
+  "currentWhiteboard": "wb-spell",
   "todayLayout": [
     {
       "id": "todos",

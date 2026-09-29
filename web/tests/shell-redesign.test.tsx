@@ -35,7 +35,7 @@ describe('the redesigned shell', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Goals' })).toBeInTheDocument(); // one h1 per page: Goals is a block here
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     // The profile moved from the sidebar foot to the top bar (2026-09-28); its "Local storage" line went with it.
-    expect(screen.getByRole('button', { name: /^Profile, / })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Profile(, |$)/ })).toBeInTheDocument();  // unnamed by default since 2026-09-29
     expect(nav).not.toHaveTextContent('Local storage');
   });
 
@@ -167,17 +167,26 @@ describe('the hideable sidebar and the Kanban page layout', () => {
   });
 });
 
-// Andrew, 2026-09-28: arriving on Today sweeps the page in. The overlay is only a copy of the page, so it
-// needs WebGL2 and motion allowed (tests/setup.ts turns reduced motion on); without them the page just swaps.
+// Andrew, 2026-09-28: arriving on Today sweeps the page in; 2026-09-29: "for every new page", so every page
+// change sweeps except into or out of the home globe, a canvas that copies blank. The overlay is only a copy
+// of the page, so it needs WebGL2 and motion allowed (tests/setup.ts turns reduced motion on); without them
+// the page just swaps.
 describe('the page sweep', () => {
   const motionAllowed = () => vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }));
-  const kanbanToToday = async () => {
+  const withWebGL2 = () => {
+    vi.stubGlobal('WebGL2RenderingContext', class {});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) => kind === 'webgl2' ? ({} as RenderingContext) : null) as HTMLCanvasElement['getContext']);
+    vi.spyOn(console, 'error').mockImplementation(() => {}); // jsdom's fake context: the engine reports it and the safety timer settles
+  };
+  const nav = (name: string) => within(screen.getByRole('complementary', { name: 'Workspace navigation' })).getByRole('button', { name });
+  const fromKanban = async () => {
     const user = userEvent.setup();
     window.location.hash = 'board';
     render(<App/>);
     await screen.findByRole('heading', { level: 1, name: 'Board' });
-    await user.click(within(screen.getByRole('complementary', { name: 'Workspace navigation' })).getByRole('button', { name: 'Today' }));
+    return user;
   };
+  const kanbanToToday = async () => { const user = await fromKanban(); await user.click(nav('Today')); };
 
   it('does not mount the overlay without WebGL2', async () => {
     motionAllowed();
@@ -187,14 +196,31 @@ describe('the page sweep', () => {
 
   it('mounts it, over a copy of the Kanban page, when WebGL2 exists', async () => {
     motionAllowed();
-    vi.stubGlobal('WebGL2RenderingContext', class {});
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) => kind === 'webgl2' ? ({} as RenderingContext) : null) as HTMLCanvasElement['getContext']);
-    vi.spyOn(console, 'error').mockImplementation(() => {}); // jsdom's fake context: the engine reports it and the safety timer settles
+    withWebGL2();
     await kanbanToToday();
     const layer = document.querySelector('.page-sweep-layer');
     expect(layer).not.toBeNull();
     expect(layer).toHaveAttribute('inert');
     expect(layer!.textContent).toContain('Board');
+  });
+
+  it('sweeps any other page change too, Kanban to Docs', async () => {
+    motionAllowed();
+    withWebGL2();
+    const user = await fromKanban();
+    await user.click(nav('Docs'));
+    expect(document.querySelector('.page-sweep-layer')?.textContent).toContain('Board');
+  });
+
+  it('never sweeps into or out of the home globe', async () => {
+    motionAllowed();
+    withWebGL2();
+    const user = await fromKanban();
+    await user.click(screen.getByRole('button', { name: /Second Brain/ }));
+    expect(window.location.hash).toBe('#today');
+    expect(document.querySelector('.page-sweep-layer')).toBeNull();
+    await user.click(nav('Today'));
+    expect(document.querySelector('.page-sweep-layer')).toBeNull();
   });
 });
 

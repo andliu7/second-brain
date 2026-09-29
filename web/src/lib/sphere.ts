@@ -2,7 +2,7 @@
 // sits on the unit sphere (sphereLayout), the rotation the pointer and the clock apply to it
 // (turn, spin, toFront), the load-in progress (intro) and the messages that travel its edges
 // (Messages). SphereCanvas.tsx projects the result to the screen each frame.
-import { layout, type GraphEdge, type Model } from './network';
+import { colorOf, type GraphEdge, type Model } from './network';
 
 export type Mat = Float64Array; // a 3x3 rotation, row-major
 export const identity = (): Mat => new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
@@ -32,63 +32,103 @@ export function toFront(rot: Mat, pos: Float32Array, i: number): { axis: [number
 }
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
-// n points spread evenly over the sphere: the cluster centres, one per department.
+// n points spread evenly over the sphere: the lattice every node sits on, and the patch centres.
 export function fibonacci(n: number): [number, number, number][] {
   const out: [number, number, number][] = [];
   for (let i = 0; i < n; i++) { const y = n === 1 ? 0 : 1 - 2 * (i + 0.5) / n; const r = Math.sqrt(Math.max(0, 1 - y * y)); const phi = i * GOLDEN; out.push([r * Math.cos(phi), y, r * Math.sin(phi)]); }
   return out;
 }
 
-export type SphereLayout = { pos: Float32Array; scatter: Float32Array; cap: Float32Array; mid: Float32Array };
+export type SphereLayout = { pos: Float32Array; scatter: Float32Array; mid: Float32Array };
+type Vec = [number, number, number];
+const dot = (a: Vec, b: Vec) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const angle = (a: Vec, b: Vec) => Math.acos(Math.max(-1, Math.min(1, dot(a, b))));
+const unit = (x: number, y: number, z: number, fallback: Vec): Vec => { const l = Math.hypot(x, y, z); return l < 1e-9 ? fallback : [x / l, y / l, z / l]; };
+
 // Every node takes its own point of one Fibonacci lattice over the whole sphere, so the globe is
-// an evenly filled ball with a round silhouette rather than lumpy caps with bare sea between them
-// (2026-09-28, "make the whole thing more circular"). Each department still reads as one blob:
-// its node sits on its Fibonacci centre, and it claims the free lattice points nearest that centre
-// until it has one per node inside it. Inside that patch, the flat map's packing (layout in
-// network.ts: folders as circles inside their parent's circle) is projected onto a cap around the
-// centre as a target, and each node, nearest the centre first, takes the free point of the patch
-// nearest its target, so a folder still sits together. Deterministic: the same tree lands the
-// same way. scatter is where each node starts on a cold open, well outside the sphere, before it
-// flies in. mid holds, per edge, the lifted midpoint of its great-circle arc (arcMid below).
+// an evenly filled ball with a round silhouette (2026-09-28, "make the whole thing more circular").
+// Since 2026-09-29 ("keep the nodes close to each other by color/reference") the lattice is shared
+// out by colour rather than by department, in two steps:
+//   patches  each colour (colorOf, so the key's rows) claims one contiguous patch of the lattice,
+//            its size in proportion to how many nodes wear that colour (patches below)
+//   order    inside its patch, nodes that link sit next to each other: a breadth-first walk over
+//            the links lays them out from the patch centre, then a few rounds of relaxation move
+//            each node to the free point of its patch nearest the middle of what it links to
+// Linked nodes of two colours are pulled toward the shared edge of their patches by the same
+// relaxation. Deterministic (every tie breaks on index) and run once per layout, never per frame.
+// scatter is where each node starts on a cold open, well outside the sphere, before it flies in.
+// mid holds, per edge, the lifted midpoint of its great-circle arc (arcMid below).
+const RELAX = 6;
 export function sphereLayout(model: Model): SphereLayout {
-  const { nodes, children, tops } = model; const n = nodes.length; const flat = layout(model);
-  const pos = new Float32Array(n * 3); const scatter = new Float32Array(n * 3); const cap = new Float32Array(n);
-  const centres = fibonacci(tops.length);
-  const lists = tops.map(t => { const list: number[] = []; const walk = (i: number) => { for (const c of children[i]) { list.push(c); walk(c); } }; walk(t); return list; });
-  const set = (i: number, [x, y, z]: [number, number, number]) => { pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z; };
-  const angle = (a: [number, number, number], b: [number, number, number]) => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])));
-  // The lattice, less the point nearest each centre, since the department's own node stands there.
-  let lattice = fibonacci(n);
-  for (const c of centres) { let best = -1, bestAngle = Infinity; lattice.forEach((p, k) => { const d = angle(p, c); if (d < bestAngle) { bestAngle = d; best = k; } }); if (best >= 0) lattice = lattice.filter((_, k) => k !== best); }
-  // Each department claims points nearest its centre first, until it holds one per member.
-  const room = lists.map(list => list.length); const owner = new Int32Array(lattice.length).fill(-1);
-  const pairs: [number, number, number][] = [];
-  lattice.forEach((p, k) => centres.forEach((c, j) => { if (room[j]) pairs.push([angle(p, c), k, j]); }));
-  pairs.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
-  for (const [, k, j] of pairs) if (owner[k] < 0 && room[j] > 0) { owner[k] = j; room[j]--; }
-  tops.forEach((t, j) => {
-    const c = centres[j]; const [cx, cy, cz] = c; const list = lists[j]; set(t, c);
-    const patch = lattice.filter((_, k) => owner[k] === j); const free = patch.map(() => true);
-    // The patch's reach from the centre is the cap the flat packing is projected onto.
-    const reach = Math.max(0.05, ...patch.map(p => angle(p, c))); cap[t] = reach;
-    // An orthonormal frame at the centre: u and v span the cap, c points out of the sphere.
-    const upx = Math.abs(cy) > 0.9 ? 1 : 0, upy = 1 - upx;
-    let ux = -cz * upy, uy = cz * upx, uz = cx * upy - cy * upx; const ul = Math.hypot(ux, uy, uz) || 1; ux /= ul; uy /= ul; uz /= ul;
-    const vx = cy * uz - cz * uy, vy = cz * ux - cx * uz, vz = cx * uy - cy * ux;
-    const offset = (i: number) => Math.hypot(flat.x[i] - flat.x[t], flat.y[i] - flat.y[t]);
-    let extent = 1; for (const i of list) extent = Math.max(extent, offset(i));
-    for (const i of [...list].sort((a, b) => offset(a) - offset(b) || a - b)) {
-      const theta = reach * offset(i) / extent; const phi = Math.atan2(flat.y[i] - flat.y[t], flat.x[i] - flat.x[t]);
-      const lx = Math.sin(theta) * Math.cos(phi), ly = Math.sin(theta) * Math.sin(phi), lz = Math.cos(theta);
-      const target: [number, number, number] = [ux * lx + vx * ly + cx * lz, uy * lx + vy * ly + cy * lz, uz * lx + vz * ly + cz * lz];
-      let best = -1, bestDot = -Infinity; patch.forEach((p, k) => { if (!free[k]) return; const d = p[0] * target[0] + p[1] * target[1] + p[2] * target[2]; if (d > bestDot) { bestDot = d; best = k; } }); // the largest dot is the smallest angle, without an acos per pair
-      free[best] = false; set(i, patch[best]); cap[i] = reach;
+  const { nodes, edges } = model; const n = nodes.length;
+  const pos = new Float32Array(n * 3); const scatter = new Float32Array(n * 3); const mid = new Float32Array(edges.length * 3);
+  if (!n) return { pos, scatter, mid };
+  const near: number[][] = nodes.map(() => []);
+  for (const [a, b] of edges) if (a >= 0 && b >= 0 && a < n && b < n && a !== b) { near[a].push(b); near[b].push(a); }
+  // The colour groups, biggest first (a tie on the colour's own name), so the order never depends on the payload's.
+  const byColour = new Map<string, number[]>();
+  nodes.forEach((node, i) => { const c = colorOf(node); const list = byColour.get(c); if (list) list.push(i); else byColour.set(c, [i]); });
+  const groups = [...byColour.entries()].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1)).map(([, list]) => list);
+  const groupOf = new Int32Array(n); groups.forEach((list, j) => { for (const i of list) groupOf[i] = j; });
+  const lattice = fibonacci(n); const { owner, centres } = patches(lattice, groups.map(list => list.length));
+  const flat = Float64Array.from(lattice.flat()); // the lattice as one flat array, for the relaxation's inner loop
+  const at = (i: number): Vec => [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]];
+  const put = (i: number, p: Vec) => { pos[i * 3] = p[0]; pos[i * 3 + 1] = p[1]; pos[i * 3 + 2] = p[2]; };
+  const points = groups.map((_, j) => lattice.map((_, k) => k).filter(k => owner[k] === j));
+  // The first pass: a breadth-first walk over the links inside the colour, hubs first, laid onto
+  // the patch's points from its centre outward, so a node's neighbours land a ring or so away.
+  groups.forEach((list, j) => {
+    const c = centres[j]; const pts = [...points[j]].sort((a, b) => dot(lattice[b], c) - dot(lattice[a], c) || a - b);
+    const byDegree = [...list].sort((a, b) => near[b].length - near[a].length || a - b);
+    const seen = new Set<number>(); const order: number[] = [];
+    for (const start of byDegree) {
+      if (seen.has(start)) continue; seen.add(start); const queue = [start];
+      for (let head = 0; head < queue.length; head++) { const i = queue[head]; order.push(i); for (const q of [...near[i]].sort((a, b) => near[b].length - near[a].length || a - b)) if (groupOf[q] === j && !seen.has(q)) { seen.add(q); queue.push(q); } }
+    }
+    order.forEach((i, m) => put(i, lattice[pts[m]]));
+  });
+  // Relaxation: each node aims for the middle of itself and what it links to (a file with no links
+  // aims for its folder, when the folder wears the same colour), and hubs choose first.
+  for (let round = 0; round < RELAX; round++) groups.forEach((list, j) => {
+    const target = new Map<number, Vec>();
+    for (const i of list) {
+      const own = at(i); let x = own[0], y = own[1], z = own[2];
+      const pull = near[i].length ? near[i] : nodes[i].parent >= 0 && groupOf[nodes[i].parent] === j ? [nodes[i].parent] : [];
+      for (const q of pull) { x += pos[q * 3]; y += pos[q * 3 + 1]; z += pos[q * 3 + 2]; }
+      target.set(i, unit(x, y, z, own));
+    }
+    const pts = points[j]; const free = pts.map(() => true);
+    for (const i of [...list].sort((a, b) => near[b].length - near[a].length || a - b)) {
+      const t = target.get(i)!; let best = -1, bestDot = -Infinity;
+      for (let m = 0; m < pts.length; m++) { if (!free[m]) continue; const k = pts[m] * 3; const d = flat[k] * t[0] + flat[k + 1] * t[1] + flat[k + 2] * t[2]; if (d > bestDot) { bestDot = d; best = m; } } // the largest dot is the smallest angle, without an acos per pair
+      free[best] = false; put(i, lattice[pts[best]]);
     }
   });
   for (let i = 0; i < n; i++) { const h = (k: number) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1; const far = 2.2 + h(1); for (let a = 0; a < 3; a++) scatter[i * 3 + a] = pos[i * 3 + a] * far + (h(2 + a) - 0.5) * 1.2; }
-  const mid = new Float32Array(model.edges.length * 3);
-  model.edges.forEach(([a, b], e) => { if (a < 0 || b < 0 || a >= n || b >= n) return; const m = arcMid(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2], pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]); mid[e * 3] = m[0]; mid[e * 3 + 1] = m[1]; mid[e * 3 + 2] = m[2]; });
-  return { pos, scatter, cap, mid };
+  edges.forEach(([a, b], e) => { if (a < 0 || b < 0 || a >= n || b >= n) return; const m = arcMid(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2], pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]); mid[e * 3] = m[0]; mid[e * 3 + 1] = m[1]; mid[e * 3 + 2] = m[2]; });
+  return { pos, scatter, mid };
+}
+
+// Shares the lattice out into one patch per group, sizes[j] points each. The centres start evenly
+// spread (a Fibonacci sphere of their own) and each point goes to the group it is nearest in units
+// of that group's own reach, the angular radius of a cap holding its share of the sphere, so a big
+// group reaches further than a small one (a weighted Voronoi split). Points are handed out nearest
+// first until each group is full, then every centre moves to the middle of its patch and the split
+// is redone (Lloyd's method), which pulls the patches round and contiguous.
+const LLOYD = 6;
+export function patches(lattice: Vec[], sizes: number[]): { owner: Int32Array; centres: Vec[] } {
+  const total = lattice.length; let centres: Vec[] = fibonacci(sizes.length); const owner = new Int32Array(total);
+  const reach = sizes.map(s => Math.max(0.05, Math.acos(Math.max(-1, 1 - 2 * s / total))));
+  for (let round = 0; ; round++) {
+    const pairs: [number, number, number][] = [];
+    lattice.forEach((p, k) => centres.forEach((c, j) => { if (sizes[j]) pairs.push([angle(p, c) / reach[j], k, j]); }));
+    pairs.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    owner.fill(-1); const room = [...sizes];
+    for (const [, k, j] of pairs) if (owner[k] < 0 && room[j] > 0) { owner[k] = j; room[j]--; }
+    if (round === LLOYD) return { owner, centres };
+    const sum = centres.map(() => [0, 0, 0]); lattice.forEach((p, k) => { const s = sum[owner[k]]; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; });
+    centres = centres.map((c, j) => unit(sum[j][0], sum[j][1], sum[j][2], c));
+  }
 }
 
 // The connections are curved (2026-09-28): each edge follows the great circle between its two

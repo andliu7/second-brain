@@ -12,12 +12,12 @@
 // MiniCalendar is Today's "Calendar and activity" card (Andrew, 2026-09-28: "calendar combine it with
 // activity just make them expand when you click/hover"). Collapsed it is the month: arrows, today marked,
 // each day shaded by how much was logged that day (the heat calendar's levels) with a dot under days with
-// events or todos, each day a link to #calendar/<day>. Show more (remembered in this browser), or a hover
-// on a device with a pointer (a preview, not remembered), expands it: this week's activity count and the
-// heat calendar, and the detail of one day (today, or the day under the pointer or focus). Props:
+// events or todos, each day a link to #calendar/<day>. Show more (remembered in this browser) expands it: this week's
+// activity count and the heat calendar, and the detail of one day (today, or the day with keyboard focus).
+// A hover changes nothing (Andrew, 2026-09-29: "the calendar should not change on hover"). Props:
 //   todos: workspace.todos, whose days (today's list and history) get a dot
 //   activity: workspace.activity, the log the shading and the heat calendar count
-import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type SyntheticEvent } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent, type SyntheticEvent } from 'react';
 import { ArrowUpRight, CalendarDays, ChevronLeft, ChevronRight, KeyRound, Loader2, Search, X } from 'lucide-react';
 import { api } from './lib/api';
 import { CATEGORIES, categoryOf, type CategoryId } from './lib/categories';
@@ -214,12 +214,9 @@ function KeyDialog({ close }: { close: () => void }) {
   </dialog>;
 }
 
-// Expanded by Show more, kept in this browser; a hover preview is not kept.
+// Expanded by Show more and collapsed by Show less, kept in this browser.
 const OPEN_KEY = 'brain-calendar-expanded';
 const readOpen = () => { try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; } };
-// A hover only previews where there is a real pointer that can hover; a tap on a phone never expands it.
-const canHover = (event: ReactPointerEvent) => event.pointerType !== 'touch' && typeof matchMedia === 'function' && matchMedia('(hover: hover)').matches;
-const PEEK_MS = 200;  // a pointer passing over on its way elsewhere does not open it
 const ARROWS = { up: '↑', down: '↓', flat: '→' };
 
 export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity?: Activity[] }) {
@@ -227,13 +224,10 @@ export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity
   const { status, error, byDay } = useCalendar();
   const today = key(new Date());
   const [pinned, setPinned] = useState(readOpen);
-  const [peek, setPeek] = useState(false);
   const [day, setDay] = useState(today);
-  const peekTimer = useRef(0);
   const more = useId();
   useEffect(() => { try { localStorage.setItem(OPEN_KEY, pinned ? '1' : '0'); } catch { /* this visit only */ } }, [pinned]);
-  useEffect(() => () => window.clearTimeout(peekTimer.current), []);
-  const expanded = pinned || peek;
+  const expanded = pinned;
 
   const todosOn = (k: string): Todo[] => todos ? (k === todos.day ? todos.items : todos.history[k] || []) : [];
   const counts = activityCounts(activity);
@@ -249,9 +243,7 @@ export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity
     ...todosOn(day).map(todo => ({ id: 't:' + todo.id, text: todo.text, time: '', done: todo.done })),
   ];
 
-  return <section className="panel mini-cal" aria-label="Calendar and activity" data-expanded={expanded || undefined}
-    onPointerEnter={event => { if (!canHover(event)) return; window.clearTimeout(peekTimer.current); peekTimer.current = window.setTimeout(() => setPeek(true), PEEK_MS); }}
-    onPointerLeave={() => { window.clearTimeout(peekTimer.current); setPeek(false); setDay(today); }}>
+  return <section className="panel mini-cal" aria-label="Calendar and activity" data-expanded={expanded || undefined}>
     <div className="section-heading">
       <h2><CalendarDays size={16}/>Calendar and activity</h2>
       <span className="mini-cal-actions">
@@ -273,7 +265,7 @@ export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity
             const marked = byDay.has(k) || todosOn(k).length > 0;
             const count = counts.get(k) || 0;
             const label = date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) + (marked ? ', has events or todos' : '') + (count ? `, ${count} ${count === 1 ? 'activity' : 'activities'}` : '');
-            return <a key={k} href={'#calendar/' + k} className="mini-cal-day" aria-label={label} onPointerEnter={() => setDay(k)} onFocus={() => setDay(k)}
+            return <a key={k} href={'#calendar/' + k} className="mini-cal-day" aria-label={label} onFocus={() => setDay(k)}
               data-today={k === today || undefined} data-outside={date.getMonth() !== month.getMonth() || undefined} data-marked={marked || undefined} data-level={levelOf(count, max)} data-shown={(expanded && k === day) || undefined}>{date.getDate()}</a>;
           })}
         </div>

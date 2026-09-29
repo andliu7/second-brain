@@ -43,7 +43,7 @@ export type BuyOption = { id: string; store: string; price: number | null; curre
 export type BuyItem = { id: string; name: string; category: CategoryId; image: string; links: string[]; notes: string; options: BuyOption[] };
 // board, todos and buyList are optional because workspaces saved before they existed have none;
 // Kanban.tsx fills in defaultBoard(), TodoCard.tsx and BuyList.tsx fill in theirs.
-export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[]; board?: Board; todos?: Todos; buyList?: BuyItem[]; favorites?: Favorites; resume?: Resume; drawing?: Drawing; misc?: MiscItem[]; todayLayout?: TodayWidget[]; notebooks?: Notebook[]; profile?: Profile };
+export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[]; board?: Board; todos?: Todos; buyList?: BuyItem[]; favorites?: Favorites; resume?: Resume; drawing?: Drawing; whiteboards?: Whiteboard[]; currentWhiteboard?: string; misc?: MiscItem[]; todayLayout?: TodayWidget[]; notebooks?: Notebook[]; profile?: Profile };
 // A notebook on the Docs page. Only the name lives here; a note joins one with a "notebook:<id>" tag
 // (lib/docs-kinds.ts), so deleting a notebook drops the tag and keeps every note.
 export type Notebook = { id: string; name: string };
@@ -60,6 +60,11 @@ export type MiscItem = { id: string; text: string; kind: 'task' | 'idea' | 'note
 // (shapes, arrows, mind maps, freehand strokes), and viewport is where the view was left. A workspace
 // without a drawing opens an empty board.
 export type Drawing = { elements: { id: string; [key: string]: unknown }[]; viewport?: { zoom: number; origination?: [number, number] } };
+// Several named whiteboards (added 2026-09-29), each a Drawing plus a name and when it last changed (ISO).
+// currentWhiteboard is the id of the one open. drawing above is the single board saved before this: it is
+// still read, moved into the first whiteboard ("Whiteboard") the first time the page opens, and never
+// written again, so an old backup still loads.
+export type Whiteboard = Drawing & { id: string; name: string; updated: string };
 // The resume (Resume.tsx). Education, experience and projects share one entry shape; the form labels
 // title and subtitle per section (School and Degree, Company and Role, Project and Tech). bullets and
 // skills hold one line each, empty lines included while typing; the preview and plain text skip those.

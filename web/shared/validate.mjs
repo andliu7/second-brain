@@ -382,6 +382,21 @@ export function validateWorkspace(value) {
       if (typeof value.drawing.viewport.zoom !== 'number' || !(value.drawing.viewport.zoom > 0)) invalid('drawing.viewport.zoom', 'must be a positive number');
     }
   }
+  // Several named whiteboards came later still, each a drawing as above plus a name and a timestamp;
+  // currentWhiteboard names the open one. An old save's drawing stays valid beside them (Whiteboard.tsx
+  // moves it into the first whiteboard and stops writing it).
+  if (value.whiteboards !== undefined) {
+    records(value.whiteboards, 'whiteboards', 500, (board, path) => {
+      string(board.name, `${path}.name`, 256, true);
+      timestamp(board.updated, `${path}.updated`);
+      records(board.elements, `${path}.elements`, 100000, () => {});
+      if (board.viewport !== undefined) {
+        object(board.viewport, `${path}.viewport`);
+        if (typeof board.viewport.zoom !== 'number' || !(board.viewport.zoom > 0)) invalid(`${path}.viewport.zoom`, 'must be a positive number');
+      }
+    });
+  }
+  if (value.currentWhiteboard !== undefined) string(value.currentWhiteboard, 'currentWhiteboard', 256, true);
   // Today's dashboard layout came later too: widget ids (distinct) and their sizes, in display order.
   if (value.todayLayout !== undefined) {
     records(value.todayLayout, 'todayLayout', 100, (item, path) => oneOf(item.size, `${path}.size`, ['sm', 'wide', 'tall', 'lg']));

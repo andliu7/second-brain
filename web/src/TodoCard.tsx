@@ -14,7 +14,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEven
 import { CalendarPlus, History, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import type { Todo, Todos, Workspace } from './types';
 import { CATEGORIES, categoryOf, type CategoryId } from './lib/categories';
-import { uid } from './lib/storage';
+import { today, uid } from './lib/storage';
 import { rollover, removeTodo, todoPayload, TODO_DRAG_TYPE } from './lib/todos';
 import { api } from './lib/api';
 import { AnimatedCheckbox } from '@/components/ui/animated-checkbox';
@@ -29,7 +29,10 @@ const timeLabel = (at: Date) => at.toLocaleTimeString(undefined, { hour: 'numeri
 
 export function TodoCard({ workspace, commit }: { workspace: Workspace; commit: Commit }) {
   // Memoised on the stored list so a rollover (which mints ids) happens once per stored value, not per render.
-  const todos = useMemo(() => rollover(workspace.todos), [workspace.todos]);
+  // Keyed on the local calendar day too, so a card left open past midnight rolls over within the minute
+  // (the clock below re-renders it every minute); before, it waited for the next reload or edit.
+  const day = today();
+  const todos = useMemo(() => rollover(workspace.todos, day), [workspace.todos, day]);
   useEffect(() => { if (todos !== workspace.todos) void commit(w => ({ ...w, todos })); }, [todos, workspace.todos, commit]);
   const patch: Patch = (change, message) => commit(w => ({ ...w, todos: change(w.todos ?? todos) }), message);
 

@@ -9,7 +9,7 @@
 // deterministic: the same `today` gives the same workspace, because the "random" counts come from a
 // seeded generator, never Math.random. It imports types only, so the node script can transpile this
 // one file on its own.
-import type { Activity, Board, BuyItem, ChecklistItem, Conversation, Doc, Drawing, Generation, Goal, MiscItem, Notebook, Page, Relation, Resume, TodayWidget, Todo, Todos, Workspace } from '../types';
+import type { Activity, Board, BuyItem, ChecklistItem, Conversation, Doc, Generation, Goal, MiscItem, Notebook, Page, Relation, Resume, TodayWidget, Todo, Todos, Whiteboard, Workspace } from '../types';
 
 // mulberry32: a tiny seeded generator, so the sample is the same on every machine and every run.
 function seeded(seed: number) {
@@ -144,12 +144,15 @@ export function sampleWorkspace(today = new Date()): Workspace {
     skills: ['Python, Java, Git', 'Recrystallization, TLC, melting point, IR', 'Spanish (conversational)'],
   };
 
-  // A few whiteboard shapes in Drawnix's own JSON: two labelled boxes and a freehand underline.
+  // Two whiteboards in Drawnix's own JSON, so the page's board menu has something to switch between:
+  // the spell checker's plan (three labelled boxes and a freehand underline) and an SN2 sketch.
   const box = (id: string, text: string, x: number, yy: number) => ({ id, type: 'geometry', shape: 'rectangle', angle: 0, opacity: 1, points: [[x, yy], [x + 180, yy + 70]], text: { children: [{ text }], type: 'paragraph', align: 'center' } });
-  const drawing: Drawing = {
-    viewport: { zoom: 1 },
-    elements: [box('wb-box-1', 'Trie of words', 0, 0), box('wb-box-2', 'Edit distance', 260, 0), box('wb-box-3', 'Top 3 suggestions', 130, 140), { id: 'wb-stroke-1', type: 'freehand', shape: 'feltTipPen', points: [[130, 230], [200, 238], [310, 226]] }],
-  };
+  const whiteboards: Whiteboard[] = [
+    { id: 'wb-spell', name: 'Spell checker plan', updated: at(3, 20), viewport: { zoom: 1 },
+      elements: [box('wb-box-1', 'Trie of words', 0, 0), box('wb-box-2', 'Edit distance', 260, 0), box('wb-box-3', 'Top 3 suggestions', 130, 140), { id: 'wb-stroke-1', type: 'freehand', shape: 'feltTipPen', points: [[130, 230], [200, 238], [310, 226]] }] },
+    { id: 'wb-sn2', name: 'SN2 backside attack', updated: at(8, 16), viewport: { zoom: 1 },
+      elements: [box('wb-sn2-1', 'Nucleophile', 0, 0), box('wb-sn2-2', 'Inverted product', 320, 0)] },
+  ];
 
   const todayLayout: TodayWidget[] = [{ id: 'todos', size: 'wide' }, { id: 'streak', size: 'sm' }, { id: 'stages', size: 'sm' }, { id: 'projects', size: 'tall' }, { id: 'board', size: 'wide' }, { id: 'goals', size: 'sm' }, { id: 'misc', size: 'sm' }, { id: 'activity', size: 'wide' }];
 
@@ -177,7 +180,7 @@ export function sampleWorkspace(today = new Date()): Workspace {
   }
 
   return {
-    version: 1, docs, goals, conversations, generations, activity, relations, board, todos, buyList, misc, resume, drawing, todayLayout, notebooks,
+    version: 1, docs, goals, conversations, generations, activity, relations, board, todos, buyList, misc, resume, whiteboards, currentWhiteboard: 'wb-spell', todayLayout, notebooks,
     favorites: { skills: ['doc-skill-lab'], projects: ['~/code/spell-checker'], review: [] },
   };
 }

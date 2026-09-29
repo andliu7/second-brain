@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { TodoCard } from '../src/TodoCard';
@@ -37,6 +37,39 @@ describe('the daily todo card', () => {
     // The same day is the same object: nothing to save.
     expect(rollover(after, '2026-09-24')).toBe(after);
     expect(before.history['2026-07-01']).toBeDefined();
+  });
+
+  // Andrew, 2026-09-29: "the todo list saves every day it just removes the finished tasks each day".
+  it('at each day boundary carries unfinished todos over, drops finished ones from the list, and keeps them in history by day', () => {
+    const mon = stored('2026-09-28', [todo('Lab report', true), todo('Email advisor'), todo('Problem set')]);
+    const tue = rollover(mon, '2026-09-29');
+    expect(tue.items.map(t => t.text)).toEqual(['Email advisor', 'Problem set']);          // unfinished carry over
+    expect(tue.history).toEqual({ '2026-09-28': [todo('Lab report', true)] });               // finished kept under its day
+    const tueDone = { ...tue, items: tue.items.map(t => t.text === 'Email advisor' ? { ...t, done: true } : t) };
+    const wed = rollover(tueDone, '2026-09-30');
+    expect(wed.items.map(t => t.text)).toEqual(['Problem set']);
+    expect(Object.fromEntries(Object.entries(wed.history).map(([day, items]) => [day, items.map(t => t.text)]))).toEqual({ '2026-09-28': ['Lab report'], '2026-09-29': ['Email advisor'] });
+    // The day is the local calendar day, not the UTC one: 23:30 on the 29th here is still the 29th.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 29, 23, 30));
+    expect(today()).toBe('2026-09-29');
+    vi.setSystemTime(new Date(2026, 8, 30, 0, 5));
+    expect(today()).toBe('2026-09-30');
+    vi.useRealTimers();
+  });
+
+  it('rolls over a card left open past midnight, within the minute', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(new Date(2026, 8, 29, 23, 59, 30));
+    const commits: Workspace[] = [];
+    render(<Harness initial={{ ...initialWorkspace(), todos: stored('2026-09-29', [todo('Lab report', true), todo('Email advisor')]) }} onCommit={w => commits.push(w)}/>);
+    expect(screen.getByRole('checkbox', { name: 'Lab report' })).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(60000); });
+    expect(screen.queryByRole('checkbox', { name: 'Lab report' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Email advisor' })).not.toBeChecked();
+    expect(commits.at(-1)?.todos?.day).toBe('2026-09-30');
+    expect(commits.at(-1)?.todos?.history['2026-09-29'].map(t => t.text)).toEqual(['Lab report']);
+    vi.useRealTimers();
   });
 
   it('brings the two defaults back each day, except the ones deleted for good', () => {

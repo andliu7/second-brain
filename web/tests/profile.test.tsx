@@ -17,14 +17,25 @@ function Harness({ initial, openSettings = () => {} }: { initial: Workspace; ope
 }
 
 describe('the profile', () => {
+  // Andrew, 2026-09-29: the default name was "Your space", which showed YS. It is empty now (the repo is
+  // public, so his own name comes from his own profile), and an unnamed avatar is a person icon.
   it('reads an old workspace as the default, and makes initials from the name', () => {
-    expect(profileOf(initialWorkspace())).toEqual({ name: 'Your space', avatar: '', color: 'accent' });
+    expect(profileOf(initialWorkspace())).toEqual({ name: '', avatar: '', color: 'accent' });
     expect(initialsOf('andrew liu chen')).toBe('AL');
     expect(avatarText({ name: 'Andrew', avatar: ' 🫐 ', color: 'green' })).toBe('🫐');
-    expect(avatarText({ name: '  ', avatar: '', color: 'green' })).toBe('?');
+    expect(avatarText({ name: '  ', avatar: '', color: 'green' })).toBe('');
   });
 
-  it('opens a menu with the name, the saved-on-this-device line, Edit profile, Settings and the theme', async () => {
+  it('shows a person icon, not letters, until a name is set, and the name field asks for one', () => {
+    render(<Harness initial={initialWorkspace()}/>);
+    const button = screen.getByRole('button', { name: 'Profile' });
+    expect(button).toHaveTextContent('');
+    expect(button.querySelector('.pf-avatar svg')).not.toBeNull();
+    expect(screen.getByLabelText('Name')).toHaveAttribute('placeholder', 'Your name');
+  });
+
+  // The theme switch left the menu on 2026-09-29: Settings and the top bar already have one.
+  it('opens a menu with the name, the saved-on-this-device line, Edit profile and Settings, and no theme switch', async () => {
     const user = userEvent.setup();
     const openSettings = vi.fn();
     render(<Harness initial={{ ...initialWorkspace(), profile: { name: 'Andrew Liu', avatar: '', color: 'green', status: 'Exam week' } }} openSettings={openSettings}/>);
@@ -34,7 +45,8 @@ describe('the profile', () => {
     const menu = screen.getByRole('group', { name: 'Profile' });
     expect(within(menu).getByText('Exam week')).toBeInTheDocument();
     expect(within(menu).getByText('Saved on this device')).toBeInTheDocument();
-    expect(within(menu).getByRole('button', { name: /Switch to (light|dark) theme/ })).toBeInTheDocument();
+    expect(within(menu).queryByRole('button', { name: /theme/i })).toBeNull();
+    expect(within(menu).getAllByRole('button').map(b => b.textContent)).toEqual(['Edit profile', 'Settings']);
     await user.click(within(menu).getByRole('button', { name: 'Settings' }));
     expect(openSettings).toHaveBeenCalledOnce();
     expect(screen.queryByRole('group', { name: 'Profile' })).toBeNull();

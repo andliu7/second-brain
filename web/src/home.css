@@ -39,13 +39,20 @@
 .home-run-status.failed{color:var(--red)}
 .home-run-output{margin:0;max-height:110px;overflow:auto;padding:6px 8px;border-radius:6px;background:#0c1222;font:11.5px/1.45 var(--font-mono);color:var(--sub);white-space:pre-wrap;word-break:break-word}
 .home-run a{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;color:var(--ink);font-size:12.5px}
-/* The key: a Key button at the right edge, its colours in a popover under it. While the detail
-   panel is open the button stands just left of the panel, so the two never overlap. */
-.home-right{position:absolute;right:12px;top:12px;z-index:8;display:flex;flex-direction:column;align-items:flex-end;gap:6px;transition:right .22s ease-out}
-.home-right-shifted{right:calc(min(420px,100vw - 56px) + 12px)}
+/* The top-right row: the 3D / 2D toggle, Fit (2D only), Tree and Key, the key's colours in a
+   popover under it. While the side panel is open the row stands just left of it, so they never
+   overlap; --panel-shown is the panel's drawn width, the same min() as .home-panel's. */
+.home{--panel-shown:min(var(--panel-w,380px),60vw,100vw - 56px)}
+.home-right{position:absolute;right:12px;top:12px;z-index:8;display:flex;align-items:center;gap:6px;transition:right .22s ease-out}
+.home-right-shifted{right:calc(var(--panel-shown) + 12px)}
 .home-right>.button{background:#111a30e6;border-color:#2a3552}
-.home-right>.button[aria-expanded="true"]{background:#1b2744;border-color:#3a4a70}
-.home-key{display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:#111a30f2;border:1px solid #2a3552;border-radius:9px;font-size:12.5px;backdrop-filter:blur(6px);box-shadow:0 12px 32px #0008;min-width:210px}
+.home-right>.button[aria-expanded="true"],.home-right>.button[aria-pressed="true"]{background:#1b2744;border-color:#3a4a70}
+.home-views{display:flex;padding:2px;gap:2px;background:#111a30e6;border:1px solid #2a3552;border-radius:8px}
+.home-views button{padding:4px 10px;border:0;border-radius:6px;background:none;color:var(--sub);font-size:12.5px;font-weight:600}
+.home-views button:hover{color:var(--ink)}
+.home-views button[aria-pressed="true"]{background:#ffffff14;color:var(--ink)}
+.home-views button:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.home-key{position:absolute;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:#111a30f2;border:1px solid #2a3552;border-radius:9px;font-size:12.5px;backdrop-filter:blur(6px);box-shadow:0 12px 32px #0008;min-width:210px}
 .home-key span{display:flex;align-items:center;gap:8px}
 .home-key i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .home-key small{margin-left:auto;padding-left:14px;color:var(--sub);font-size:11.5px;font-variant-numeric:tabular-nums}
@@ -86,13 +93,20 @@
 .home-foot{position:absolute;left:14px;bottom:10px;margin:0;font-size:12px;pointer-events:none;z-index:5;max-width:calc(100% - 28px)}
 .home-loading,.home-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--sub);font-size:14px;padding:20px}
 .home-loading p{margin:0}
-/* The panel: over the right edge, 420 px or the viewport minus a strip of the globe, never all of it. */
-.home-panel{position:absolute;top:0;right:0;bottom:0;width:min(420px,calc(100vw - 56px));z-index:7;display:flex;flex-direction:column;background:#0f1526f7;border-left:1px solid #2a3552;box-shadow:-12px 0 36px #00000066;animation:home-slide .22s ease-out}
+/* The panel: over the right edge, as wide as it was dragged, never past 60% of the page or all
+   but a strip of the globe. The handle is an 8 px strip astride its left edge that shows a line on
+   hover and focus; while it is dragged the whole page keeps the resize cursor. */
+.home-panel{position:absolute;top:0;right:0;bottom:0;width:var(--panel-shown);z-index:7;display:flex;flex-direction:column;background:#0f1526f7;border-left:1px solid #2a3552;box-shadow:-12px 0 36px #00000066;animation:home-slide .22s ease-out}
 @keyframes home-slide{from{transform:translateX(100%)}to{transform:none}}
 .home-panel-head{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid #2a3552;flex-shrink:0}
-.home-tabs{display:flex;gap:4px;flex:1}
-.home-tabs button{padding:6px 10px;border:0;border-radius:6px;background:none;color:var(--sub);font-size:13px;font-weight:600}
-.home-tabs button[aria-selected="true"]{background:#ffffff14;color:var(--ink)}
+.home-panel-head>.button{margin-right:auto;background:none;border-color:transparent;color:var(--sub)}
+.home-panel-head>.button:hover{color:var(--ink);background:#ffffff14}
+.home-panel-title{display:flex;align-items:center;gap:7px;margin:0 auto 0 0;font-size:13px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.04em}
+.home-panel-title svg{color:var(--sub)}
+.home-resize{position:absolute;left:-4px;top:0;bottom:0;width:8px;z-index:1;cursor:col-resize;touch-action:none;outline:none}
+.home-resize::after{content:"";position:absolute;left:3px;top:0;bottom:0;width:2px;background:transparent;transition:background .12s}
+.home-resize:hover::after,.home-resize:focus-visible::after,.home-resizing .home-resize::after{background:var(--acc)}
+body.home-resizing{cursor:col-resize;user-select:none}
 .home-panel .icon-button{color:var(--ink)}
 .home-panel .file-tree,.home-panel .file-viewer{flex:1;min-height:0;border:0;border-radius:0;background:transparent}
 .home-members{overflow:auto}
@@ -103,12 +117,18 @@
 .home-members li>button:first-child span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .home-members li>button:first-child small{margin-left:auto;color:var(--sub);font-size:11px;flex-shrink:0}
 .home-members .viewer-note{padding:0 14px 14px}
-/* Narrower than the top row and the title side by side: the title and search drop under the top
-   row, the categories move to the bottom left above the Today tab, and the Today card starts under
-   the search rather than beside it. On a phone the detail panel covers nearly the
-   whole width, so the Key button steps aside while it is open rather than hang off the left edge. */
-@media (max-width:1100px){.home-head{top:60px}.home-cats{top:auto;bottom:84px;max-height:40vh}.home-today-card{top:150px}}
+/* The panel open: the title and search centre over the globe the panel leaves, not the whole page. */
+.home-paneled .home-head{left:calc((100% - var(--panel-shown)) / 2)}
+/* Less than 1100 px beside the panel (Home.tsx sets home-cramped; it was a max-width query before
+   the panel stayed open): the title and search drop under the top row, the categories move to the
+   bottom left above the Today tab, and the Today card starts under the search rather than beside
+   it. Less than 640 px beside an open panel (home-tight, which covers every phone) the top-right
+   buttons step aside while it is open rather than hang off the left edge. */
+.home-cramped .home-head{top:60px}
+.home-cramped .home-cats{top:auto;bottom:84px;max-height:40vh}
+.home-cramped .home-today-card{top:150px}
+.home-tight .home-right-shifted{display:none}
 /* With the detail panel open, a narrow screen has no room for the Today card beside it: the tab and
    card step aside, as the Key button does on a phone, and come back when the panel closes. */
 @media (max-width:780px){.home-today-crowded{display:none}}
-@media (max-width:700px){.home-title{font-size:21px}.home-cats{width:min(220px,calc(100% - 24px))}.home-right-shifted{display:none}.home-key{max-width:calc(100vw - 24px)}}
+@media (max-width:700px){.home-title{font-size:21px}.home-cats{width:min(220px,calc(100% - 24px))}.home-key{max-width:calc(100vw - 24px)}}

@@ -1,5 +1,5 @@
 // Today's "Calendar and activity" card (MiniCalendar in MonthCalendar.tsx): the small month with each day
-// shaded by its activity, which Show more (kept) or a hover (a preview) expands into the heat calendar and
+// shaded by its activity, which Show more (kept) expands into the heat calendar and
 // one day's detail. It replaced the separate Activity widget on 2026-09-28.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
@@ -54,22 +54,25 @@ describe('the calendar and activity card', () => {
     expect(card()).not.toHaveAttribute('data-expanded');
   });
 
-  it('a hover previews it on a pointer device after a short pause, and leaving closes it again', () => {
+  it('a hover changes nothing: only Show more and Show less open and close it', () => {
+    // Andrew, 2026-09-29: "the calendar should not change on hover". This replaced a 200ms hover preview.
     // jsdom has no PointerEvent, so without this every pointer event would arrive with no pointerType.
     vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerType: string; constructor(type: string, init: PointerEventInit = {}) { super(type, init); this.pointerType = init.pointerType ?? ''; } });
     vi.useFakeTimers();
     render(<MiniCalendar activity={[at(today, 1)]}/>);
     fireEvent.pointerEnter(card(), { pointerType: 'mouse' });
-    expect(card()).not.toHaveAttribute('data-expanded');         // passing over does not open it
-    act(() => { vi.advanceTimersByTime(250); });
+    fireEvent.pointerEnter(cell(today), { pointerType: 'mouse' });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(card()).not.toHaveAttribute('data-expanded');
+    expect(card().querySelector('.heat-grid')).toBeNull();
+    fireEvent.click(within(card()).getByRole('button', { name: 'Show more' }));
     expect(card()).toHaveAttribute('data-expanded');
-    expect(localStorage.getItem('brain-calendar-expanded')).toBe('0');  // a preview is not remembered
-    fireEvent.pointerLeave(card());
-    expect(card()).not.toHaveAttribute('data-expanded');
-    // A touch never previews: a tap is for the day link under it.
-    fireEvent.pointerEnter(card(), { pointerType: 'touch' });
-    act(() => { vi.advanceTimersByTime(500); });
-    expect(card()).not.toHaveAttribute('data-expanded');
+    const other = card().querySelector(`.mini-cal-day:not([href="#calendar/${today}"])`)!;
+    fireEvent.pointerEnter(other, { pointerType: 'mouse' });     // nor does a day under the pointer swap the detail
+    expect(within(card().querySelector('.mini-cal-detail') as HTMLElement).getByRole('heading', { level: 3 })).toHaveTextContent(/^Today, /);
+    fireEvent.pointerLeave(card());                            // leaving does not close it either
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(card()).toHaveAttribute('data-expanded');
     vi.useRealTimers();
   });
 });

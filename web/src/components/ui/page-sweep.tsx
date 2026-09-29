@@ -1,12 +1,13 @@
 // PageSweep: the AsciiSweep band played when the page changes (Andrew, 2026-09-28: "add this when switching
-// between generate and chat tabs. also for docs to pdf. or anything to today or settings"). Props:
+// between generate and chat tabs. also for docs to pdf. or anything to today or settings"; 2026-09-29:
+// "make the transition for the sweep slower and for every new page"). Props:
 //   index: which page is showing (any string or number); a change is what sweeps
 //   children: the page for that index, rendered as it would be without the wrapper
 //   color: 'accent' (default, the --acc-fill token read with getComputedStyle), 'green' (his #4ade80),
 //          or any CSS colour
-//   duration: seconds; 0.9 by default, since a page change should feel quick. Tabs pass his 2.05.
-//   when(from, to): optional; which changes sweep. Without it every change does. App passes one so only
-//          arriving on Today or Settings, and Docs to PDF tools, sweep; the rest stay instant.
+//   duration: seconds; 1.6 by default (it was 0.9 until he asked for slower). Tabs pass his 2.05.
+//   when(from, to): optional; which changes sweep. Without it every change does. App passes one so every
+//          page change sweeps except into or out of the home globe, whose canvas copies unreliably.
 //
 // Why it does not simply wrap the page in <AsciiSweep>: AsciiSweep's panels are absolutely positioned
 // scroll boxes, so a page inside one would lose the document's own scrolling, the sticky top bar and
@@ -24,7 +25,7 @@ import { AsciiSweep, ANDREW_SWEEP, type AsciiSweepOptions } from './ascii-sweep'
 import './page-sweep.css';
 
 export const GREEN = '#4ade80';
-export const PAGE_SWEEP_S = 0.9;
+export const PAGE_SWEEP_S = 1.6;
 // AsciiSweep's own FADE_OUT_S is 0.45: the glow left at the far edge dissolves for that long after the
 // band lands, so the overlay stays that long plus a margin before it goes.
 const FADE_MS = 500;

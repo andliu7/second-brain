@@ -26,7 +26,7 @@ describe('the sample workspace', () => {
 
   it('fills every optional part of the workspace', () => {
     const w = sampleWorkspace(TODAY);
-    for (const key of ['relations', 'board', 'todos', 'buyList', 'favorites', 'resume', 'drawing', 'misc', 'todayLayout', 'notebooks'] as const) expect(w[key], key).toBeDefined();
+    for (const key of ['relations', 'board', 'todos', 'buyList', 'favorites', 'resume', 'whiteboards', 'currentWhiteboard', 'misc', 'todayLayout', 'notebooks'] as const) expect(w[key], key).toBeDefined();
     expect(w.docs.length).toBeGreaterThan(0); expect(w.goals.length).toBeGreaterThan(0); expect(w.conversations.length).toBeGreaterThan(1);
     expect(w.generations.some(g => g.status === 'complete')).toBe(true);
     expect(w.conversations.some(c => c.messages.some(msg => msg.trace))).toBe(true);
@@ -51,7 +51,7 @@ describe('the sample workspace', () => {
     expect(w.goals.every(g => g.milestones.length)).toBe(true);
     expect(w.goals.some(g => g.archived)).toBe(true);
     expect(w.resume!.template).toBeDefined();
-    expect(w.drawing!.elements.length).toBeGreaterThan(0);
+    expect(w.whiteboards!.every(b => b.elements.length > 0)).toBe(true);
     expect(w.favorites!.skills.length).toBeGreaterThan(0);
     expect(w.buyList!.some(b => b.options.length)).toBe(true);
     expect(new Set(w.misc!.map(m => m.kind)).size).toBe(3);

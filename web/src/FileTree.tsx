@@ -2,14 +2,18 @@
 // that expand on demand (a collapsed folder's rows are never rendered, so the tree stays light
 // with 13,000 files), a kind icon and a link count on each row, and the filter box that also
 // drives the map's search. It shares one selection with the map and the viewer.
+// onOpen (Home only) hears the deliberate picks, a click or Enter, apart from the live selection
+// that typing makes, so Home can swap the tree for the file on a pick without doing it mid-word.
+// autoFocus is off on Home while the tree is simply open by default, so it never takes the keys
+// from the page on load; the Network page and an explicit open keep it.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { ancestors, colorOf, isFolder, searchNodes, type Model } from './lib/network';
 import { KindIcon } from './FileViewer';
 
-type Props = { model: Model; selected: number; onSelect: (index: number) => void; onHover: (index: number, x: number, y: number) => void; query: string; setQuery: (value: string) => void };
+type Props = { model: Model; selected: number; onSelect: (index: number) => void; onHover: (index: number, x: number, y: number) => void; query: string; setQuery: (value: string) => void; onOpen?: (index: number) => void; autoFocus?: boolean };
 
-export function FileTree({ model, selected, onSelect, onHover, query, setQuery }: Props) {
+export function FileTree({ model, selected, onSelect, onHover, query, setQuery, onOpen, autoFocus = true }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set(model.tops));
   const [cursor, setCursor] = useState(-1);
   const list = useRef<HTMLDivElement>(null);
@@ -67,7 +71,7 @@ export function FileTree({ model, selected, onSelect, onHover, query, setQuery }
 
   const toggle = (index: number) => setExpanded(prev => { const next = new Set(prev); if (next.has(index)) next.delete(index); else next.add(index); return next; });
   // A file the reader picked under this query wins: the top match does not pull the selection back.
-  const pick = (index: number) => { chose.current = query.trim(); onSelect(index); };
+  const pick = (index: number) => { chose.current = query.trim(); onSelect(index); onOpen?.(index); };
   const focusRow = (index: number) => { wantFocus.current = true; setCursor(index); };
   function onKey(event: KeyboardEvent<HTMLDivElement>) {
     const at = rows.findIndex(row => row.index === cursor); if (at < 0 && rows.length && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); focusRow(rows[0].index); return; }
@@ -82,7 +86,7 @@ export function FileTree({ model, selected, onSelect, onHover, query, setQuery }
   }
 
   return <aside className="file-tree" aria-label="Files">
-    <label className="inline-search file-filter"><Search size={15}/><input aria-label="Search files" placeholder="Search files and folders" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && matches[0] !== undefined) { event.preventDefault(); pick(matches[0]); } if (event.key === 'ArrowDown' && rows.length) { event.preventDefault(); focusRow(rows[0].index); } }} autoFocus/></label>
+    <label className="inline-search file-filter"><Search size={15}/><input aria-label="Search files" placeholder="Search files and folders" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && matches[0] !== undefined) { event.preventDefault(); pick(matches[0]); } if (event.key === 'ArrowDown' && rows.length) { event.preventDefault(); focusRow(rows[0].index); } }} autoFocus={autoFocus}/></label>
     {/* Hovering a row previews it like hovering its node, and lights its neighbours on the map. */}
     <div className="tree-rows" role="tree" aria-label="File tree" ref={list} onKeyDown={onKey} onMouseLeave={() => onHover(-1, 0, 0)}>
       {rows.map(({ index, depth }) => { const node = model.nodes[index]; const folder = isFolder(node); const open = query.trim() ? true : expanded.has(index); const links = model.linksIn[index].length + model.linksOut[index].length;

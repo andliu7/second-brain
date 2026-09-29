@@ -3,8 +3,8 @@
 // nothing runs without WebGL2 or under reduced motion, and the copy of the old page goes once it settles).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
-import { ease, easeInverse, resolveGlyphRamp, resolveObjectPosition } from '../src/components/ui/ascii-sweep';
-import { PageSweep, resolveSweepColor, GREEN } from '../src/components/ui/page-sweep';
+import { ANDREW_SWEEP, ease, easeInverse, resolveGlyphRamp, resolveObjectPosition } from '../src/components/ui/ascii-sweep';
+import { PAGE_SWEEP_S, PageSweep, resolveSweepColor, GREEN } from '../src/components/ui/page-sweep';
 
 describe('the sweep helpers', () => {
   it('reads object-position keywords and percentages, and centres anything else', () => {
@@ -39,6 +39,12 @@ describe('the sweep helpers', () => {
     expect(resolveSweepColor('green')).toBe(GREEN);
     expect(resolveSweepColor('tomato')).toBe('tomato');
     document.documentElement.style.removeProperty('--acc-fill');
+  });
+
+  it('plays a page change for 1.6s, slower than its first 0.9s, and keeps his 2.05s for the Chat and Generate tabs', () => {
+    // Andrew, 2026-09-29: "make the transition for the sweep slower".
+    expect(PAGE_SWEEP_S).toBe(1.6);
+    expect(ANDREW_SWEEP.duration).toBe(2.05);
   });
 });
 

@@ -62,8 +62,9 @@ const labels: Partial<Record<Page, string>> = { today: 'Home', agenda: 'Today', 
 const WELCOME = { id: 'welcome', title: 'Welcome to my second brain', body: 'Capture a thought with the plus, keep the day on Today, the work on Kanban, and ask andliu.ai anything about where things are. Everything is saved in this browser; Settings exports a backup.' };
 const READ_KEY = 'brain-notifications-read';
 const readNotifications = (): string[] => { try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); } catch { return []; } };
-// Arriving on Today or Settings sweeps, and Docs to PDF tools; the home globe is a canvas, so leaving it does not.
-const sweepsTo = (from: string | number, to: string | number) => (from !== 'today' && (to === 'agenda' || to === 'settings')) || (from === 'docs' && to === 'pdf');
+// Every page change sweeps (Andrew, 2026-09-29: "for every new page") except into or out of the home globe:
+// it is a canvas, and a copy of a WebGL canvas is often blank, so the sweep would flash an empty page.
+const sweepsTo = (from: string | number, to: string | number) => from !== 'today' && to !== 'today';
 // Ctrl B is bold in a text field, so it only hides the sidebar when the key is not going into one.
 const typing = (target: EventTarget | null) => target instanceof Element && !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
 const providerNames: Record<string, string> = { claude: 'Claude', openai: 'OpenAI', gemini: 'Gemini', kie: 'Kie.ai', fal: 'fal.ai' };
@@ -198,7 +199,7 @@ export default function App() {
   const ai = (variant: AiVariant, actions?: ReactNode) => <PageSweep index={chatMode} duration={ANDREW_SWEEP.duration}>{chatMode === 'chat'
     ? <Chat variant={variant} modes={aiModes} actions={actions} choice={aiChoice} setChoice={setChatChoice} workspace={workspace} commit={commit} connections={connections} liveContext={liveContext} attached={attached} setAttached={setAttached} activeId={activeChat} setActiveId={setActiveChat} navigate={navigate} confirm={setConfirm} installed={installed || []} attachSkill={chatWithSkill} initialPrompt={ask} clearInitialPrompt={() => setAsk('')}/>
     : <Generate variant={variant} modes={aiModes} actions={actions} workspace={workspace} commit={commit} connections={connections} navigate={navigate} notify={notify} confirm={setConfirm}/>}</PageSweep>;
-  return <div className={`app-shell ${page === 'today' ? 'app-home' : ''} ${page === 'chat' ? 'app-chat' : ''} ${sidebar.shellClass}`}>
+  return <div className={`app-shell ${page === 'today' ? 'app-home' : ''} ${page === 'chat' ? 'app-chat' : ''} ${page === 'draw' ? 'app-draw' : ''} ${sidebar.shellClass}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     {menuOpen && <button aria-label="Close navigation" className="sidebar-scrim" onClick={() => setMenuOpen(false)}/>}
     {sidebar.mode === 'auto' && <div className="sidebar-edge" aria-hidden="true" onPointerEnter={sidebar.reveal}/>}
@@ -234,7 +235,7 @@ export default function App() {
         </div>}
         {page === 'buy' && <><PageHeading title="Buy"/><BuyList workspace={workspace} commit={commit}/></>}
         {page === 'docs' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening your documents…</p></div>}><Docs workspace={workspace} commit={commit} remove={deleteDoc}/></Suspense>}
-        {page === 'draw' && <><PageHeading title="Whiteboard"/><Whiteboard workspace={workspace} commit={commit}/></>}
+        {page === 'draw' && <Whiteboard workspace={workspace} commit={commit}/>}
         {page === 'pdf' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening PDF tools…</p></div>}><PdfTools workspace={workspace} commit={commit}/></Suspense>}
         {page === 'resume' && <><PageHeading title="Resume"/><Resume workspace={workspace} commit={commit}/></>}
         {page === 'skills' &&<Skills path={subPath} installed={installed} error={skillsError} personal={skills} newSkill={() => newDoc('skill')} chat={chatWithSkill} duplicate={duplicateSkill} mine={{ attach: attachDoc, edit: doc => setEditor({ doc, fresh: false }), pin: pinDoc, download: exportDoc, remove: deleteDoc }} favorites={favoritesOf(workspace).skills} toggleFavorite={key => void commit(w => toggleFavorite(w, 'skills', key))} review={favoritesOf(workspace).review} toggleReview={key => void commit(w => toggleFavorite(w, 'review', key))}/>}

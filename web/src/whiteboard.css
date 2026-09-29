@@ -3,8 +3,53 @@
    are light only: they read the custom properties below from .drawnix, so this re-points them at the
    app's theme tokens in styles.css, which flip with it. .whiteboard .drawnix outranks Drawnix's own .drawnix rule. */
 
-.whiteboard{position:relative;height:calc(100dvh - 140px);min-height:420px;overflow:hidden;background:var(--ground);border:1px solid var(--line);border-radius:var(--radius)}
+/* The page is the canvas. App gives the shell app-draw on #draw (the same move as app-chat in chat.css): the
+   shell is locked to the window, and the page takes everything under the top bar and beside the sidebar,
+   with no padding, no width cap and no page scroll. The canvas scrolls inside itself (whiteboard-viewport.ts). */
+.app-draw .main-shell{height:100dvh;overflow:hidden}
+.app-draw .main-content{flex:1;min-height:0;padding:0;max-width:none;display:flex}
+.whiteboard{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden;background:var(--ground)}
+.whiteboard>.drawnix,.whiteboard .plait-board-container{width:100%;height:100%}
+/* Full screen: over the whole window, the app's top bar and sidebar included (they sit at z 20 to 36,
+   toasts at 100 stay on top). requestFullscreen, where allowed, then takes this element to the whole screen. */
+.whiteboard-full{position:fixed;inset:0;z-index:50}
 .whiteboard-loading{display:flex;align-items:center;justify-content:center;gap:8px;height:100%;color:var(--sub);font-size:14px}
+
+/* The bar: board menu, Undo, Redo, title, floating at the top left where Drawnix's own toolbar was
+   (hidden below). On a phone Drawnix puts its drawing tools along the top, so the bar moves to the bottom. */
+.whiteboard-bar{position:absolute;top:20px;left:20px;z-index:10;display:flex;align-items:center;gap:2px;max-width:calc(100% - 40px);padding:4px;background:var(--soft);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-2)}
+.whiteboard-bar .icon-button{margin:0;color:var(--sub)}
+.whiteboard-bar .icon-button:hover:not(:disabled),.whiteboard-bar .icon-button.active{background:var(--btn-hover);color:var(--ink)}
+.whiteboard-bar .icon-button:disabled{opacity:.4}
+.whiteboard-title{min-width:0;max-width:320px;margin-left:4px;padding:5px 8px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--ink);font:600 14px var(--font-ui);text-overflow:ellipsis}
+.whiteboard-title:hover{background:var(--btn-hover)}
+.whiteboard-title:focus{outline:none;border-color:var(--acc);background:var(--sheet)}
+@media (max-width:700px){.whiteboard-bar{top:auto;bottom:16px;left:16px;max-width:calc(100% - 32px)}.whiteboard-title{max-width:160px}}
+
+/* The board menu, shaped like Kanban's column menu (kanban.css). */
+.whiteboard-menu-wrap{position:relative}
+.whiteboard-menu-layer{position:fixed;inset:0;z-index:20}
+.whiteboard-menu{position:absolute;left:-4px;top:calc(100% + 8px);z-index:21;display:flex;flex-direction:column;gap:2px;width:250px;max-height:min(480px,calc(100dvh - 140px));overflow-y:auto;padding:6px;background:var(--sheet);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-2)}
+@media (max-width:700px){.whiteboard-menu{top:auto;bottom:calc(100% + 8px)}}
+.whiteboard-menu-boards{display:flex;flex-direction:column;gap:2px}
+.whiteboard-menu hr{width:100%;margin:4px 0;border:0;border-top:1px solid var(--line)}
+.whiteboard-menu [role=menuitem],.whiteboard-menu [role=menuitemradio]{display:flex;align-items:center;gap:9px;padding:8px 10px;border:0;border-radius:6px;background:none;color:var(--ink);font-size:13px;text-align:left}
+.whiteboard-menu [role=menuitemradio] span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whiteboard-menu [role=menuitemradio][aria-checked=true]{font-weight:600}
+.whiteboard-menu-tick{flex:none;visibility:hidden;color:var(--acc)}
+.whiteboard-menu [aria-checked=true] .whiteboard-menu-tick{visibility:visible}
+.whiteboard-menu [role]:hover:not(:disabled),.whiteboard-menu [role]:focus-visible{background:var(--btn-hover);outline:none}
+.whiteboard-menu [role=menuitem].danger{color:var(--red)}
+.whiteboard-menu [role=menuitem]:disabled{opacity:.4}
+.whiteboard-menu-confirm{padding:6px 8px 4px;font-size:13px;line-height:1.5}
+.whiteboard-menu-confirm p{margin:0 0 8px;color:var(--ink)}
+.whiteboard-menu-confirm div{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+
+/* Drawnix's own top-left toolbar (its menu, undo, redo) gives way to the bar above. */
+.whiteboard .app-toolbar{display:none}
+/* The infinite canvas scrolls with no scrollbars: there is always more board past the edge. */
+.whiteboard .viewport-container{scrollbar-width:none}
+.whiteboard .viewport-container::-webkit-scrollbar{display:none}
 
 .whiteboard .drawnix{
   --island-bg-color:var(--soft);
