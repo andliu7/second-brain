@@ -13,12 +13,18 @@ describe('favourite skills and prioritised projects', () => {
     expect(validateWorkspace(base)).toBe(base);
     expect(isFavorite(base, 'skills', 'clean-up')).toBe(false);
     const starred = toggleFavorite(toggleFavorite(base, 'skills', 'clean-up'), 'projects', 'grignard/grignard-app-source');
-    expect(starred.favorites).toEqual({ skills: ['clean-up'], projects: ['grignard/grignard-app-source'] });
+    expect(starred.favorites).toEqual({ skills: ['clean-up'], projects: ['grignard/grignard-app-source'], review: [] });
     expect(isFavorite(starred, 'skills', 'clean-up')).toBe(true);
     expect(validateWorkspace(starred)).toBe(starred);
     const unstarred = toggleFavorite(starred, 'skills', 'clean-up');
-    expect(unstarred.favorites).toEqual({ skills: [], projects: ['grignard/grignard-app-source'] });
+    expect(unstarred.favorites).toEqual({ skills: [], projects: ['grignard/grignard-app-source'], review: [] });
     expect(base.favorites).toBeUndefined();
+    // Marked for review is a third list, optional so older saves without it still load.
+    const marked = toggleFavorite(base, 'review', 'skill-inspector');
+    expect(marked.favorites).toEqual({ skills: [], projects: [], review: ['skill-inspector'] });
+    expect(isFavorite(marked, 'review', 'skill-inspector')).toBe(true);
+    expect(validateWorkspace(marked)).toBe(marked);
+    expect(isFavorite({ ...base, favorites: { skills: ['x'], projects: [] } }, 'review', 'x')).toBe(false);
     expect(() => validateWorkspace({ ...base, favorites: { skills: ['a', 'a'], projects: [] } })).toThrow(/duplicate/);
     expect(() => validateWorkspace({ ...base, favorites: { skills: [''], projects: [] } })).toThrow(/favorites.skills\[0\]/);
   });

@@ -19,16 +19,21 @@ function Harness({ initial, onCommit }: { initial: Workspace; onCommit?: (w: Wor
 }
 
 describe('the daily todo card', () => {
-  it('rolls a stale day over: done todos go to history, unfinished ones carry forward, 30 days are kept', () => {
+  // Old todos are kept for good (Andrew, 2026-09-28); this used to pin a 30-day prune.
+  it('rolls a stale day over: done todos go to history, unfinished ones carry forward, every earlier day is kept', () => {
     const history = Object.fromEntries(Array.from({ length: 31 }, (_, i) => [`2026-07-${String(i + 1).padStart(2, '0')}`, [todo('old ' + i, true)]]));
+    history['2025-01-15'] = [todo('Last winter', true)];
     const before = stored('2026-09-20', [todo('Finish lab report', true), todo('Email advisor')], { history });
     const after = rollover(before, '2026-09-24');
     expect(after.day).toBe('2026-09-24');
     expect(after.items.map(t => t.text)).toEqual(['Email advisor']);
     expect(after.history['2026-09-20'].map(t => t.text)).toEqual(['Finish lab report']);
-    expect(Object.keys(after.history)).toHaveLength(30);
-    expect(after.history['2026-07-01']).toBeUndefined();
-    expect(after.history['2026-07-31']).toBeDefined();
+    expect(Object.keys(after.history)).toHaveLength(33);
+    expect(after.history['2026-07-01'].map(t => t.text)).toEqual(['old 0']);
+    expect(after.history['2025-01-15'].map(t => t.text)).toEqual(['Last winter']);
+    // A saved history longer than a year still validates, so keeping old todos never blocks a save.
+    const decade = Object.fromEntries(Array.from({ length: 400 }, (_, i) => [new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10), [todo('day ' + i, true)]]));
+    expect(() => validateWorkspace({ ...initialWorkspace(), todos: stored('2026-09-24', [], { history: decade }) })).not.toThrow();
     // The same day is the same object: nothing to save.
     expect(rollover(after, '2026-09-24')).toBe(after);
     expect(before.history['2026-07-01']).toBeDefined();
@@ -112,11 +117,11 @@ describe('the daily todo card', () => {
     expect(requests.filter(r => r.url.endsWith('/api/calendar/todo'))[1].body).toEqual({ title: 'Lab', date: today(), time: '09:00', minutes: 45 });
   });
 
-  it('shows earlier days read only behind Yesterday, and Escape closes a row menu', async () => {
+  it('shows earlier days read only behind Earlier, and Escape closes a row menu', async () => {
     const user = userEvent.setup();
     render(<Harness initial={{ ...initialWorkspace(), todos: stored(today(), [todo('Now')], { history: { '2026-09-01': [todo('Then', true)] } }) }}/>);
     expect(screen.queryByText('Then')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Yesterday' }));
+    await user.click(screen.getByRole('button', { name: 'Earlier' }));
     expect(screen.getByRole('checkbox', { name: 'Then' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Options for Now' }));
     expect(screen.getByRole('group', { name: 'Options for Now' })).toBeInTheDocument();

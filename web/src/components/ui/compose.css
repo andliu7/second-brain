@@ -1,0 +1,42 @@
+/* components/ui/compose.tsx. Dark tokens from styles.css; the focus ring is the only motion, and it stops under reduced motion. */
+@property --compose-a { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes compose-spin { to { --compose-a: 360deg; } }
+@keyframes compose-pop { 0% { box-shadow: 0 0 0 3px color-mix(in srgb,var(--acc-fill) 25%,transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb,var(--acc-fill) 2%,transparent); } }
+.compose-root{position:relative;isolation:isolate;width:100%;min-width:0}
+.compose-ring{position:absolute;inset:-2px;z-index:-1;border-radius:18px;filter:blur(2px);opacity:0;transition:opacity .5s ease;pointer-events:none;background:conic-gradient(from var(--compose-a),color-mix(in srgb,var(--acc-fill) 2%,transparent) 0deg,color-mix(in srgb,var(--acc-fill) 42%,transparent) 60deg,color-mix(in srgb,var(--acc-fill) 62%,transparent) 108deg,color-mix(in srgb,var(--acc-fill) 2%,transparent) 168deg,color-mix(in srgb,var(--acc-fill) 2%,transparent) 360deg)}
+.compose-root:focus-within .compose-ring{opacity:1;animation:compose-spin 5s linear infinite}
+.compose-card{position:relative;border-radius:16px;border:1px solid var(--line);background:var(--soft);box-shadow:0 1px 2px #0006,0 16px 40px -24px #000b}
+.compose-field{position:relative}
+.compose-backdrop,.compose-textarea{font-size:15px;line-height:1.6;font-weight:400;letter-spacing:normal;padding:14px 16px;white-space:pre-wrap;overflow-wrap:break-word}
+.compose-backdrop{position:absolute;inset:0;overflow:hidden;color:transparent;pointer-events:none}
+.compose-token{box-decoration-break:clone;-webkit-box-decoration-break:clone;border-radius:5px;padding:3px 0;background:var(--tint-4)}
+.compose-pop{animation:compose-pop .5s ease-out}
+.compose-textarea{position:relative;display:block;width:100%;max-height:256px;min-height:104px;resize:none;background:transparent;border:0;border-radius:16px 16px 0 0;color:var(--ink);caret-color:var(--ink)}
+.compose-textarea::placeholder{color:var(--mut)}
+.compose-textarea:focus{outline:none;border-color:transparent}
+.compose-scroll{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink) 20%,transparent) transparent}
+.compose-picker{position:absolute;z-index:30;max-height:236px;width:236px;overflow:auto;margin:0;padding:4px;list-style:none;border-radius:12px;box-shadow:0 10px 36px -10px #000b}
+.compose-option{position:relative}
+.compose-highlight{position:absolute;inset:0;border-radius:8px;background:var(--tint-3)}
+.compose-option button{position:relative;z-index:1;display:flex;width:100%;align-items:center;gap:10px;padding:6px 8px;border:0;border-radius:8px;background:transparent;text-align:left;color:var(--ink)}
+.compose-glyph{display:inline-flex;width:26px;height:26px;flex:none;align-items:center;justify-content:center;border-radius:8px;background:var(--tint-2);border:1px solid var(--line);color:var(--sub)}
+.compose-glyph svg{width:16px;height:16px}
+.compose-slash{font-family:ui-monospace,monospace;font-size:13px;font-weight:500}
+.compose-option-text{display:flex;min-width:0;flex:1;flex-direction:column;line-height:1.25}
+.compose-option-label{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compose-option-sub{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compose-enter{flex:none;opacity:0;transition:opacity .15s}
+.compose-enter[data-on]{opacity:1}
+.compose-avatar{width:24px;height:24px;flex:none;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+.compose-initials{display:inline-flex;align-items:center;justify-content:center;background:var(--tint-3);font-size:10px;font-weight:600;color:var(--sub)}
+.compose-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--tint-2);padding:10px 12px}
+.compose-hints{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mut)}
+.compose-dot{margin:0 2px}
+.compose-actions{display:flex;align-items:center;gap:12px}
+.compose-send{min-height:34px;padding:7px 13px}
+.compose-send-keys{display:none;gap:2px;margin-left:2px;opacity:.6}
+.compose-counter{display:flex;align-items:center;gap:6px;font-size:11px;font-variant-numeric:tabular-nums;font-weight:500}
+.compose-kbd{display:inline-flex;height:16px;min-width:16px;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--line);padding:0 4px;font-family:inherit;font-size:10px;line-height:1;background:var(--tint-1);color:var(--sub)}
+@media (min-width:640px){.compose-send-keys{display:inline-flex}}
+@media (max-width:480px){.compose-hints span:not(.compose-dot){display:none}.compose-hints{gap:4px}}
+@media (prefers-reduced-motion:reduce){.compose-root:focus-within .compose-ring{animation:none}.compose-pop{animation:none}}

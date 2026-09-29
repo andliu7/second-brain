@@ -2,8 +2,12 @@
 // The data is /api/projects (server/live.mjs), which runs OS/build_home.py --json on each
 // request, so a commit made a minute ago shows here on the next visit. #projects is the
 // list; #projects/<path> is one project's page, where <path> is its folder under Projects/.
+// Above the repos, Board projects lists the Kanban cards promoted to projects. They live in the workspace,
+// not on disk, so they show while git state is still loading, and open the board's own drawer (ProjectPanel).
 import { useState } from 'react';
 import { ArrowLeft, Check, Copy, GitBranch, Loader2, RefreshCw } from 'lucide-react';
+import type { Workspace } from './types';
+import { boardOf, boardPatch, ProjectList, ProjectPanel, type Commit } from './Kanban';
 import { copyText } from './lib/clipboard';
 import './projects.css';
 
@@ -30,10 +34,24 @@ export function ProjectRow({ repo }: { repo: Repo }) {
   </a>;
 }
 
-export function Projects({ path, data, error, refresh }: { path: string; data: ProjectsData | null; error: string; refresh: () => void }) {
+// The Kanban page's own project list (Kanban.tsx), in a panel with a count; its rows open the same drawer.
+function BoardProjects({ workspace, commit }: { workspace: Workspace; commit: Commit }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const board = boardOf(workspace);
+  const count = board.cards.filter(card => card.project).length;
+  const openCard = board.cards.find(card => card.project && card.id === open);
+  return <section className="panel project-list board-projects">
+    <h2 className="project-group">Board projects {count > 0 && <span>{count}</span>}</h2>
+    <ProjectList board={board} open={setOpen}/>
+    {openCard && <ProjectPanel card={openCard} patch={boardPatch(commit)} close={() => setOpen(null)}/>}
+  </section>;
+}
+
+export function Projects({ path, data, error, refresh, workspace, commit }: { path: string; data: ProjectsData | null; error: string; refresh: () => void; workspace: Workspace; commit: Commit }) {
   if (path) return <ProjectPage path={path} data={data} error={error}/>;
   return <>
     <div className="page-heading"><div><h1>Projects</h1></div><div className="heading-actions"><button className="button" onClick={refresh}><RefreshCw size={15}/>Refresh</button></div></div>
+    <BoardProjects workspace={workspace} commit={commit}/>
     {error && <div className="error-banner" role="alert"><p>{error}</p></div>}
     {!data ? !error && <div className="panel project-empty"><Loader2 className="spin" size={16}/>Reading git state…</div> : <div className="panel project-list">
       <section><h2 className="project-group">Repositories <span>{data.repos.length}</span></h2>{data.repos.map(repo => <ProjectRow key={repo.path} repo={repo}/>)}</section>

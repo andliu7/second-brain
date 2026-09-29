@@ -1,7 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource-variable/dm-sans';
-import '@fontsource-variable/manrope';
+import '@fontsource-variable/instrument-sans';
+import '@fontsource-variable/jetbrains-mono';
+import '@fontsource/libre-baskerville';
 import './index.css';
 import './accessibility.css';
 import App from './App';

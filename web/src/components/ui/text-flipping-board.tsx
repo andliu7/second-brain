@@ -5,6 +5,11 @@
 // Each cell flips through the character set until it lands on its letter, starting a little later
 // for each column and row so the board ripples in. Under prefers-reduced-motion every cell shows
 // its final letter at once. The board is one image to a screen reader, named by the text.
+// It always ends on the text: the tick is read from the clock, not counted, so a background tab
+// that slows the interval to once a second still settles on time, and once settled every face
+// remounts without the flip, so the letters never wait on an animation frame. Before 2026-09-28
+// both could stall, and a hidden or throttled tab showed a board of blank tiles (each face stuck
+// at its starting rotation, edge-on to the viewer).
 import { useEffect, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -43,14 +48,16 @@ export function TextFlippingBoard({ text, rows = 6, cols = 22, className }: { te
   useEffect(() => {
     if (prefersReducedMotion()) { setTick(Infinity); return; }
     setTick(0);
-    const timer = setInterval(() => setTick(t => { if (t + 1 >= lastTick) clearInterval(timer); return t + 1; }), TICK_MS);
+    const began = Date.now();
+    const timer = setInterval(() => { const t = Math.floor((Date.now() - began) / TICK_MS); setTick(t); if (t >= lastTick) clearInterval(timer); }, TICK_MS);
     return () => clearInterval(timer);
   }, [text, lastTick]);
+  const settled = tick >= lastTick;
   const shown = (r: number, c: number, target: string) => { const k = tick - startOf(r, c); if (k < 0) return ' '; const i = CHARSET.indexOf(target); return i < 0 || k >= i ? target : CHARSET[k]; };
   return <div className={cn('flap-board', className)} role="img" aria-label={text.replace(/\n/g, ' ')} style={{ '--cols': cols } as CSSProperties}>
     {targets.map((line, r) => <div key={r} className="flap-row" aria-hidden="true">
       {[...line].map((target, c) => { const char = shown(r, c, target); return <span key={c} className="flap-cell" data-blank={char === ' ' || undefined}>
-        <motion.span key={char} className="flap-face" initial={tick === Infinity ? false : { rotateX: -90 }} animate={{ rotateX: 0 }} transition={{ duration: 0.09, ease: 'easeOut' }}>{char}</motion.span>
+        <motion.span key={settled ? `settled-${char}` : char} className="flap-face" initial={settled ? false : { rotateX: -90 }} animate={{ rotateX: 0 }} transition={{ duration: 0.09, ease: 'easeOut' }}>{char}</motion.span>
       </span>; })}
     </div>)}
   </div>;

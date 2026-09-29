@@ -36,3 +36,11 @@ test('rejects a bad due date, a bad view, a non-numeric sticky position and an e
   rejects(w => { w.board.cards[0].minutes = 1.5; }, /board\.cards\[0\]\.minutes must be a whole number of minutes/);
   rejects(w => { w.board.columns[0].name = ' '; }, /board\.columns\[0\]\.name must not be empty/);
 });
+
+test('a project card and its stages: the flag, a note per stage and the day it was done', () => {
+  const project = fixture([card({ project: true, checklist: [{ id: 'i1', title: 'Design the units', done: true, doneOn: '2026-09-20', detail: 'Eight units, one arc' }, { id: 'i2', title: 'Find question sources', done: false }] })]);
+  assert.strictEqual(validateWorkspace(project), project);
+  rejects(w => { w.board.cards[0].project = 'yes'; }, /board\.cards\[0\]\.project must be a boolean/);
+  rejects(w => { w.board.cards[0].checklist = [{ id: 'i1', title: 'Step', done: true, doneOn: '2026-02-30' }]; }, /board\.cards\[0\]\.checklist\[0\]\.doneOn must be a real calendar date/);
+  rejects(w => { w.board.cards[0].checklist = [{ id: 'i1', title: 'Step', done: false, detail: 42 }]; }, /board\.cards\[0\]\.checklist\[0\]\.detail must be a string/);
+});

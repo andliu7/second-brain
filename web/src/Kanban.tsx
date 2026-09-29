@@ -12,20 +12,25 @@
 // payload): that is a copy, and a todo already on the board (by sourceTodoId) is not copied twice.
 // Sticky mode draws the same cards as freely draggable notes (sticky-note.tsx) and never touches a
 // card's column, so switching back restores the board as it was.
+// A card can be promoted to a project (card.project): its checklist becomes the project's stages, and
+// clicking it opens ProjectPanel, a drawer with the stage timeline, instead of the card dialog. Under the
+// board, a Projects section lists them (ProjectList) with a link to the repos at #projects. Projects.tsx
+// shows the same list and opens the same drawer, so both save through boardPatch and cannot drift apart.
 import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Columns3, Image, Loader2, Paperclip, Plus, StickyNote as StickyIcon, Trash2, X } from 'lucide-react';
-import type { Board, Card, Doc, Workspace } from './types';
-import { activity, defaultBoard, uid } from './lib/storage';
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Columns3, FolderGit2, Image, Loader2, Milestone, MoreHorizontal, Paperclip, Plus, SquarePen, StickyNote as StickyIcon, Trash2, Undo2, X } from 'lucide-react';
+import type { Board, Card, ChecklistItem, Doc, Workspace } from './types';
+import { activity, defaultBoard, today, uid } from './lib/storage';
 import { api } from './lib/api';
 import { categoryOf, type CategoryId } from './lib/categories';
 import { TODO_DRAG_TYPE, type todoPayload } from './lib/todos';
 import { Checklist, checklistSummary } from '@/components/ui/checklist';
 import { ColorSwatches } from '@/components/ui/color-swatches';
 import { StickyNote, type StickyPosition } from '@/components/ui/sticky-note';
+import { StageProgress, StageTimeline } from '@/components/ui/stage-timeline';
 import './kanban.css';
 
-type Commit = (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>;
+export type Commit = (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>;
 type Patch = (change: (board: Board) => Board, message?: string) => Promise<boolean>;
 // Where a dragged card will land: the column, and the card it goes before (null means the end).
 type Slot = { column: string; before: string | null };
@@ -34,9 +39,16 @@ export type CalendarEvent = { id: string; title: string; start: string; end: str
 type TodoDrag = ReturnType<typeof todoPayload>;
 const CARD_DRAG_TYPE = 'text/card';
 
-const boardOf = (workspace: Workspace) => workspace.board ?? defaultBoard();
+export const boardOf = (workspace: Workspace) => workspace.board ?? defaultBoard();
+// Every board change goes through this. A change with a message is one worth a line in the activity log
+// (the heat calendar on Today reads it).
+export const boardPatch = (commit: Commit): Patch => (change, message) => commit(w => ({ ...w, board: change(boardOf(w)), activity: message ? [activity(message, 'board'), ...w.activity].slice(0, 100) : w.activity }), message);
 const patchCard = (board: Board, id: string, change: (card: Card) => Card): Board => ({ ...board, cards: board.cards.map(card => card.id === id ? change(card) : card) });
-const toggleItem = (card: Card, itemId: string): Card => ({ ...card, checklist: card.checklist.map(item => item.id === itemId ? { ...item, done: !item.done } : item) });
+// Ticking an item stamps the day, which a project's stage shows; unticking drops the stamp.
+const flip = ({ doneOn: _doneOn, ...item }: ChecklistItem): ChecklistItem => item.done ? { ...item, done: false } : { ...item, done: true, doneOn: today() };
+const toggleItem = (card: Card, itemId: string): Card => ({ ...card, checklist: card.checklist.map(item => item.id === itemId ? flip(item) : item) });
+// A stage moved up or down one place; the ends stay put.
+function shiftItem(items: ChecklistItem[], id: string, by: -1 | 1) { const list = [...items]; const i = list.findIndex(item => item.id === id); const j = i + by; if (i < 0 || j < 0 || j >= list.length) return items; [list[i], list[j]] = [list[j], list[i]]; return list; }
 const newCard = (title: string, column: string, extra: Partial<Card> = {}): Card => ({ id: uid(), title, notes: '', column, checklist: [], attachments: [], ...extra });
 // Reorder: take the card out, then put it back before `slot.before` in the flat list. The flat order is
 // the order within every column, so inserting before a card of the target column lands it there.
@@ -58,16 +70,17 @@ const defaultSticky = (index: number): StickyPosition => ({ x: 24 + (index % 4) 
 const dateOf = (iso: string) => iso.slice(0, 10);
 const categoryStyle = (id?: CategoryId) => ({ '--cat': categoryOf(id)?.color } as CSSProperties);
 
-// embedded: rendered inside another page (Today), so its title is a section heading, not the page's h1.
-export function Kanban({ workspace, commit, embedded = false }: { workspace: Workspace; commit: Commit; embedded?: boolean }) {
+export function Kanban({ workspace, commit }: { workspace: Workspace; commit: Commit }) {
   const board = boardOf(workspace);
-  // A change with a message is one worth a line in the activity log (the heat calendar on Today reads it).
-  const patch: Patch = (change, message) => commit(w => ({ ...w, board: change(boardOf(w)), activity: message ? [activity(message, 'board'), ...w.activity].slice(0, 100) : w.activity }), message);
-  const [open, setOpen] = useState<string | null>(null);
+  const patch = boardPatch(commit);
+  // The open card, and whether it is in the card dialog: a project opens its drawer, and the drawer's
+  // "Edit card" sets dialog to reach the rest of the card (due date, attachments, Back to a card).
+  const [open, setOpen] = useState<{ id: string; dialog?: boolean } | null>(null);
   const [importing, setImporting] = useState(false);
-  const openCard = board.cards.find(card => card.id === open);
+  const openCard = board.cards.find(card => card.id === open?.id);
+  const save = (card: Card, message = 'Card saved') => patch(b => patchCard(b, card.id, () => card), message);
   return <>
-    <div className="page-heading"><div>{embedded ? <h2>Board</h2> : <h1>Board</h1>}</div><div className="heading-actions">
+    <div className="page-heading"><div><h1>Board</h1></div><div className="heading-actions">
       <div className="kanban-switch" role="group" aria-label="View">
         <button type="button" className="icon-button" aria-label="Board view" aria-pressed={board.view === 'board'} onClick={() => patch(b => ({ ...b, view: 'board' }))}><Columns3 size={16}/></button>
         <button type="button" className="icon-button" aria-label="Sticky notes view" aria-pressed={board.view === 'sticky'} onClick={() => patch(b => ({ ...b, view: 'sticky' }))}><StickyIcon size={16}/></button>
@@ -75,8 +88,18 @@ export function Kanban({ workspace, commit, embedded = false }: { workspace: Wor
       <button type="button" className="button" onClick={() => setImporting(true)}><CalendarPlus size={15}/>From calendar</button>
       {board.view === 'board' && <button type="button" className="button" onClick={() => patch(b => ({ ...b, columns: [...b.columns, { id: uid(), name: 'New column' }] }), 'Column added')}><Plus size={15}/>Add column</button>}
     </div></div>
-    {board.view === 'board' ? <BoardView board={board} docs={workspace.docs} patch={patch} open={setOpen}/> : <StickyView board={board} patch={patch}/>}
-    {openCard && <CardDialog card={openCard} docs={workspace.docs} close={() => setOpen(null)} save={card => patch(b => patchCard(b, card.id, () => card), 'Card saved')} remove={() => { setOpen(null); void patch(b => ({ ...b, cards: b.cards.filter(card => card.id !== openCard.id) }), 'Card deleted'); }}/>}
+    {board.view === 'board' ? <BoardView board={board} docs={workspace.docs} patch={patch} open={id => setOpen({ id })}/> : <StickyView board={board} patch={patch}/>}
+    {/* One list under the board, not a second board. The section has no accessible name on purpose, so it
+        is not a region: the columns are the board's only regions. */}
+    <section className="kanban-projects">
+      <div className="kanban-projects-head"><h2>Projects</h2><a className="text-button" href="#projects"><FolderGit2 size={14}/>Repositories and course projects<ChevronRight size={14}/></a></div>
+      <ProjectList board={board} open={id => setOpen({ id })}/>
+    </section>
+    {openCard && (openCard.project && !open?.dialog
+      ? <ProjectPanel card={openCard} patch={patch} close={() => setOpen(null)} edit={() => setOpen({ id: openCard.id, dialog: true })}/>
+      : <CardDialog card={openCard} docs={workspace.docs} close={() => setOpen(null)} save={card => save(card)}
+        promote={async card => { if (await save(card, card.project ? 'Now a project' : 'Back to a card')) setOpen(card.project ? { id: card.id } : null); }}
+        remove={() => { setOpen(null); void patch(b => ({ ...b, cards: b.cards.filter(card => card.id !== openCard.id) }), 'Card deleted'); }}/>)}
     {importing && <CalendarImport board={board} close={() => setImporting(false)} add={cards => patch(b => ({ ...b, cards: [...b.cards, ...cards] }), `${cards.length} ${cards.length === 1 ? 'card' : 'cards'} added`)}/>}
   </>;
 }
@@ -112,16 +135,14 @@ function BoardView({ board, docs, patch, open }: { board: Board; docs: Doc[]; pa
   function removeColumn(id: string) { void patch(b => { const columns = b.columns.filter(c => c.id !== id); return { ...b, columns, cards: b.cards.map(card => card.column === id ? { ...card, column: columns[0].id } : card) }; }, 'Column deleted'); }
   const indicator = (column: string, before: string | null) => <div className="kanban-slot" data-active={slot?.column === column && slot.before === before || undefined} aria-hidden="true"/>;
   return <>
-    <div className="kanban-board" onDragEnd={() => { setDragging(null); setSlot(null); setBurn(false); }}>
+    <div className="kanban-board" style={{ '--columns': board.columns.length } as CSSProperties} onDragEnd={() => { setDragging(null); setSlot(null); setBurn(false); }}>
       {board.columns.map((column, index) => {
         const cards = board.cards.filter(card => card.column === column.id);
         return <section key={column.id} className="kanban-column" aria-label={column.name} onDragOver={event => over(event, column.id)} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setSlot(null); }} onDrop={event => drop(event, column.id)}>
           <header className="kanban-column-head">
             <input className="kanban-column-name" defaultValue={column.name} key={column.name} aria-label={`Column name: ${column.name}`} onBlur={event => renameColumn(column.id, event.target.value)} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}/>
             <span className="kanban-column-count">{cards.length}</span>
-            <button type="button" className="icon-button" aria-label={`Move ${column.name} left`} disabled={index === 0} onClick={() => shiftColumn(column.id, -1)}><ChevronLeft size={14}/></button>
-            <button type="button" className="icon-button" aria-label={`Move ${column.name} right`} disabled={index === board.columns.length - 1} onClick={() => shiftColumn(column.id, 1)}><ChevronRight size={14}/></button>
-            <button type="button" className="icon-button" aria-label={`Delete ${column.name}`} disabled={board.columns.length === 1} onClick={() => removeColumn(column.id)}><X size={14}/></button>
+            <ColumnMenu name={column.name} cards={cards.length} first={index === 0} last={index === board.columns.length - 1} only={board.columns.length === 1} move={by => shiftColumn(column.id, by)} remove={() => removeColumn(column.id)}/>
           </header>
           <div className="kanban-cards">
             {cards.map(card => <div key={card.id}>{indicator(column.id, card.id)}<BoardCard card={card} docs={docs} dragging={dragging === card.id} patch={patch} open={() => open(card.id)} onDragStart={event => { event.dataTransfer.setData(CARD_DRAG_TYPE, card.id); event.dataTransfer.effectAllowed = 'move'; setDragging(card.id); }}/></div>)}
@@ -145,22 +166,51 @@ function BoardCard({ card, docs, dragging, patch, open, onDragStart }: { card: C
   function keys(event: KeyboardEvent<HTMLDivElement>) { if (event.target !== event.currentTarget) return; if (event.key === 'Enter') open(); if (event.key === 'Escape') { setShowColours(false); setShowList(false); } }
   // motion.div animates the card into its new place (layout); the plain div inside owns the native drag,
   // because motion.div would take onDragStart for its own pointer-drag gesture.
-  return <motion.div layout layoutId={card.id} transition={{ duration: 0.18 }}><div className="kanban-card" data-card={card.id} data-category={card.category} data-dragging={dragging || undefined} style={categoryStyle(card.category)} draggable tabIndex={0} role="button" aria-label={card.title} onDragStart={onDragStart} onClick={event => { if (!isControl(event.target)) open(); }} onKeyDown={keys}>
+  return <motion.div layout layoutId={card.id} transition={{ duration: 0.18 }}><div className="kanban-card" data-card={card.id} data-category={card.category} data-project={card.project || undefined} data-dragging={dragging || undefined} style={categoryStyle(card.category)} draggable tabIndex={0} role="button" aria-label={card.title} onDragStart={onDragStart} onClick={event => { if (!isControl(event.target)) open(); }} onKeyDown={keys}>
     {cover && <img className="kanban-cover" src={cover.data} alt={cover.name}/>}
     <div className="kanban-card-body">
+      {card.project && <span className="kanban-project-mark"><Milestone size={12}/>Project</span>}
       <strong>{card.title}</strong>
       {card.notes && <p>{card.notes.split('\n')[0]}</p>}
+      {card.project && <StageProgress stages={card.checklist}/>}
       {attached.filter(doc => doc !== cover).map(doc => <span key={doc.id} className="tag kanban-chip"><Paperclip size={11}/>{doc.name}</span>)}
       <div className="kanban-card-meta">
         {card.due && <span className="kanban-due" data-overdue={overdue || undefined} title={overdue ? 'Overdue' : 'Due'}><CalendarDays size={12}/>{card.due}</span>}
         {card.minutes !== undefined && <span className="kanban-due" title="Estimate"><Clock3 size={12}/>{card.minutes} min</span>}
-        {card.checklist.length > 0 && <button type="button" className="kanban-meta-button" aria-expanded={showList} aria-label={`Checklist, ${checklistSummary(card.checklist)} done`} onClick={() => setShowList(s => !s)}>{checklistSummary(card.checklist)}{showList ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}</button>}
-        <button type="button" className="kanban-dot" aria-label={`Category: ${categoryOf(card.category)?.label || 'none'}`} aria-expanded={showColours} onClick={() => setShowColours(s => !s)}/>
+        {!card.project && card.checklist.length > 0 && <button type="button" className="kanban-meta-button" aria-expanded={showList} aria-label={`Checklist, ${checklistSummary(card.checklist)} done`} onClick={() => setShowList(s => !s)}>{checklistSummary(card.checklist)}{showList ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}</button>}
+        {/* The category colour picker. With no category it is an empty dashed circle, so the tooltip says what it does. */}
+        <button type="button" className="kanban-dot" aria-label={`Category: ${categoryOf(card.category)?.label || 'none'}`} title={card.category ? `Category: ${categoryOf(card.category)?.label}. Click to change it` : 'No category. Click to pick a colour'} aria-expanded={showColours} onClick={() => setShowColours(s => !s)}/>
       </div>
       {showColours && <ColorSwatches value={card.category} onChange={id => { setShowColours(false); void patch(b => patchCard(b, card.id, c => ({ ...c, category: id }))); }}/>}
       {showList && <Checklist items={card.checklist} onToggle={id => patch(b => patchCard(b, card.id, c => toggleItem(c, id)))}/>}
     </div>
   </div></motion.div>;
+}
+
+// The column's actions behind one "..." button, so delete is never a stray click beside the move arrows.
+// Deleting a column that holds cards asks first, inside the menu; its cards move to the first column left.
+// The menu is role=menu with menuitems, and Escape or a click outside closes it.
+function ColumnMenu({ name, cards, first, last, only, move, remove }: { name: string; cards: number; first: boolean; last: boolean; only: boolean; move: (by: -1 | 1) => void; remove: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const close = () => { setOpen(false); setConfirming(false); };
+  const act = (fn: () => void) => { fn(); close(); };
+  return <div className="kanban-column-menu" onKeyDown={event => { if (event.key === 'Escape' && open) { event.stopPropagation(); close(); } }}>
+    <button type="button" className="icon-button" aria-label={`Column actions: ${name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => open ? close() : setOpen(true)}><MoreHorizontal size={16}/></button>
+    {open && <>
+      <div className="kanban-menu-layer" onClick={close}/>
+      <div className="kanban-menu" role="menu" aria-label={`Actions for ${name}`}>
+        {confirming ? <div className="kanban-menu-confirm" role="alert">
+          <p>Delete {name}? Its {cards} {cards === 1 ? 'card moves' : 'cards move'} to the first column.</p>
+          <div><button type="button" className="text-button" onClick={() => setConfirming(false)}>Keep it</button><button type="button" className="button small danger" onClick={() => act(remove)}>Delete column</button></div>
+        </div> : <>
+          <button type="button" role="menuitem" disabled={first} onClick={() => act(() => move(-1))}><ChevronLeft size={14}/>Move left</button>
+          <button type="button" role="menuitem" disabled={last} onClick={() => act(() => move(1))}><ChevronRight size={14}/>Move right</button>
+          <button type="button" role="menuitem" className="danger" disabled={only} onClick={() => cards ? setConfirming(true) : act(remove)}><Trash2 size={14}/>Delete column</button>
+        </>}
+      </div>
+    </>}
+  </div>;
 }
 
 function AddCard({ add }: { add: (title: string) => Promise<boolean> }) {
@@ -174,14 +224,17 @@ function AddCard({ add }: { add: (title: string) => Promise<boolean> }) {
   </form>;
 }
 
-// The card's editor, a <dialog> like the skill pop-up. Edits are a draft until Save.
-function CardDialog({ card, docs, close, save, remove }: { card: Card; docs: Doc[]; close: () => void; save: (card: Card) => Promise<boolean>; remove: () => void }) {
+// The card's editor, a <dialog> like the skill pop-up. Edits are a draft until Save. Make it a project and
+// Back to a card save the draft with the flag flipped straight away, since each is its own action; the
+// checklist is kept either way, so undoing a promotion loses nothing.
+function CardDialog({ card, docs, close, save, promote, remove }: { card: Card; docs: Doc[]; close: () => void; save: (card: Card) => Promise<boolean>; promote: (card: Card) => Promise<void>; remove: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState(card);
   useEffect(() => { const element = dialog.current!; element.showModal(); return () => element.close(); }, []);
   const set = (change: Partial<Card>) => setDraft(d => ({ ...d, ...change }));
   const unattached = docs.filter(doc => !draft.attachments.includes(doc.id));
   async function submit(event: FormEvent) { event.preventDefault(); if (!draft.title.trim()) return; if (await save({ ...draft, title: draft.title.trim() })) close(); }
+  function flipProject() { if (!draft.title.trim()) return; const { project, ...rest } = draft; void promote(project ? { ...rest, title: draft.title.trim() } : { ...rest, title: draft.title.trim(), project: true }); }
   return <dialog ref={dialog} className="kanban-dialog" aria-labelledby="kanban-dialog-title" onCancel={event => { event.preventDefault(); close(); }} onClick={event => { if (event.target === dialog.current) close(); }}>
     <form onSubmit={submit}>
       <div className="kanban-dialog-head"><h2 id="kanban-dialog-title">Card</h2><button type="button" className="icon-button" aria-label="Close" onClick={close}><X size={16}/></button></div>
@@ -191,7 +244,7 @@ function CardDialog({ card, docs, close, save, remove }: { card: Card; docs: Doc
         <label className="kanban-field">Due<input type="date" value={draft.due || ''} onChange={event => set({ due: event.target.value || undefined })}/></label>
         <div className="kanban-field"><span>Category</span><ColorSwatches value={draft.category} onChange={id => set({ category: id })}/></div>
       </div>
-      <div className="kanban-field"><span>Checklist</span>
+      <div className="kanban-field"><span>{draft.project ? 'Stages' : 'Checklist'}</span>
         <Checklist items={draft.checklist} onToggle={id => setDraft(d => toggleItem(d, id))} onAdd={title => set({ checklist: [...draft.checklist, { id: uid(), title, done: false }] })} onRemove={id => set({ checklist: draft.checklist.filter(item => item.id !== id) })}/>
       </div>
       <div className="kanban-field"><span>Attachments</span>
@@ -200,23 +253,84 @@ function CardDialog({ card, docs, close, save, remove }: { card: Card; docs: Doc
           {unattached.length > 0 && <select value="" aria-label="Attach a file or note" onChange={event => { if (event.target.value) set({ attachments: [...draft.attachments, event.target.value] }); }}><option value="">Attach a file or note</option>{unattached.map(doc => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select>}
         </div>
       </div>
+      <div className="kanban-project-action">
+        <button type="button" className="button" onClick={flipProject}>{draft.project ? <><Undo2 size={14}/>Back to a card</> : <><Milestone size={14}/>Make it a project</>}</button>
+        <small>{draft.project ? 'Keeps its stages as a plain checklist.' : 'Its checklist becomes the stages, tracked in a side panel.'}</small>
+      </div>
       <div className="kanban-dialog-foot"><button type="button" className="button danger" onClick={remove}><Trash2 size={14}/>Delete</button><span/><button type="button" className="text-button" onClick={close}>Cancel</button><button type="submit" className="button primary">Save</button></div>
     </form>
+  </dialog>;
+}
+
+// The promoted cards, one row each: title, the column it is in, and its progress. Each row opens the drawer.
+export function ProjectList({ board, open }: { board: Board; open: (id: string) => void }) {
+  const projects = board.cards.filter(card => card.project);
+  if (!projects.length) return <p className="board-projects-empty">None yet. Open a card on the board and choose Make it a project.</p>;
+  return <div className="board-projects-list">
+    {projects.map(card => <button key={card.id} type="button" className="board-project-row" onClick={() => open(card.id)}>
+      <span className="board-project-name"><strong>{card.title}</strong><small>{board.columns.find(column => column.id === card.column)?.name}</small></span>
+      <StageProgress stages={card.checklist}/>
+    </button>)}
+  </div>;
+}
+
+// A project's drawer: a <dialog> over the right edge, opened with showModal() so the page behind is inert
+// and Tab stays inside it (the browser's own focus trap, which the card dialog relies on too). Esc or
+// Close shut it, and focus goes back to whatever opened it. Every stage edit is saved at once through
+// patch, the board's own path, so there is no draft and nothing to lose. edit is Kanban's way to the full
+// card dialog; Projects.tsx leaves it out.
+export function ProjectPanel({ card, patch, close, edit }: { card: Card; patch: Patch; close: () => void; edit?: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const back = document.activeElement as HTMLElement | null, element = dialog.current!;
+    element.showModal(); element.focus({ preventScroll: true });
+    return () => { element.close(); if (back?.isConnected) back.focus(); };
+  }, []);
+  // Blur first, so a stage note still being typed is saved (notes save on blur) before the drawer goes.
+  function dismiss() { if (dialog.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur(); close(); }
+  const change = (update: (card: Card) => Card, message?: string) => void patch(b => patchCard(b, card.id, update), message);
+  const done = card.checklist.filter(stage => stage.done).length;
+  const aside = <>
+    <span className="kanban-project-mark"><Milestone size={12}/>Project</span>
+    <h2 id="project-panel-title">{card.title}</h2>
+    <StageProgress stages={card.checklist}/>
+    <p className="project-panel-count">{card.checklist.length === 0 ? 'No stages yet' : done === card.checklist.length ? 'Every stage done' : `${card.checklist.length - done} to go`}</p>
+    {card.notes && <p className="project-panel-notes">{card.notes}</p>}
+  </>;
+  return <dialog ref={dialog} className="project-panel" aria-labelledby="project-panel-title" tabIndex={-1}
+    onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); dismiss(); } }}
+    onCancel={event => { event.preventDefault(); dismiss(); }} onClick={event => { if (event.target === dialog.current) dismiss(); }}>
+    <div className="project-panel-bar">
+      {edit && <button type="button" className="text-button" onClick={edit}><SquarePen size={14}/>Edit card</button>}
+      <span className="project-panel-hint">Esc closes this panel</span>
+      <button type="button" className="icon-button" aria-label="Close" title="Close (Esc)" onClick={dismiss}><X size={16}/></button>
+    </div>
+    <div className="project-panel-body">
+      <StageTimeline stages={card.checklist} aside={aside}
+        onToggle={id => change(c => toggleItem(c, id), card.checklist.find(stage => stage.id === id)?.done ? undefined : 'Stage done')}
+        onEdit={(id, edits) => change(c => ({ ...c, checklist: c.checklist.map(stage => stage.id === id ? { ...stage, ...edits } : stage) }))}
+        onMove={(id, by) => change(c => ({ ...c, checklist: shiftItem(c.checklist, id, by) }))}
+        onRemove={id => change(c => ({ ...c, checklist: c.checklist.filter(stage => stage.id !== id) }), 'Stage deleted')}
+        onAdd={title => change(c => ({ ...c, checklist: [...c.checklist, { id: uid(), title, done: false }] }))}/>
+    </div>
   </dialog>;
 }
 
 function StickyView({ board, patch }: { board: Board; patch: Patch }) {
   const canvas = useRef<HTMLDivElement>(null);
   const place = (card: Card, index: number): StickyPosition => card.sticky ?? defaultSticky(index);
-  return <div className="sticky-canvas" ref={canvas} aria-label="Sticky notes">
-    {board.cards.length === 0 && <p className="kanban-empty">No cards yet. Switch to the board view to add some.</p>}
-    {board.cards.map((card, index) => <StickyNote key={card.id} card={card} position={place(card, index)} canvas={canvas}
-      onMove={(x, y) => patch(b => patchCard(b, card.id, c => ({ ...c, sticky: { ...place(c, index), x, y } })))}
-      onRotate={() => patch(b => patchCard(b, card.id, c => { const at = place(c, index); return { ...c, sticky: { ...at, rotate: at.rotate + 45 } }; }))}
-      onCategory={id => patch(b => patchCard(b, card.id, c => ({ ...c, category: id })))}
-      onToggle={id => patch(b => patchCard(b, card.id, c => toggleItem(c, id)))}
-      onDelete={() => patch(b => ({ ...b, cards: b.cards.filter(c => c.id !== card.id) }), 'Card deleted')}/>)}
-  </div>;
+  return <>
+    {board.cards.length > 0 && <p className="sticky-hint">Right-click a note, or focus it and press Enter, to rotate, flip, recolour or delete it.</p>}
+    <div className="sticky-canvas" ref={canvas} aria-label="Sticky notes">
+      {board.cards.length === 0 && <p className="kanban-empty">No cards yet. Switch to the board view to add some.</p>}
+      {board.cards.map((card, index) => <StickyNote key={card.id} card={card} position={place(card, index)} canvas={canvas}
+        onMove={(x, y) => patch(b => patchCard(b, card.id, c => ({ ...c, sticky: { ...place(c, index), x, y } })))}
+        onRotate={() => patch(b => patchCard(b, card.id, c => { const at = place(c, index); return { ...c, sticky: { ...at, rotate: at.rotate + 45 } }; }))}
+        onCategory={id => patch(b => patchCard(b, card.id, c => ({ ...c, category: id })))}
+        onToggle={id => patch(b => patchCard(b, card.id, c => toggleItem(c, id)))}
+        onDelete={() => patch(b => ({ ...b, cards: b.cards.filter(c => c.id !== card.id) }), 'Card deleted')}/>)}
+    </div>
+  </>;
 }
 
 // The calendar import: upcoming events from /api/calendar, chosen with checkboxes, become cards in the

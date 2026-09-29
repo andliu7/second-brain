@@ -1,0 +1,45 @@
+/* The document body (doc-editor.tsx): a calm page of prose, lists and checklists in the app's dark palette. */
+.doc-editor{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
+.doc-editor>div{flex:1;display:flex;flex-direction:column}
+.doc-editor-body{flex:1;min-height:320px;outline:none;color:var(--ink);font-size:15px;line-height:1.7;padding-bottom:40px;overflow-wrap:anywhere}
+.doc-editor-body>*+*{margin-top:.55em}
+.doc-editor-body p{margin:0}
+.doc-editor-body h1,.doc-editor-body h2,.doc-editor-body h3{font-weight:650;line-height:1.3;margin:1.1em 0 .3em}
+.doc-editor-body h1{font-size:24px}
+.doc-editor-body h2{font-size:19px}
+.doc-editor-body h3{font-size:16px}
+.doc-editor-body a{color:var(--acc);text-decoration:underline;text-underline-offset:2px}
+.doc-editor-body code{font-family:var(--font-mono);font-size:.88em;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.doc-editor-body pre{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}
+.doc-editor-body pre code{background:none;border:0;padding:0}
+.doc-editor-body blockquote{border-left:2px solid var(--acc);margin-left:0;padding-left:14px;color:var(--sub)}
+.doc-editor-body hr{border:0;border-top:1px solid var(--line);margin:1.2em 0}
+
+/* Lists: bullets and numbers in the muted tone, a quarter step in per level. */
+.doc-editor-body ul,.doc-editor-body ol{padding-left:22px;margin:.3em 0}
+.doc-editor-body ul{list-style:disc}
+.doc-editor-body ul ul{list-style:circle}
+.doc-editor-body ol{list-style:decimal}
+.doc-editor-body li::marker{color:var(--mut)}
+.doc-editor-body li>p{margin:0}
+
+/* Checklists: TipTap renders li > label > input, then a div with the text. The box is drawn here to
+   match the app's copper accent; a ticked item's text is muted and struck through. */
+.doc-editor-body ul[data-type="taskList"]{list-style:none;padding-left:0}
+.doc-editor-body ul[data-type="taskList"] ul[data-type="taskList"]{padding-left:24px}
+.doc-editor-body li[data-type="taskItem"]{display:flex;align-items:flex-start;gap:9px}
+.doc-editor-body li[data-type="taskItem"]>label{flex:none;display:flex;align-items:center;height:1.7em;cursor:pointer;user-select:none}
+.doc-editor-body li[data-type="taskItem"]>div{flex:1;min-width:0}
+.doc-editor-body li[data-type="taskItem"] input[type="checkbox"]{appearance:none;width:16px;height:16px;margin:0;border:1.5px solid var(--mut);border-radius:4px;background:transparent;display:grid;place-content:center;cursor:pointer;transition:background .12s,border-color .12s}
+.doc-editor-body li[data-type="taskItem"] input[type="checkbox"]::after{content:"";width:8px;height:4px;border:solid var(--on-acc);border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg);opacity:0}
+.doc-editor-body li[data-type="taskItem"] input[type="checkbox"]:checked{background:var(--acc-fill);border-color:var(--acc-fill)}
+.doc-editor-body li[data-type="taskItem"] input[type="checkbox"]:checked::after{opacity:1}
+.doc-editor-body li[data-type="taskItem"] input[type="checkbox"]:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.doc-editor-body li[data-type="taskItem"][data-checked="true"]>div>p{color:var(--mut);text-decoration:line-through}
+
+/* The toolbar over a selection. */
+.doc-bubble{display:flex;gap:2px;padding:4px;background:var(--soft);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px #0006;z-index:20}
+.doc-bubble button{display:grid;place-items:center;width:30px;height:30px;border-radius:6px;color:var(--sub);background:none;border:0;cursor:pointer}
+.doc-bubble button:hover{background:var(--tint-2);color:var(--ink)}
+.doc-bubble button[aria-pressed="true"]{background:var(--acc-soft);color:var(--acc)}
+.doc-bubble button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}

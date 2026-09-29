@@ -1,0 +1,9 @@
+/* components/ui/code-block.tsx. The shiki output brings its own inline colours; the frame is the app's. */
+.code-block{display:flex;flex-direction:column;width:100%;margin:12px 0;overflow:hidden;border:1px solid var(--line);border-radius:11px;background:var(--sheet)}
+.code-block-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px 6px 12px;border-bottom:1px solid var(--line)}
+.code-block-lang{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sub)}
+.code-block-copy{width:30px;height:30px;border-radius:7px;color:var(--sub)}
+.code-block-copy:hover{background:var(--tint-2);color:var(--ink)}
+.code-block-body{overflow-x:auto;font-size:13px;line-height:1.55}
+.code-block-body pre{margin:0;padding:14px 16px;background:transparent!important;font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;tab-size:2}
+.code-block-body code{font-family:inherit;background:transparent;padding:0;border:0}

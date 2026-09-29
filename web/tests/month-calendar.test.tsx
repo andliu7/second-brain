@@ -66,3 +66,61 @@ describe('the month calendar', () => {
     expect(document.querySelectorAll('.month-day')).toHaveLength(42);
   });
 });
+
+describe('the full calendar, ported from the technical instructions master calendar', () => {
+  const todosToday = () => ({ day: key(new Date()), items: [{ id: 't1', text: 'Read 15 minutes', done: false, category: 'academic' as const }, { id: 't2', text: 'Gym', done: true, category: 'fitness' as const }], history: {}, removedDefaults: [] });
+
+  it('shows todos beside the events, opens either in a dialog, and switches to week and list views', async () => {
+    stubCalendar(true, [{ id: 'e1', title: 'Office hours', start: at(0, 14).toISOString(), end: at(0, 15).toISOString(), allDay: false, location: 'IRB 1116', link: 'https://calendar.google.com/e1' }]);
+    const user = userEvent.setup();
+    render(<MonthCalendar todos={todosToday()}/>);
+    const calendar = screen.getByRole('region', { name: 'Calendar' });
+    await within(calendar).findByTitle('Office hours');
+    const todo = within(calendar).getByTitle('Read 15 minutes');
+    expect(todo.closest('.month-day')).toHaveAttribute('data-today');
+    await user.click(within(calendar).getByTitle('Office hours'));
+    const dialog = screen.getByRole('dialog', { name: 'Office hours' });
+    expect(dialog).toHaveTextContent('IRB 1116');
+    expect(within(dialog).getByRole('link', { name: /Open in Google Calendar/ })).toHaveAttribute('href', 'https://calendar.google.com/e1');
+    await user.click(within(dialog).getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Week' }));
+    expect(screen.getByRole('button', { name: 'Week' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Next week' })).toBeInTheDocument();
+    expect(calendar.querySelectorAll('.kcal-wcol')).toHaveLength(7);
+    expect(calendar.querySelector('.kcal-wcol[data-today]')).toHaveTextContent('Office hours');
+
+    await user.click(screen.getByRole('button', { name: 'List' }));
+    expect(within(calendar).getByRole('heading', { level: 3, name: /^Today, / })).toBeInTheDocument();
+    expect(within(calendar).getByRole('button', { name: /Gym/ })).toHaveTextContent('Fitness');
+  });
+
+  it('searches, filters by colour, and says how many are shown', async () => {
+    stubCalendar(true, [{ id: 'e1', title: 'Office hours', start: at(0,14).toISOString(), end: at(0, 15).toISOString(), allDay: false }]);
+    const user = userEvent.setup();
+    render(<MonthCalendar todos={todosToday()}/>);
+    const calendar = screen.getByRole('region', { name: 'Calendar' });
+    await within(calendar).findByTitle('Office hours');
+    await user.type(screen.getByRole('searchbox', { name: 'Search events' }), 'office');
+    expect(within(calendar).queryByTitle('Read 15 minutes')).toBeNull();
+    expect(screen.getByText(/Showing 1 of 3/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+    const filters = screen.getByRole('group', { name: 'Filter by colour' });
+    await user.click(within(filters).getByRole('button', { name: 'Academic' }));
+    expect(within(filters).getByRole('button', { name: 'Academic' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(calendar).getByTitle('Read 15 minutes')).toBeInTheDocument();
+    expect(within(calendar).queryByTitle('Office hours')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(within(calendar).getByTitle('Office hours')).toBeInTheDocument();
+  });
+
+  it('has a colour key that names every colour', async () => {
+    stubCalendar(false);
+    const user = userEvent.setup();
+    render(<MonthCalendar/>);
+    await user.click(screen.getByRole('button', { name: 'Key' }));
+    const key = screen.getByRole('dialog', { name: 'Colour key' });
+    for (const label of ['Google Calendar', 'Project', 'Family', 'Academic', 'Professional', 'Fitness', 'Relationships', 'Urgent', 'Other']) expect(key).toHaveTextContent(label);
+  });
+});

@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 const fallbackSecret = randomBytes(32).toString('hex');
-export const defaultModels = { claude: 'claude-sonnet-5', openai: 'gpt-5.4', gemini: 'gemini-3.5-flash', fal: 'fal-ai/flux/schnell', kie: 'nano-banana-pro', geminiImage: 'gemini-3.1-flash-image' };
+export const defaultModels = { claude: 'claude-opus-5', openai: 'gpt-5.4', gemini: 'gemini-3.5-flash', fal: 'fal-ai/flux/schnell', kie: 'nano-banana-pro', geminiImage: 'gemini-3.1-flash-image' };
 export function providerKey(provider) {
   return ({ claude: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY, gemini: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY, fal: process.env.FAL_KEY, kie: process.env.KIE_API_KEY })[provider];
 }

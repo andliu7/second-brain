@@ -22,10 +22,9 @@ export const DEFAULT_TODOS: { key: string; text: string; minutes: number }[] = [
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 export const defaultTodo = (key: string): Todo => { const d = DEFAULT_TODOS.find(t => t.key === key)!; return { id: uid(), text: d.text, done: false, category: 'other', minutes: d.minutes, defaultKey: key }; };
 export const defaultTodos = (day = today()): Todos => ({ day, items: DEFAULT_TODOS.map(t => defaultTodo(t.key)), history: {}, removedDefaults: [] });
+// The welcome text is a notification in App.tsx now, not a pinned file (Andrew, 2026-09-25), so a fresh workspace has no docs.
 export function initialWorkspace(): Workspace {
-  const guide = makeDoc('Welcome to your second brain', '# A little less scattered.\n\nThis is your personal workspace for the things you know, the things you are building, and the tools that help you get there.\n\n## A simple rhythm\n\nCapture an idea in Files. Turn it into a goal. Attach the right files and a skill in Chat when you need a thinking partner. Save what you create in Generate.\n\n## Your data\n\nNotes, files, goals, conversations, and generated images are saved in this browser on this device. Use Settings → Export backup to keep a portable copy. Cross-device sync is a future step.\n\n## Your existing work\n\nConnect the local library from Files to browse project documents; opening a source reads it, and saving a copy brings it into this workspace. Skills lists every Claude skill installed on this computer, read live.\n\nNo AI requests run until you send a message or start a generation.', 'note', ['Getting started']);
-  guide.pinned = true;
-  return { version: 1, docs: [guide], goals: [], conversations: [], generations: [], activity: [activity('Your workspace is ready', 'today')], board: defaultBoard(), todos: defaultTodos(), buyList: [] };
+  return { version: 1, docs: [], goals: [], conversations: [], generations: [], activity: [activity('Your workspace is ready', 'today')], board: defaultBoard(), todos: defaultTodos(), buyList: [] };
 }
 function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => { const req = indexedDB.open('second-brain-workspace', 1); req.onupgradeneeded = () => req.result.createObjectStore('workspace'); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });

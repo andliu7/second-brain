@@ -1,0 +1,21 @@
+/* The brainstorm list (MiscList.tsx). Quiet rows; the kind is a small chip at the right, and the only
+   colour is the copper on the pressed kind button, as elsewhere on the Kanban page. */
+.misc-list{display:flex;flex-direction:column;gap:10px}
+.misc-add{display:flex;flex-wrap:wrap;gap:8px}
+.misc-add input{flex:1 1 240px}
+.misc-kinds,.misc-filter{display:flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--sheet);width:fit-content}
+.misc-kinds button,.misc-filter button{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:0;border-radius:6px;background:none;color:var(--sub);font-size:12.5px}
+.misc-kinds button[aria-pressed=true],.misc-filter button[aria-pressed=true]{background:var(--btn-hover);color:var(--ink)}
+.misc-kinds button[aria-pressed=true] svg{color:var(--acc)}
+.misc-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.misc-item{display:flex;align-items:center;gap:8px;min-height:38px;padding:2px 0;border-top:1px solid var(--line)}
+.misc-item:first-child{border-top:0}
+.misc-bullet{width:6px;height:6px;margin:0 6px;border-radius:50%;background:var(--mut);flex-shrink:0}
+.misc-item[data-kind=idea] .misc-bullet{background:var(--acc-fill)}
+.misc-text{flex:1;min-width:0;padding:6px 4px;border:0;background:none;text-align:left;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;border-radius:6px}
+.misc-text:hover{background:var(--tint-1)}
+.misc-item[data-done] .misc-text{color:var(--sub);text-decoration:line-through}
+.misc-edit{flex:1;padding:5px 8px}
+.misc-kind{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;background:none;color:var(--sub);font-size:11.5px}
+.misc-kind:hover{color:var(--ink);border-color:var(--frame)}
+.misc-item .icon-button{width:28px;height:28px}

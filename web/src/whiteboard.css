@@ -1,0 +1,43 @@
+/* The whiteboard (Whiteboard.tsx). Imported by Whiteboard.tsx, like kanban.css by Kanban.tsx.
+   Drawnix themes the canvas itself (WhiteboardCanvas passes Plait's light or dark mode with the app theme), but its toolbars and menus
+   are light only: they read the custom properties below from .drawnix, so this re-points them at the
+   app's theme tokens in styles.css, which flip with it. .whiteboard .drawnix outranks Drawnix's own .drawnix rule. */
+
+.whiteboard{position:relative;height:calc(100dvh - 140px);min-height:420px;overflow:hidden;background:var(--ground);border:1px solid var(--line);border-radius:var(--radius)}
+.whiteboard-loading{display:flex;align-items:center;justify-content:center;gap:8px;height:100%;color:var(--sub);font-size:14px}
+
+.whiteboard .drawnix{
+  --island-bg-color:var(--soft);
+  --island-border-color:var(--line);
+  --shadow-island:var(--shadow-2);
+  --dialog-border-color:var(--line);
+  --default-border-color:var(--line);
+  --keybinding-color:var(--mut);
+  --color-on-surface:var(--sub);
+  --text-primary-color:var(--ink);
+  --color-gray-20:var(--line);
+  --color-gray-30:var(--line);
+  --color-gray-90:var(--ink);
+  --color-surface-high:var(--btn-hover);
+  --color-surface-mid:var(--sheet);
+  --color-surface-low:var(--sheet);
+  --color-surface-lowest:var(--ground);
+  --color-primary:var(--acc);
+  --color-primary-darker:var(--acc);
+  --color-primary-darkest:var(--acc);
+  --color-primary-hover:var(--acc);
+  --color-brand-hover:var(--acc);
+  --color-brand-active:var(--acc);
+  --color-on-primary-container:var(--acc);
+  --color-surface-primary-container:var(--acc-soft);
+  --link-color:var(--acc);
+  color:var(--ink);
+  font-family:var(--font-ui);
+}
+/* Plait's dark canvas is #141414; the page ground is a shade bluer */
+.whiteboard .plait-board-container.theme-dark .board-host-svg{background-color:var(--ground)}
+/* The two white panels Drawnix draws without a variable: its dialogs and the clear-board confirm */
+.whiteboard .Dialog,.whiteboard .clean-confirm{background:var(--soft);color:var(--ink)}
+.whiteboard .clean-confirm__description{color:var(--sub)}
+.whiteboard .clean-confirm__button--cancel{background:var(--sheet);color:var(--ink)}
+.whiteboard .clean-confirm__button--ok{background:transparent;color:var(--red);border-color:var(--red)}

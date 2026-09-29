@@ -8,8 +8,8 @@
 // burst that prefers-reduced-motion switches off. Each todo has a category (its left edge and a chip),
 // optional minutes, goal and time of day, all set from the row's options panel. A todo with a time can
 // be sent to Google Calendar (POST /api/calendar/todo). Dragging a row out exposes it as
-// application/x-brain-todo for the kanban; the todo stays here. "Yesterday" shows earlier days'
-// completed todos from history, faded and read only.
+// application/x-brain-todo for the kanban; the todo stays here. "Earlier" shows every earlier day's
+// completed todos from history, newest first, faded and read only.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { CalendarPlus, History, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import type { Todo, Todos, Workspace } from './types';
@@ -60,7 +60,7 @@ export function TodoCard({ workspace, commit }: { workspace: Workspace; commit: 
   return <section className="panel todo-card" aria-label="Today's todos">
     <header className="todo-head" data-done={allDone || undefined}>
       <div><h2>{dateLabel(todos.day)}</h2><p className="todo-time">{timeLabel(clock)}{allDone && ' · all done'}</p></div>
-      <button type="button" className="text-button" aria-pressed={showHistory} onClick={() => setShowHistory(v => !v)}><History size={14}/>Yesterday</button>
+      <button type="button" className="text-button" aria-pressed={showHistory} onClick={() => setShowHistory(v => !v)}><History size={14}/>Earlier</button>
     </header>
     <div className="todo-body">
       {burst && <Confetti colors={CATEGORIES.map(c => c.color)}/>}

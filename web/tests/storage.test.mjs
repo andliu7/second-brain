@@ -35,7 +35,8 @@ test('accepts the complete workspace schema and the actual initial workspace', (
   assert.strictEqual(validateWorkspace(value), value);
   const initial = storage.initialWorkspace();
   assert.strictEqual(validateWorkspace(initial), initial);
-  assert.ok(initial.docs[0].content.includes('workspace'));
+  // The welcome note became a notification (2026-09-25): a fresh workspace starts with no files at all.
+  assert.deepEqual(initial.docs, []);
 });
 
 test('valid backup round trip preserves all records, file bytes, image bytes, and extension fields', () => {
@@ -139,4 +140,42 @@ test('parseBackup rejects malformed JSON and invalid nested records', () => {
   const value = fixture();
   value.goals[0].milestones[0].done = 'yes';
   assert.throws(() => storage.parseBackup(JSON.stringify(value)), /done must be a boolean/);
+});
+
+test('the resume is optional: older workspaces load without it, and a saved one is checked field by field', () => {
+  validateWorkspace(fixture());
+  const entry = { id: 'entry-1', title: 'Company', subtitle: 'Role', date: '2025 to 2026', location: '', bullets: ['Did a thing', ''] };
+  const withResume = () => { const value = fixture(); value.resume = { profile: { name: '', email: '', phone: '', location: '', links: [] }, education: [], experience: [entry], projects: [], skills: ['Python, Java'] }; return value; };
+  const value = withResume();
+  assert.strictEqual(validateWorkspace(value), value);
+  const broken = change => { const next = withResume(); change(next); assert.throws(() => validateWorkspace(next), /Invalid workspace: resume/); };
+  broken(next => { next.resume = []; });
+  broken(next => { delete next.resume.profile; });
+  broken(next => { next.resume.profile.links = 'x'; });
+  broken(next => { next.resume.experience[0].bullets = [1]; });
+  broken(next => { next.resume.projects = [entry, entry]; });
+  broken(next => { delete next.resume.education; });
+  broken(next => { next.resume.skills = [null]; });
+});
+
+test('notebooks are optional: older workspaces load without them, and a saved list is checked', () => {
+  const old = fixture();
+  assert.equal(old.notebooks, undefined);
+  assert.strictEqual(validateWorkspace(old), old);
+  const value = fixture();
+  value.notebooks = [{ id: 'notebook-1', name: 'CMSC423' }];
+  value.docs[0].tags = ['Note', 'notebook:notebook-1'];
+  assert.strictEqual(validateWorkspace(value), value);
+  const broken = change => { const next = fixture(); next.notebooks = [{ id: 'notebook-1', name: 'CMSC423' }]; change(next); assert.throws(() => validateWorkspace(next), /Invalid workspace: notebooks/); };
+  broken(next => { next.notebooks = {}; });
+  broken(next => { next.notebooks[0].name = ''; });
+  broken(next => { next.notebooks.push({ id: 'notebook-1', name: 'Again' }); });
+});
+
+test('the resume template is optional, and only a known template is accepted', () => {
+  const withTemplate = template => { const value = fixture(); value.resume = { profile: { name: '', email: '', phone: '', location: '', links: [] }, education: [], experience: [], projects: [], skills: [], template }; return value; };
+  const without = withTemplate(undefined); delete without.resume.template;
+  assert.strictEqual(validateWorkspace(without), without);
+  for (const template of ['classic', 'onyx', 'ditto', 'azurill']) validateWorkspace(withTemplate(template));
+  assert.throws(() => validateWorkspace(withTemplate('fancy')), /Invalid workspace: resume.template/);
 });

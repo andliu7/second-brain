@@ -32,47 +32,34 @@
 :root { --destructive-foreground: hsl(0 0% 100%); }
 .dark { --destructive-foreground: hsl(0 0% 0%); }
 
-/* Scoped tokens avoid changing the legacy --muted and --border app colors. */
+/* Scoped tokens avoid changing the app's own --muted and --border. They point at the theme tokens in styles.css,
+   which flip with data-theme, so the chat composer follows the light or dark choice with no block of its own. */
 .prompt-input, .prompt-demo, .prompt-gallery {
-  color-scheme: light;
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(240 6% 10%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: var(--foreground);
-  --popover: var(--card);
-  --popover-foreground: var(--foreground);
-  --primary: hsl(240 6% 10%);
-  --primary-foreground: hsl(0 0% 98%);
-  --secondary: hsl(240 5% 96%);
-  --secondary-foreground: var(--foreground);
-  --muted: hsl(240 5% 96%);
-  --muted-foreground: hsl(240 4% 43%);
-  --accent: hsl(240 5% 94%);
-  --accent-foreground: var(--foreground);
-  --destructive: hsl(0 72% 45%);
+  --background: var(--sheet);
+  --foreground: var(--ink);
+  --card: var(--sheet);
+  --card-foreground: var(--ink);
+  --popover: var(--sheet);
+  --popover-foreground: var(--ink);
+  --primary: var(--acc-fill);
+  --primary-foreground: var(--on-acc);
+  --secondary: var(--band);
+  --secondary-foreground: var(--ink);
+  --muted: var(--band);
+  --muted-foreground: var(--sub);
+  --accent: var(--btn-hover);
+  --accent-foreground: var(--ink);
+  --destructive: var(--red);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(240 6% 88%);
-  --input: var(--border);
-  --ring: hsl(240 5% 55%);
-}
-.dark.prompt-input, .dark .prompt-input, .dark.prompt-demo, .dark.prompt-gallery {
-  color-scheme: dark;
-  --background: hsl(225 12% 8%);
-  --foreground: hsl(0 0% 94%);
-  --card: hsl(225 10% 12%);
-  --primary: hsl(23 53% 71%);
-  --primary-foreground: hsl(23 28% 10%);
-  --secondary: hsl(225 8% 18%);
-  --muted: hsl(225 8% 17%);
-  --muted-foreground: hsl(240 5% 67%);
-  --accent: hsl(225 8% 22%);
-  --destructive: hsl(0 75% 72%);
-  --destructive-foreground: hsl(0 0% 0%);
-  --border: hsl(225 8% 25%);
-  --ring: hsl(23 53% 71%);
+  --border: var(--line);
+  --input: var(--field-line);
+  --ring: var(--acc);
 }
 @layer components {
-  .prompt-input *, .prompt-gallery * { border-style: solid; }
+  /* The app never loads Tailwind's preflight, so without a width here every descendant gets the
+     browser's medium currentColor border: the white frame around the chat box. Utility classes
+     (border, border-0) still set their own widths, as they sit in the layer after this one. */
+  .prompt-input *, .prompt-gallery * { border-style: solid; border-width: 0; border-color: var(--border); }
   .prompt-input button, .prompt-gallery button { padding: 0; background: transparent; border-width: 0; }
   .prompt-input textarea { border: 0; border-radius: 24px; min-height: 0; }
   .prompt-input button:focus-visible, .prompt-gallery button:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }

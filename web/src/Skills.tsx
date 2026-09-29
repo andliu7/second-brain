@@ -8,8 +8,10 @@
 // so it can be linked, bookmarked and left with Back. The cards are plain <a href="#skills/...">
 // elements, and App's hashchange listener does the routing.
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
-import { Copy, Download, LayoutGrid, List, Loader2, MessageSquare, Pencil, Pin, Plus, Search, Trash2, X } from 'lucide-react';
+import { Bookmark, Copy, Download, LayoutGrid, List, Loader2, MessageSquare, Pencil, Pin, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import type { Doc } from './types';
+import { FavoriteButton } from '@/components/ui/favorite-button';
+import { SKILL_GROUPS, skillGroup } from './lib/skill-groups';
 import { Markdown } from './Markdown';
 import { RunColumn } from './RunPanel';
 import './skills.css';
@@ -89,6 +91,10 @@ type Props = {
   chat: (skill: InstalledSkill) => void;
   duplicate: (skill: InstalledSkill) => void;
   mine: { attach: DocAction; edit: DocAction; pin: DocAction; download: DocAction; remove: DocAction };
+  favorites: string[];                // starred skills by slug (installed) or doc id (personal), workspace.favorites.skills
+  toggleFavorite: (key: string) => void;
+  review: string[];                   // skills bookmarked "mark for review", workspace.favorites.review
+  toggleReview: (key: string) => void;
 };
 
 // Grid or list, remembered in this browser. Storage can be missing or refuse (a private window,
@@ -159,8 +165,10 @@ const editedOn = (updated: string): Count => ({ n: new Date(updated).toLocaleDat
 const countCells = (meta: Count) => <><span className="skill-row-num">{meta.n}</span><span className="skill-row-unit">{meta.unit}</span></>;
 
 export function Skills(props: Props) {
-  const { path, installed, error, personal, newSkill } = props;
+  const { path, installed, error, personal, newSkill, favorites, toggleFavorite, review, toggleReview } = props;
   const [query, setQuery] = useState('');
+  const [starredOnly, setStarredOnly] = useState(false);
+  const [reviewOnly, setReviewOnly] = useState(false);
   const [view, setView] = useState<View>(storedView);
   const choose = (next: View) => { setView(next); try { localStorage.setItem(VIEW_KEY, next); } catch { /* switched for this visit, not remembered */ } };
   const list = useRef<HTMLDivElement>(null);
@@ -176,7 +184,9 @@ export function Skills(props: Props) {
     ...personal.map(doc => ({ key: doc.id, href: '#skills/personal/' + doc.id, name: doc.name, description: describe(doc), personal: true, synced: '', code: [], meta: editedOn(doc.updated) })),
   ].sort((a, b) => a.name.localeCompare(b.name));
   const needle = query.trim().toLowerCase();
-  const shown = rows.filter(row => `${row.name} ${row.description}`.toLowerCase().includes(needle));
+  // A star marks a skill where it stands; it never moves the card (Andrew, 2026-09-25: reordering "sends the
+  // screen up and doesn't let me keep going"). The Favourites toggle narrows the list to starred skills only.
+  const shown = rows.filter(row => `${row.name} ${row.description}`.toLowerCase().includes(needle) && (!starredOnly || favorites.includes(row.key)) && (!reviewOnly || review.includes(row.key)));
   // Groups give the list an entry point: the skills written here, then the rest. Each keeps the A to Z
   // order; an empty group is not shown. The heading says Personal once, so no row repeats it on screen;
   // a personal row shows the day it was last edited where an installed one shows its file count. Its
@@ -185,15 +195,18 @@ export function Skills(props: Props) {
   // Round 3, visual critic: a Runs here group held the same two skills as the run column beside it, so
   // "the same two items appear twice on one screen". The run column is where a runnable skill is named
   // now, group and all; the list says every skill once.
+  // 2026-09-25: installed skills are shelved by what they are for (lib/skill-groups.ts) instead of one
+  // Installed band, because 75 skills in one A to Z list hid which ones belong together (Andrew: "can we
+  // categorize these?"). Personal stays first; A to Z inside every shelf; an empty shelf is not shown.
   const groups = [
-    { key: 'personal', title: 'Personal', rows: shown.filter(row => row.personal) },
-    { key: 'installed', title: 'Installed', rows: shown.filter(row => !row.personal) },
+    { key: 'personal', title: 'Personal', blurb: 'Written here, in this browser.', rows: shown.filter(row => row.personal) },
+    ...SKILL_GROUPS.map(group => ({ key: group.id, title: group.title, blurb: group.blurb, rows: shown.filter(row => !row.personal && skillGroup(row.key) === group.id) })),
   ].filter(group => group.rows.length);
   // The same groups in both views: bands in the list, section headings over the grid. The run column
   // comes first in the page's order, so on a narrow screen it sits above the skills; on a wide one
   // the CSS grid puts it in a column on the right.
   return <>
-    <div className="page-heading skill-list-heading"><div><h1>Skills</h1></div><div className="heading-actions"><label className="inline-search"><Search size={15}/><input aria-label="Search skills" placeholder="Search skills…" value={query} onChange={event => setQuery(event.target.value)}/></label><button className="button primary" onClick={newSkill}><Plus size={16}/>New skill</button>
+    <div className="page-heading skill-list-heading"><div><h1>Skills</h1></div><div className="heading-actions"><label className="inline-search"><Search size={15}/><input aria-label="Search skills" placeholder="Search skills…" value={query} onChange={event => setQuery(event.target.value)}/></label><button type="button" className="icon-button skill-star-filter" aria-label="Show favourites only" title="Favourites" aria-pressed={starredOnly} onClick={() => setStarredOnly(v => !v)}><Star size={16} fill={starredOnly ? 'currentColor' : 'none'}/>{favorites.length > 0 && <small>{favorites.length}</small>}</button><button type="button" className="icon-button skill-star-filter" aria-label="Show marked for review only" title="Marked for review" aria-pressed={reviewOnly} onClick={() => setReviewOnly(v => !v)}><Bookmark size={16} fill={reviewOnly ? 'currentColor' : 'none'}/>{review.length > 0 && <small>{review.length}</small>}</button><button className="button primary" onClick={newSkill}><Plus size={16}/>New skill</button>
       <div className="view-switch" role="group" aria-label="View">{([['grid', LayoutGrid, 'Grid view'], ['list', List, 'List view']] as const).map(([id, Icon, label]) => <button key={id} type="button" className="icon-button" aria-label={label} title={label} aria-pressed={view === id} onClick={() => choose(id)}><Icon size={16}/></button>)}</div></div></div>
     {error && <div className="error-banner" role="alert"><p>{error}</p></div>}
     <div className="skills-body">
@@ -202,9 +215,14 @@ export function Skills(props: Props) {
         {installed === null && !shown.length && <div className="skill-empty"><Loader2 className="spin" size={16}/>Reading ~/.claude/skills…</div>}
         {groups.map(group => <section key={group.key}>
           <h2 className="skill-group"><span className={'skill-group-mark ' + group.key}/>{group.title} <span className="skill-group-count">{group.rows.length}</span></h2>
-          <div className="skill-items">{group.rows.map(row => view === 'grid'
-            ? <a className="skill-card" key={row.key} href={row.href}><span className="skill-card-name"><strong>{row.name}</strong>{row.personal && <span className="sr-only">, Personal</span>}</span><span className="skill-card-description" title={row.description}>{summary(row.description) || 'No description yet.'}</span><span className="skill-card-foot"><span className="skill-card-tags">{row.synced && syncedTag(row.synced)}{scriptsTag(row.code)}</span><span className="skill-card-meta">{row.meta.n} {row.meta.unit}</span></span></a>
-            : <a className="skill-row" key={row.key} href={row.href}><span className="skill-row-name"><strong>{row.name}</strong>{row.personal && <span className="sr-only">, Personal</span>}</span><span className="skill-row-description" title={row.description}>{summary(row.description, fits) || 'No description yet.'}</span><span className="skill-row-kind">{scriptsTag(row.code)}</span><span className="skill-row-meta">{countCells(row.meta)}</span></a>)}</div>
+          <p className="skill-group-blurb">{group.blurb}</p>
+          <div className="skill-items">{group.rows.map(row => <div className="skill-item" key={row.key} data-starred={favorites.includes(row.key) || undefined}>
+            <FavoriteButton on={favorites.includes(row.key)} name={row.name} onToggle={() => toggleFavorite(row.key)}/>
+            <FavoriteButton on={review.includes(row.key)} name={row.name} label="Mark for review" icon="bookmark" onToggle={() => toggleReview(row.key)}/>
+            {view === 'grid'
+            ? <a className="skill-card" href={row.href}><span className="skill-card-name"><strong>{row.name}</strong>{row.personal && <span className="sr-only">, Personal</span>}</span><span className="skill-card-description" title={row.description}>{summary(row.description) || 'No description yet.'}</span><span className="skill-card-foot"><span className="skill-card-tags">{row.synced && syncedTag(row.synced)}{scriptsTag(row.code)}</span><span className="skill-card-meta">{row.meta.n} {row.meta.unit}</span></span></a>
+            : <a className="skill-row" href={row.href}><span className="skill-row-name"><strong>{row.name}</strong>{row.personal && <span className="sr-only">, Personal</span>}</span><span className="skill-row-description" title={row.description}>{summary(row.description, fits) || 'No description yet.'}</span><span className="skill-row-kind">{scriptsTag(row.code)}</span><span className="skill-row-meta">{countCells(row.meta)}</span></a>}
+          </div>)}</div>
         </section>)}
         {installed !== null && !shown.length && <p className="skill-empty">{needle ? 'No skill matches that search.' : 'No skills yet. Install one in ~/.claude/skills, or write one with New skill.'}</p>}
       </div>

@@ -1,0 +1,125 @@
+/* The Docs page (Docs.tsx, DocsNav.tsx): the views, notebooks and tags on the left, the notes in the
+   middle, the open note on the right. The full screen page (Write.tsx) is at the end. The editor body
+   itself is styled in components/ui/doc-editor.css. Colours are theme tokens only, so both themes work. */
+.docs-page{display:grid;grid-template-columns:minmax(170px,210px) minmax(230px,300px) minmax(0,1fr);gap:14px;align-items:start;min-height:calc(100vh - 140px)}
+
+/* Left: the views, then notebooks and tags. */
+.docs-nav{display:flex;flex-direction:column;gap:2px;padding:10px;position:sticky;top:12px;max-height:calc(100vh - 110px);overflow-y:auto}
+.docs-nav-item{display:flex;align-items:center;gap:9px;width:100%;min-width:0;padding:7px 9px;border:0;border-radius:8px;background:none;color:var(--sub);font-size:13px;text-align:left;cursor:pointer}
+.docs-nav-item:hover{background:var(--tint-1);color:var(--ink)}
+.docs-nav-item[aria-current="true"]{background:var(--acc-soft);color:var(--acc);font-weight:600}
+.docs-nav-item span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.docs-nav-item small{color:var(--mut);font-size:11px;font-variant-numeric:tabular-nums}
+.docs-nav-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 2px;padding:0 4px 0 9px}
+.docs-nav-head h2{margin:0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.docs-nav-head .icon-button{width:26px;height:26px}
+.docs-nav-row{position:relative;display:flex;flex-wrap:wrap;align-items:center}
+.docs-nav-row>.docs-nav-item{flex:1;width:auto}
+/* Rename and delete show on hover or keyboard focus, so the list reads as names, not as toolbars. */
+.docs-nav-tools{display:flex;opacity:0}
+.docs-nav-row:hover .docs-nav-tools,.docs-nav-tools:focus-within{opacity:1}
+.docs-nav-tools .icon-button{width:26px;height:26px}
+.docs-nav-confirm{flex-basis:100%;margin:4px 0 6px;padding:9px}
+.docs-nav-field{display:flex;align-items:center;gap:2px;padding:2px 0 2px 6px}
+.docs-nav-field input{flex:1;min-width:0;height:28px;padding:0 8px;border:1px solid var(--acc);border-radius:6px;background:var(--ground);color:var(--ink);font-size:13px}
+.docs-nav-field .icon-button{width:26px;height:26px}
+.docs-nav-note{margin:2px 9px;color:var(--mut);font-size:12px}
+
+/* Middle: the notes in the chosen view. */
+.docs-list{display:flex;flex-direction:column;gap:10px;padding:12px;position:sticky;top:12px;max-height:calc(100vh - 110px);min-height:0}
+.docs-list-top{display:flex;flex-direction:column;gap:8px}
+.docs-search{display:flex;align-items:center;gap:7px;padding:0 10px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--ground);color:var(--mut)}
+.docs-search:focus-within{border-color:var(--acc)}
+.docs-search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--ink);font-size:13px}
+.docs-new{justify-content:center;display:inline-flex;align-items:center;gap:6px}
+/* New and its menu of other kinds: one split button, the menu dropping under it. */
+.docs-new-row{position:relative;display:flex;gap:2px}
+.docs-new-row .docs-new{flex:1;border-top-right-radius:0;border-bottom-right-radius:0}
+.docs-new-more{padding:0 9px;border-top-left-radius:0;border-bottom-left-radius:0}
+.docs-new-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10;display:flex;flex-direction:column;padding:4px;box-shadow:var(--shadow-2)}
+.docs-new-menu button{padding:8px 10px;border:0;border-radius:6px;background:none;color:var(--ink);font-size:13px;text-align:left;cursor:pointer}
+.docs-new-menu button:hover,.docs-new-menu button:focus-visible{background:var(--tint-2)}
+.docs-journal{overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px}
+.docs-group{margin:6px 10px 2px;font-family:var(--font-serif);font-size:13px;font-weight:700;color:var(--sub)}
+.docs-items{list-style:none;margin:0;padding:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
+.docs-items button{width:100%;display:flex;flex-direction:column;gap:3px;text-align:left;padding:9px 10px;border-radius:8px;border:0;background:none;color:var(--ink);cursor:pointer}
+.docs-items button:hover{background:var(--tint-1)}
+.docs-items button.selected{background:var(--band);box-shadow:inset 2px 0 0 var(--acc)}
+.docs-item-top{display:flex;align-items:center;gap:6px;min-width:0}
+.docs-items strong{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.docs-pin{flex-shrink:0;color:var(--acc)}
+.docs-item-preview{font-size:12px;line-height:1.45;color:var(--sub);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.docs-item-meta{font-size:11px;color:var(--mut)}
+.docs-empty-list{margin:6px 4px;color:var(--mut);font-size:13px}
+
+/* Right: the open note. */
+.docs-editor{display:flex;flex-direction:column;padding:34px clamp(18px,5vw,64px) 24px;min-height:calc(100vh - 140px);min-width:0}
+.docs-back{display:none;align-self:flex-start;margin:-14px 0 12px -8px}
+.docs-title{width:100%;background:none;border:0;outline:none;color:var(--ink);font-family:var(--font-serif);font-size:32px;line-height:1.25;padding:0}
+.docs-title::placeholder{color:var(--mut)}
+.docs-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:10px 0 22px;font-size:12px;color:var(--mut)}
+.docs-meta select,.docs-tags{height:28px;background:var(--ground);color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:0 6px;font-size:12px}
+.docs-tags{width:170px;min-width:0}
+.docs-tags:focus,.docs-meta select:focus{border-color:var(--acc);outline:none}
+.docs-meta-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
+.docs-meta-actions .icon-button[aria-pressed="true"]{color:var(--acc)}
+.docs-full{min-height:30px;padding:4px 10px;font-size:12px;gap:6px}
+/* The resume inside the right pane: the pane is already the panel, so the resume's own frame goes. */
+.docs-resume .resume{border:0;box-shadow:none;background:none}
+.docs-resume .resume-body{padding:14px 0}
+.docs-loading,.docs-empty{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:13px}
+.docs-empty{flex:1;flex-direction:column;justify-content:center;text-align:center}
+
+/* A narrower window: the left pane gives up some width first. */
+@media (max-width:1100px){
+  .docs-page{grid-template-columns:160px minmax(210px,250px) minmax(0,1fr)}
+}
+/* Phone width: the panes stack. The views become one row that scrolls sideways, then the list and the
+   note take turns (data-pane on the page, set by Docs.tsx), with a back arrow on the note. */
+@media (max-width:760px){
+  .docs-page{grid-template-columns:minmax(0,1fr);gap:10px}
+  .docs-nav{position:static;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;max-height:none;padding:6px}
+  .docs-nav-item{width:auto;flex-shrink:0}
+  .docs-nav-head,.docs-nav-tools,.docs-nav-note{display:none}
+  .docs-nav-row{flex-wrap:nowrap;flex-shrink:0}
+  .docs-list{position:static;max-height:none}
+  .docs-page[data-pane="note"] .docs-nav,.docs-page[data-pane="note"] .docs-list,.docs-page[data-pane="list"] .docs-editor{display:none}
+  .docs-back{display:inline-flex}
+  .docs-editor{padding:22px 16px}
+  .docs-title{font-size:26px}
+  .docs-meta-actions{margin-left:0}
+}
+
+/* The full screen page, #write/<id>: no app shell, a slim strip, a centred reading column. */
+.write-page{min-height:100vh;background:var(--sheet);color:var(--ink);font-family:var(--font-ui)}
+.write-strip{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;height:46px;padding:0 16px;background:var(--sheet-fade);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);font-size:12px;color:var(--mut)}
+.write-back{margin-right:auto;color:var(--sub)}
+.write-back:hover{color:var(--ink)}
+.write-strip .icon-button[aria-pressed="true"]{color:var(--acc)}
+.write-column{max-width:720px;margin:0 auto;padding:64px 16px 160px;display:flex;flex-direction:column}
+.write-title{width:100%;background:none;border:0;outline:none;color:var(--ink);font-family:var(--font-serif);font-size:clamp(30px,5vw,42px);line-height:1.2;padding:0;margin-bottom:28px}
+.write-title::placeholder{color:var(--mut)}
+.write-column .doc-editor-body{font-size:17px;line-height:1.8;min-height:60vh}
+.write-missing{color:var(--sub);font-size:15px}
+@media (max-width:760px){
+  .write-column{padding:32px 16px 120px}
+}
+
+/* Save as PDF (Docs.tsx and Write.tsx call window.print()). The element marked note-print is the note;
+   printing shows it alone, the way resume.css prints the resume: everything that neither is the note,
+   holds it, nor sits inside it is hidden, and the elements that hold it lose their app styling. :has()
+   scopes this to when a note is on screen, so printing any other page is unchanged. The paper is white
+   in both themes: the note redefines the colour tokens to ink on paper for the print, so the editor's
+   own rules (checkboxes included) draw in those colours. The page is a named page, because resume.css
+   sets the unnamed page's margin to 0 for its letter sheet. */
+.print-title{display:none}
+@media print{
+  @page note{size:letter;margin:.75in .8in}
+  html:has(.note-print),body:has(.note-print){background:#fff!important}
+  body:has(.note-print) *:not(:has(.note-print)):not(.note-print):not(.note-print *){display:none!important}
+  body:has(.note-print),body:has(.note-print) *:has(.note-print){display:block!important;position:static!important;margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;overflow:visible!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;transform:none!important}
+  .note-print{page:note;display:block!important;max-width:none!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important;--ink:#111;--sub:#333;--mut:#666;--line:#bbb;--acc:#111;--acc-fill:#333;--on-acc:#fff;--soft:#f3f3f3;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .note-print .docs-back,.note-print .docs-meta,.note-print .docs-title,.note-print .write-title,.doc-bubble{display:none!important}
+  .note-print .print-title{display:block;margin:0 0 16pt;font-family:var(--font-serif);font-size:22pt;font-weight:700;line-height:1.25;color:#111}
+  .note-print .doc-editor-body{min-height:0!important;padding:0;font-size:11.5pt;line-height:1.6;color:#111}
+}

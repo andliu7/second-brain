@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
+// The bare address renders the lazy Home chunk (the globe); loading it here warms the transform so ready()'s
+// one-second wait measures the app, not a cold Vite worker when this file happens to run first.
+import '../src/Home';
 import { loadWorkspace, saveWorkspace, initialWorkspace, makeDoc } from '../src/lib/storage';
 const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBZkAAAAASUVORK5CYII=';
 let requests:{url:string;body:any}[]=[];
@@ -40,7 +43,7 @@ describe('real workspace flows in a test DOM (not visual QA)',()=>{
   await waitFor(async()=>expect((await loadWorkspace()).docs.filter(d=>d.tags.includes('Quick capture'))).toHaveLength(2));
  });
  it('creates a goal, completes a milestone, and persists progress',async()=>{
-  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:'Goals'}));
+  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:'Kanban'}));
   const create=screen.getAllByRole('button',{name:/New goal|Create.*goal|Set.*goal/i})[0];await user.click(create);
   const dialog=screen.getByRole('dialog');await user.type(within(dialog).getByLabelText('Goal title'),'Organize my research');
   await user.type(within(dialog).getByLabelText('New milestone'),'Sort the reading list');
@@ -50,17 +53,17 @@ describe('real workspace flows in a test DOM (not visual QA)',()=>{
  });
  it('sends only selected skill context and stores the model response',async()=>{
   const w=initialWorkspace();w.docs.push(makeDoc('Review skill','Ask for evidence before making a claim.','skill'));await saveWorkspace(w);
-  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^Chat\s*AI?$/}));
+  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^andliu\.ai\s*AI?$/}));
   await user.click(screen.getByRole('button',{name:'Add context'}));const dialog=screen.getByRole('dialog');
   await user.click(within(dialog).getByRole('checkbox',{name:/Review skill/}));await user.click(within(dialog).getByRole('button',{name:/Done/}));
-  await user.type(screen.getByLabelText('Message'),'Review this decision');await user.click(screen.getByRole('button',{name:'Send message'}));
+  await user.type(await screen.findByLabelText('Message'),'Review this decision');await user.click(screen.getByRole('button',{name:'Send message'}));
   expect(await screen.findByText('TEST FIXTURE: grounded answer')).toBeInTheDocument();
   const sent=requests.find(r=>r.url.endsWith('/chat'))!.body;expect(sent.context).toHaveLength(1);expect(sent.context[0].name).toBe('Review skill');expect(sent.model).toBe('test-model');
   expect((await loadWorkspace()).conversations[0].messages).toHaveLength(2);
  });
  it('supports all three generation provider paths without an empty model record',async()=>{
   // Generate is a mode of Chat, the second button of the Chat | Generate control at the top of that page.
-  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^Chat\s*AI?$/}));await user.click(screen.getByRole('button',{name:'Generate'}));
+  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^andliu\.ai\s*AI?$/}));await user.click(screen.getByRole('button',{name:'Generate'}));
   for(const provider of ['gemini','fal','kie']){
    await user.selectOptions(screen.getByLabelText('Provider'),provider);
    await user.clear(screen.getByLabelText('What do you imagine?'));await user.type(screen.getByLabelText('What do you imagine?'),'TEST FIXTURE '+provider);
@@ -71,8 +74,8 @@ describe('real workspace flows in a test DOM (not visual QA)',()=>{
   expect((await loadWorkspace()).generations).toHaveLength(3);
  });
  it('disables sending when the selected provider has no configured key',async()=>{
-  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^Chat\s*AI?$/}));
-  await user.selectOptions(screen.getByLabelText('Chat provider'),'openai');await user.type(screen.getByLabelText('Message'),'Hello');
+  const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^andliu\.ai\s*AI?$/}));
+  await user.selectOptions(screen.getByLabelText('Chat provider'),'openai');await user.type(await screen.findByLabelText('Message'),'Hello');
   expect(screen.getByRole('button',{name:'Send message'})).toBeDisabled();
   expect(requests.some(r=>r.url.endsWith('/chat'))).toBe(false);
  });

@@ -1,0 +1,77 @@
+/* Resume.tsx. The form uses the dark tokens from styles.css; the page is a white US letter sheet (8.5in by 11in). */
+.resume{max-width:100%}
+.resume-actions{display:flex;flex-wrap:wrap;gap:8px}
+.resume-note{margin:0;padding:10px 21px 0;font-size:13px;color:var(--sub)}
+.resume-body{display:grid;grid-template-columns:minmax(300px,1fr) auto;gap:18px;padding:14px;align-items:start}
+.resume-form{display:flex;flex-direction:column;gap:14px;min-width:0}
+.resume-group{margin:0;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);display:flex;flex-direction:column;gap:10px;min-width:0}
+.resume-group legend{padding:0 6px;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--sub)}
+.resume-group>.button{align-self:flex-start}
+.resume-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px 10px}
+.resume-fields label,.resume-group>label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+.resume-fields input,.resume-group textarea{padding:7px 9px;font-size:13px}
+.resume-wide{grid-column:1/-1}
+.resume-entry{padding:10px;border:1px solid var(--line);border-radius:7px;background:var(--sheet)}
+.resume-entry-bar{display:flex;align-items:center;gap:2px;margin-bottom:8px;font-size:13px;font-weight:600}
+.resume-entry-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* The preview sits beside the form and stays in view while the form scrolls. It keeps the real page
+   width, so what it shows is what prints; a narrow window scrolls it sideways instead of reflowing it. */
+.resume-preview{position:sticky;top:12px;max-height:calc(100vh - 24px);max-width:100%;overflow:auto;border-radius:4px}
+.resume-page{box-sizing:border-box;width:8.5in;min-height:11in;padding:.5in .6in;background:#fff;color:#111;font-family:var(--font-ui),Arial,Helvetica,sans-serif;font-size:10pt;line-height:1.35;box-shadow:0 4px 24px #0006}
+.resume-page h2,.resume-page h3{font-family:inherit;color:#111}
+.resume-page .resume-name{font-size:20pt;font-weight:700;line-height:1.1;text-align:center}
+.resume-contact{margin-top:4px;text-align:center;font-size:9pt;color:#444;overflow-wrap:anywhere}
+.resume-contact span+span::before{content:' | ';color:#999}
+.resume-section{margin-top:12px}
+.resume-section h3{font-size:10pt;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid #222;padding-bottom:2px;margin-bottom:5px}
+.resume-item+.resume-item{margin-top:7px}
+.resume-row{display:flex;justify-content:space-between;gap:12px}
+.resume-row span{flex-shrink:0;color:#333}
+.resume-sub{font-size:9.5pt;color:#333}
+.resume-page ul{margin:3px 0 0;padding-left:16px}
+.resume-page li{margin:1px 0}
+.resume-skill{margin:1px 0}
+.resume-hint{color:#999;text-align:center;margin-top:3in}
+
+@media (max-width:1180px){.resume-body{grid-template-columns:1fr}.resume-preview{position:static;max-height:none}}
+
+.resume-template{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub)}
+.resume-template select{height:30px;padding:0 6px;font-size:12px}
+
+/* The templates (Resume.tsx TEMPLATES). Classic is the rules above. Onyx, Ditto and Azurill adapt the
+   layout and type of Reactive Resume's templates of those names (MIT, credited in Resume.tsx). The
+   sheet is paper, so it keeps fixed ink colours in both themes, like the rules above; --resume-accent
+   is the one colour a template adds. */
+.resume-page{--resume-accent:#1f4e79}
+/* Onyx: the name large on the left, the contact line under it, a coloured rule closing the header, and
+   section headings in the accent without the ruled underline. */
+.resume-page[data-template="onyx"] .resume-head{border-bottom:1.5px solid var(--resume-accent);padding-bottom:.18in}
+.resume-page[data-template="onyx"] .resume-name{text-align:left;font-size:24pt}
+.resume-page[data-template="onyx"] .resume-contact{text-align:left}
+.resume-page[data-template="onyx"] .resume-section h3{color:var(--resume-accent);border-bottom:0;letter-spacing:.6px}
+/* Ditto: a band of the accent across the top of the page, holding the name in white; headings in the accent. */
+.resume-page[data-template="ditto"] .resume-head{margin:-.5in -.6in .1in;padding:.4in .6in .22in;background:var(--resume-accent)}
+.resume-page[data-template="ditto"] .resume-name{text-align:left;color:#fff;font-size:22pt}
+.resume-page[data-template="ditto"] .resume-contact{text-align:left;color:#e8eef5}
+.resume-page[data-template="ditto"] .resume-contact span+span::before{color:#b9c9da}
+.resume-page[data-template="ditto"] .resume-section h3{color:var(--resume-accent);border-bottom-color:var(--resume-accent)}
+/* Azurill: a centred header, and each entry hung on a thin vertical line with a ring at its start. */
+.resume-page[data-template="azurill"] .resume-section h3{color:var(--resume-accent);border-bottom:0;text-align:center}
+.resume-page[data-template="azurill"] .resume-item{position:relative;padding-left:16px;border-left:1px solid var(--resume-accent);margin-left:4px}
+.resume-page[data-template="azurill"] .resume-item::before{content:"";position:absolute;left:-5px;top:3px;width:7px;height:7px;border:1px solid var(--resume-accent);border-radius:50%;background:#fff}
+.resume-page[data-template="azurill"] .resume-item+.resume-item{margin-top:0;padding-top:7px}
+.resume-page[data-template="azurill"] .resume-item+.resume-item::before{top:10px}
+
+/* Download PDF is window.print(). While this page is mounted, printing shows the sheet alone: everything
+   that neither is the sheet, holds it, nor sits inside it is hidden, and the elements that hold it lose
+   their app styling so the sheet starts at the top left of the paper. :has() scopes all of this to when
+   the resume is on screen, so printing any other page is unchanged. */
+@media print{
+  @page{size:letter;margin:0}
+  html:has(.resume-page),body:has(.resume-page){background:#fff!important}
+  body:has(.resume-page) *:not(:has(.resume-page)):not(.resume-page):not(.resume-page *){display:none!important}
+  body:has(.resume-page),body:has(.resume-page) *:has(.resume-page){display:block!important;position:static!important;margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;overflow:visible!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;transform:none!important}
+  .resume-page{width:8.5in;min-height:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .resume-hint{display:none}
+}

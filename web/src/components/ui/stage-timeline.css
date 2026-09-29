@@ -1,0 +1,43 @@
+/* components/ui/stage-timeline.tsx. The path: numbered circles on one thin line, a raised card per stage,
+   the accent for the current stage and for what is done, everything else in the sheet's greys. */
+.stage-timeline{container-type:inline-size;display:grid;gap:18px}
+/* Beside the stages, and sticky, once there is room for both columns (the drawer at full width) */
+@container (min-width:680px){.stage-timeline{grid-template-columns:220px minmax(0,1fr);gap:28px}.stage-aside{position:sticky;top:0;align-self:start}}
+.stage-main{min-width:0}
+.stage-empty{margin:0 0 12px;font-size:14px;color:var(--sub)}
+.stage-list{position:relative;display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none}
+/* The line runs through the circles' centres, from the first to the last */
+.stage-list::before{content:"";position:absolute;left:17px;top:18px;bottom:18px;width:1px;background:var(--line)}
+.stage{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:start}
+.stage-dot{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--sheet);color:var(--sub);font:600 12px/1 var(--font-mono,monospace);transition:border-color .15s,background .15s,color .15s}
+.stage-dot:hover{border-color:var(--acc-fill);color:var(--ink)}
+.stage[data-current] .stage-dot{border:2px solid var(--acc-fill);color:var(--acc);background:var(--acc-soft);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc-fill) 18%,transparent)}
+.stage[data-done] .stage-dot{border-color:var(--acc-fill);background:var(--acc-fill);color:var(--on-acc)}
+.stage-card{min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--sheet);box-shadow:var(--shadow-1);transition:border-color .15s}
+.stage[data-current] .stage-card{border-color:var(--acc-fill);background:var(--acc-soft)}
+.stage-head{display:flex;align-items:flex-start;gap:4px;padding:4px 6px 4px 4px}
+.stage-open{flex:1;min-width:0;display:flex;align-items:flex-start;gap:10px;padding:8px 8px 8px 10px;border:0;border-radius:9px;background:none;text-align:left}
+.stage-open:hover{background:var(--btn-hover)}
+.stage-number{padding-top:2px;font:500 11px/1.4 var(--font-mono,monospace);color:var(--mut)}
+.stage-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stage-title strong{font-size:14px;font-weight:500;line-height:1.4;color:var(--ink);overflow-wrap:anywhere}
+.stage-title small{font-size:12.5px;line-height:1.45;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage[data-done] .stage-title strong{color:var(--sub)}
+.stage[data-done] .stage-title small{color:var(--green-dk)}
+.stage[data-current] .stage-title small{align-self:flex-start;padding:1px 8px;border-radius:999px;background:var(--acc-fill);color:var(--on-acc);font-weight:700}
+.stage-tools{display:flex;gap:1px;padding-top:4px;opacity:.55;transition:opacity .15s}
+.stage-card:hover .stage-tools,.stage-tools:focus-within{opacity:1}
+.stage-tools .icon-button{width:28px;height:28px}
+.stage-tools .icon-button:hover:not(:disabled){background:var(--btn-hover);color:var(--ink)}
+.stage-tools .icon-button:disabled{opacity:.3}
+.stage-edit{display:flex;flex-direction:column;gap:8px;padding:2px 12px 12px 14px}
+.stage-edit input,.stage-edit textarea{font-size:13.5px;padding:8px 10px}
+.stage-edit textarea{resize:vertical;min-height:90px;line-height:1.5}
+.stage-add{display:flex;gap:6px;margin:14px 0 0 48px}
+.stage-add input{flex:1;min-width:0;padding:8px 11px;font-size:13.5px}
+.stage-add .icon-button{width:36px;height:36px;border:1px solid var(--field-line)}
+/* The progress line: a thin bar and "3 of 7" */
+.stage-progress{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stage-progress-bar{position:relative;display:block;width:64px;height:4px;border-radius:2px;background:var(--band);overflow:hidden}
+.stage-progress-bar>span{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:var(--acc-fill)}
+@media (prefers-reduced-motion:reduce){.stage-dot,.stage-card,.stage-tools{transition:none}}

@@ -18,7 +18,7 @@ const BG = '#0c1222'; // dark navy, never pure black
 export const INK = { bg: BG, label: '#e6e7ee', dept: '#f2f1ef', near: '#ececf2', focus: '#f2f1ef', halo: 'rgba(12,18,34,0.92)', dim: 0.62 };
 export const PERSPECTIVE = 3.2; // eye distance in sphere radii: the near face reads a little larger than the far one
 export const RADIUS = 0.34; // the sphere's radius at zoom 1, as a share of the shorter side of the panel
-const FONT = '"DM Sans Variable", sans-serif';
+const FONT = '"Instrument Sans Variable", sans-serif';
 
 // Text widths, measured once per font and name: measureText is a real cost in a frame of 100
 // names, and so is setting ctx.font, so the font is set only on a miss and never read back.

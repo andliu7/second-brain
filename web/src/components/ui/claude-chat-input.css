@@ -1,0 +1,42 @@
+/* components/ui/claude-chat-input.tsx. Dark tokens from styles.css; copper is the send button, the only accent. */
+.cci-root{position:relative;width:100%;min-width:0}
+.cci-drop{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--acc);border-radius:14px;background:var(--acc-soft);color:var(--acc);font-size:13px;pointer-events:none}
+.cci-card-shell{display:flex;flex-direction:column;min-height:150px;border:1px solid var(--line);border-radius:14px;background:var(--soft);box-shadow:0 12px 32px -20px #000c}
+.cci-textarea{flex:1;min-height:100px;max-height:160px;width:100%;padding:16px;resize:none;border:0;border-radius:14px 14px 0 0;background:transparent;color:var(--ink);font-size:15px;line-height:1.55}
+.cci-textarea::placeholder{color:var(--mut)}
+.cci-textarea:focus{outline:none;border-color:transparent}
+.cci-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px 8px}
+.cci-bar-left,.cci-bar-right{display:flex;align-items:center;gap:8px;min-width:0}
+.cci-tool{width:36px;height:36px;border-radius:8px;color:var(--sub)}
+.cci-tool:hover{background:var(--tint-2);color:var(--ink)}
+.cci-note{font-size:12px;color:var(--red);white-space:normal}
+.cci-send{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid var(--acc-fill);background:var(--acc-fill);color:var(--on-acc);transition:background .16s,opacity .16s}
+.cci-send:hover:not(:disabled){background:var(--acc-fill-hover)}
+.cci-send:disabled{background:var(--soft);border-color:var(--line);color:var(--mut)}
+.cci-model{position:relative}
+.cci-model-button{display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--sub);font-size:13px;font-weight:500;max-width:220px}
+.cci-model-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cci-model-button:hover{background:var(--tint-2);color:var(--ink)}
+.cci-flip{transform:rotate(180deg)}
+.cci-model-menu{position:absolute;bottom:calc(100% + 8px);right:0;z-index:20;width:min(288px,calc(100vw - 40px));margin:0;padding:6px;list-style:none;box-shadow:0 12px 32px #0008}
+.cci-model-menu button{display:grid;grid-template-columns:1fr auto;width:100%;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--ink);text-align:left;gap:2px 10px}
+.cci-model-menu li[aria-selected="true"] button,.cci-model-menu button:hover{background:var(--tint-2)}
+.cci-model-name{font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px}
+.cci-model-badge{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--acc-soft);color:var(--acc);font-weight:600}
+.cci-model-desc{grid-column:1;font-size:12px;color:var(--mut)}
+.cci-model-check{grid-column:2;grid-row:1/span 2;align-self:center;color:var(--acc)}
+.cci-tray{border-top:1px solid var(--line);padding:12px;background:var(--sheet);border-radius:0 0 14px 14px;overflow-x:auto}
+.cci-tray-row{display:flex;gap:12px}
+.cci-card{position:relative;flex:none;width:125px;height:125px;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--soft);box-shadow:0 4px 12px #0006}
+.cci-card-image{width:100%;height:100%;object-fit:cover;display:block}
+.cci-card-text{padding:10px;font-size:8px;line-height:1.35;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere;max-height:96px;overflow:hidden}
+.cci-card-file{display:flex;flex-direction:column;gap:6px;padding:12px;color:var(--sub);font-size:11px}
+.cci-card-file span{color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cci-card-file small{color:var(--mut)}
+.cci-card-overlay{position:absolute;inset:0;display:flex;align-items:flex-end;gap:6px;padding:8px;background:linear-gradient(to bottom,transparent 45%,var(--scrim));pointer-events:none}
+.cci-card-badge{font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink)}
+.cci-card-error{color:var(--red);display:inline-flex}
+.cci-card-actions{position:absolute;top:6px;right:6px;display:flex;gap:2px;opacity:0;transition:opacity .2s}
+.cci-card:hover .cci-card-actions,.cci-card:focus-within .cci-card-actions{opacity:1}
+.cci-card-actions .icon-button{width:24px;height:24px;border-radius:6px;background:var(--scrim);border:1px solid var(--line);color:var(--ink)}
+@media (pointer:coarse){.cci-card-actions{opacity:1}}

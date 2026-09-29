@@ -66,8 +66,9 @@ describe('Skills page, live from disk', () => {
     const workspace = initialWorkspace(); workspace.docs.push(makeDoc('Evidence review', 'Check the supporting evidence.', 'skill')); await saveWorkspace(workspace);
     await openSkills();
     const groups = screen.getAllByRole('heading', { level: 2 }).filter(h => h.classList.contains('skill-group'));
-    expect(groups.map(h => h.textContent)).toEqual(['Personal 1', 'Installed 4']);
-    expect(screen.getAllByRole('link', { name: /^(clean-up|Evidence review|generate|humanizer|pdf)/ }).map(a => a.querySelector('strong')!.textContent)).toEqual(['Evidence review', 'clean-up', 'generate', 'humanizer', 'pdf']);
+    // 2026-09-25: installed skills are shelved by purpose (lib/skill-groups.ts), Personal first, shelf order fixed.
+    expect(groups.map(h => h.textContent)).toEqual(['Personal 1', 'Documents and diagrams 1', 'Writing 1', 'Images and video 1', 'This second brain 1']);
+    expect(screen.getAllByRole('link', { name: /^(clean-up|Evidence review|generate|humanizer|pdf)/ }).map(a => a.querySelector('strong')!.textContent)).toEqual(['Evidence review', 'pdf', 'humanizer', 'generate', 'clean-up']); // Personal, then the shelves in their fixed order
     const runs = screen.getByRole('complementary', { name: 'Run on this computer' });
     expect(within(runs).getAllByRole('heading', { level: 3 }).map(h => h.textContent)).toEqual(['Clean up', 'Doctor plus']);
     expect(groups.some(h => /Runs here/.test(h.textContent || ''))).toBe(false);
@@ -127,7 +128,7 @@ describe('Skills page, live from disk', () => {
     await user.click(screen.getByRole('link', { name: /^generate/ }));
     await user.click(await screen.findByRole('button', { name: /Use in Chat/ }));
     expect(await screen.findByRole('button', { name: 'Remove generate from context' })).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Message'), 'Make me a poster');
+    await user.type(await screen.findByLabelText('Message'), 'Make me a poster');
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     expect(await screen.findByText('TEST FIXTURE: answer')).toBeInTheDocument();
     const sent = requests.find(r => r.url.endsWith('/chat'))!.body;
@@ -273,7 +274,7 @@ describe('Skills page, grid or list, with a pop-up', () => {
     expect(list).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('link', { name: /^generate/ })).toHaveClass('skill-row');
     // The groups stay in the list too
-    expect(screen.getAllByRole('heading', { level: 2 }).filter(h => h.classList.contains('skill-group')).map(h => h.textContent)).toEqual(['Installed 4']);
+    expect(screen.getAllByRole('heading', { level: 2 }).filter(h => h.classList.contains('skill-group')).map(h => h.textContent)).toEqual(['Documents and diagrams 1', 'Writing 1', 'Images and video 1', 'This second brain 1']);
     expect(localStorage.getItem('skills-view')).toBe('list');
     cleanup(); location.hash = '';
     await openSkills();
@@ -288,9 +289,9 @@ describe('Skills page, grid or list, with a pop-up', () => {
     const user = await openSkills();
     await user.click(screen.getByRole('button', { name: 'List view' }));
     const rows = screen.getAllByRole('link', { name: /^(clean-up|generate|humanizer)/ });
-    expect(rows.map(row => row.querySelector('strong')!.textContent)).toEqual(['clean-up', 'generate', 'humanizer']);
+    expect(rows.map(row => row.querySelector('strong')!.textContent)).toEqual(['humanizer', 'generate', 'clean-up']); // shelf order: Writing, Images and video, This second brain
     for (const row of rows) expect(row.querySelector('.skill-row-kind')).toBeInTheDocument();
-    expect(rows.map(row => row.querySelector('.skill-row-kind')!.textContent)).toEqual(['Scripts', '', '']); // only clean-up ships a script
+    expect(rows.map(row => row.querySelector('.skill-row-kind')!.textContent)).toEqual(['', '', 'Scripts']); // only clean-up ships a script, and it is last in shelf order
     // Round 3 of the resumed run, visual critic: "'Scripts' appears only on some rows, so the '2 files' /
     // '214 files' values float". The count is two cells, the number and the word, each with its own column.
     expect(rows.map(row => row.querySelector('.skill-row-num')!.textContent)).toEqual(['2', '1', '2']);

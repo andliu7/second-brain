@@ -1,0 +1,14 @@
+/* WidgetGrid (widget-grid.tsx). Widgets are positioned absolutely from the layout, so the list's height
+   is set inline from the row count. Colours are the app's tokens, each with a fallback in case the
+   redesign renames one. */
+.wgrid{position:relative;list-style:none;margin:0;padding:0}
+.wgrid-item{position:absolute;box-sizing:border-box;border-radius:var(--radius,12px)}
+.wgrid-body{height:100%}
+/* Edit mode: the whole widget is the handle, so its content stops taking clicks and text selection,
+   and a long press on a phone does not open the callout menu. */
+.wgrid[data-editing] .wgrid-item{cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.wgrid[data-editing] .wgrid-body{pointer-events:none;outline:1px dashed var(--acc,#6B4EA8);outline-offset:-1px;border-radius:inherit}
+.wgrid-item.is-dragging{z-index:3;cursor:grabbing;box-shadow:var(--shadow-2,0 12px 32px rgba(0,0,0,.18))}
+.wgrid-item:focus-visible{outline:2px solid var(--acc,#6B4EA8);outline-offset:2px}
+.wgrid-size{position:absolute;top:8px;right:8px;z-index:1;max-width:calc(100% - 16px);font:inherit;font-size:12px;padding:2px 4px;color:var(--ink,#1A1B22);background:var(--sheet,#fff);border:1px solid var(--line,#DAD7E4);border-radius:var(--radius-control,8px)}
+.wgrid-slot{position:absolute;box-sizing:border-box;border:2px dashed var(--acc,#6B4EA8);background:var(--acc-soft,transparent);border-radius:var(--radius,12px)}

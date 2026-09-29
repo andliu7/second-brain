@@ -102,7 +102,7 @@ export function NetworkCanvas({ model, scene, selected, hovered, onSelect, onHov
     const vx = w / 2, vy = h / 2; const used = new Set<string>();
     for (const [, p, size, weight] of want) {
       if (placed.length >= 700) break;
-      const node = model.nodes[scene.ids[p]]; n.font = `${weight}${size}px "DM Sans Variable", sans-serif`;
+      const node = model.nodes[scene.ids[p]]; n.font = `${weight}${size}px "Instrument Sans Variable", sans-serif`;
       // Two files of the same name (a CLAUDE.md in two repos) are told apart by their folder.
       let name = ellipsis(n, node.name);
       if (used.has(name) && node.parent >= 0) name = ellipsis(n, `${node.name} · ${model.nodes[node.parent].name}`);
@@ -156,13 +156,13 @@ export function NetworkCanvas({ model, scene, selected, hovered, onSelect, onHov
       // screen is nudged inside the map so the edge never cuts it.
       const onScreen = (x: number, y: number) => x >= 0 && x <= w && y >= 0 && y <= h;
       const inside = (x: number, y: number, bw: number, bh: number): [number, number] => [Math.min(Math.max(x, INSET), Math.max(INSET, w - INSET - bw)), Math.min(Math.max(y, INSET), Math.max(INSET, h - INSET - bh))];
-      const r = Math.max(4, dotRadius(p)) + 1.5; ctx.font = '600 12.5px "DM Sans Variable", sans-serif';
+      const r = Math.max(4, dotRadius(p)) + 1.5; ctx.font = '600 12.5px "Instrument Sans Variable", sans-serif';
       const focusName = ellipsis(ctx, node.name); const width = ctx.measureText(focusName).width;
       const shown = onScreen(sx(p), sy(p));
       const [px0, py0] = shown ? inside(sx(p) - width / 2 - 7, sy(p) + r + 2, width + 14, 21) : [sx(p) - width / 2 - 7, sy(p) + r + 2];
       const placed: [number, number, number, number][] = [[px0, py0, width + 14, 21]];
       const free = (x: number, y: number, w2: number, h2: number) => placed.every(([qx, qy, qw, qh]) => x + w2 < qx || qx + qw < x || y + h2 < qy || qy + qh < y);
-      ctx.font = '11px "DM Sans Variable", sans-serif'; let labels = 0; const used = new Set<string>([focusName]);
+      ctx.font = '11px "Instrument Sans Variable", sans-serif'; let labels = 0; const used = new Set<string>([focusName]);
       for (const q of near) { const pq = scene.at[q]; if (pq < 0) continue; const rq = Math.max(2.5, dotRadius(pq)); ctx.fillStyle = colorOf(model.nodes[q]); ctx.beginPath(); ctx.arc(sx(pq), sy(pq), rq, 0, 6.2832); ctx.fill();
         if (labels >= 90 || !onScreen(sx(pq), sy(pq))) continue;
         // Two neighbours of the same name read apart by the folder they live in.
@@ -174,7 +174,7 @@ export function NetworkCanvas({ model, scene, selected, hovered, onSelect, onHov
         ctx.strokeStyle = 'rgba(13,15,18,0.92)'; ctx.fillStyle = INK.near; ctx.strokeText(name, tx + tw / 2, ty); ctx.fillText(name, tx + tw / 2, ty); }
       ctx.fillStyle = colorOf(node); ctx.beginPath(); ctx.arc(sx(p), sy(p), r, 0, 6.2832); ctx.fill();
       // The focused name sits on a pill, so the lines fanning out below the dot never run through it.
-      ctx.font = '600 12.5px "DM Sans Variable", sans-serif';
+      ctx.font = '600 12.5px "Instrument Sans Variable", sans-serif';
       ctx.fillStyle = 'rgba(13,15,18,0.94)'; ctx.beginPath(); ctx.roundRect(px0, py0, width + 14, 21, 6); ctx.fill();
       ctx.strokeStyle = colorOf(node); ctx.lineWidth = 1; ctx.globalAlpha = 0.45; ctx.stroke(); ctx.globalAlpha = 1;
       ctx.fillStyle = INK.focus; ctx.fillText(focusName, px0 + width / 2 + 7, py0 + 3);

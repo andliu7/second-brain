@@ -244,7 +244,11 @@ export function validateWorkspace(value) {
       records(card.checklist, `${path}.checklist`, 1000, (item, itemPath) => {
         string(item.title, `${itemPath}.title`, 4096, true);
         boolean(item.done, `${itemPath}.done`);
+        // A project's stage (Kanban.tsx): its notes, and the day it was ticked.
+        optionalString(item.detail, `${itemPath}.detail`, MiB);
+        if (item.doneOn !== undefined) { string(item.doneOn, `${itemPath}.doneOn`, 10); dateOnly(item.doneOn, `${itemPath}.doneOn`); }
       });
+      if (card.project !== undefined) boolean(card.project, `${path}.project`);
       array(card.attachments, `${path}.attachments`, 100);
       for (let i = 0; i < card.attachments.length; i++) if (!docIds.has(card.attachments[i])) invalid(`${path}.attachments[${i}]`, 'must name an existing doc');
       if (card.due !== undefined) { string(card.due, `${path}.due`, 10); dateOnly(card.due, `${path}.due`); }
@@ -271,7 +275,8 @@ export function validateWorkspace(value) {
     records(value.todos.items, 'todos.items', 1000, todo);
     object(value.todos.history, 'todos.history');
     const days = Object.keys(value.todos.history);
-    if (days.length > 366) invalid('todos.history', 'exceeds 366 days');
+    // Old todos are kept for good (lib/todos.ts), so the bound is ten years of days, not one.
+    if (days.length > 3660) invalid('todos.history', 'exceeds 3660 days');
     for (const day of days) { dateOnly(day, `todos.history.${day}`); records(value.todos.history[day], `todos.history.${day}`, 1000, todo); }
     array(value.todos.removedDefaults, 'todos.removedDefaults', 100);
     for (let i = 0; i < value.todos.removedDefaults.length; i++) string(value.todos.removedDefaults[i], `todos.removedDefaults[${i}]`, 64, true);
@@ -297,11 +302,58 @@ export function validateWorkspace(value) {
   // Favourites are optional too; each list holds distinct, non-empty ids.
   if (value.favorites !== undefined) {
     object(value.favorites, 'favorites');
-    for (const kind of ['skills', 'projects']) {
+    for (const kind of ['skills', 'projects', 'review']) {
+      if (kind === 'review' && value.favorites.review === undefined) continue; // the review bookmarks came later
       array(value.favorites[kind], `favorites.${kind}`, 10000);
       const seen = new Set();
       for (let i = 0; i < value.favorites[kind].length; i++) id(value.favorites[kind][i], `favorites.${kind}[${i}]`, seen);
     }
+  }
+  // The resume came later too. Every text field may be empty, because a resume is filled in over time.
+  if (value.resume !== undefined) {
+    const resume = value.resume;
+    object(resume, 'resume');
+    object(resume.profile, 'resume.profile');
+    for (const key of ['name', 'email', 'phone', 'location']) string(resume.profile[key], `resume.profile.${key}`, 1024);
+    array(resume.profile.links, 'resume.profile.links', 50);
+    for (let i = 0; i < resume.profile.links.length; i++) string(resume.profile.links[i], `resume.profile.links[${i}]`, 2048);
+    for (const section of ['education', 'experience', 'projects']) {
+      records(resume[section], `resume.${section}`, 200, (entry, path) => {
+        for (const key of ['title', 'subtitle', 'date', 'location']) string(entry[key], `${path}.${key}`, 1024);
+        array(entry.bullets, `${path}.bullets`, 100);
+        for (let i = 0; i < entry.bullets.length; i++) string(entry.bullets[i], `${path}.bullets[${i}]`, 4096);
+      });
+    }
+    array(resume.skills, 'resume.skills', 200);
+    for (let i = 0; i < resume.skills.length; i++) string(resume.skills[i], `resume.skills[${i}]`, 4096);
+    // The template (Resume.tsx TEMPLATES) came later still; a resume without one uses Classic.
+    if (resume.template !== undefined) oneOf(resume.template, 'resume.template', ['classic', 'onyx', 'ditto', 'azurill']);
+  }
+  // The whiteboard came later too. Its elements are Drawnix's own JSON, so beyond a distinct id each
+  // is left to the size, depth and finite-number bounds that boundedData applies to everything.
+  if (value.misc !== undefined) {
+    records(value.misc, 'misc', 10000, (item, path) => {
+      string(item.text, `${path}.text`, 8192, true);
+      oneOf(item.kind, `${path}.kind`, ['task', 'idea', 'note']);
+      boolean(item.done, `${path}.done`);
+      timestamp(item.created, `${path}.created`);
+    });
+  }
+  if (value.drawing !== undefined) {
+    object(value.drawing, 'drawing');
+    records(value.drawing.elements, 'drawing.elements', 100000, () => {});
+    if (value.drawing.viewport !== undefined) {
+      object(value.drawing.viewport, 'drawing.viewport');
+      if (typeof value.drawing.viewport.zoom !== 'number' || !(value.drawing.viewport.zoom > 0)) invalid('drawing.viewport.zoom', 'must be a positive number');
+    }
+  }
+  // Today's dashboard layout came later too: widget ids (distinct) and their sizes, in display order.
+  if (value.todayLayout !== undefined) {
+    records(value.todayLayout, 'todayLayout', 100, (item, path) => oneOf(item.size, `${path}.size`, ['sm', 'wide', 'tall', 'lg']));
+  }
+  // Notebooks came later too: a distinct id and a non-empty name each. Notes join one by a tag.
+  if (value.notebooks !== undefined) {
+    records(value.notebooks, 'notebooks', 1000, (notebook, path) => string(notebook.name, `${path}.name`, 256, true));
   }
   boundedData(value, 'workspace', 0, { nodes: 0, chars: 0 }, new Set());
   return value;

@@ -3,7 +3,6 @@
 import type { Todo, Todos } from '../types';
 import { DEFAULT_TODOS, defaultTodo, defaultTodos, today } from './storage';
 
-export const HISTORY_DAYS = 30;
 export const TODO_DRAG_TYPE = 'application/x-brain-todo';
 
 // What a todo becomes when dragged out of the card: the kanban reads this and makes a card. The
@@ -11,9 +10,9 @@ export const TODO_DRAG_TYPE = 'application/x-brain-todo';
 export const todoPayload = (todo: Todo) => ({ type: 'todo' as const, id: todo.id, text: todo.text, category: todo.category, minutes: todo.minutes ?? null, goal: todo.goal ?? null });
 
 // Brings a stored todo list up to `day`. A missing list is the two defaults for today. A list from
-// an earlier day sends its completed todos to history under that day, carries the unfinished ones
-// forward and keeps the newest HISTORY_DAYS days. Either way, any default the user has not deleted
-// for good and is not already in the list comes back. Returns the same object when nothing changed.
+// an earlier day sends its completed todos to history under that day and carries the unfinished ones
+// forward; history is never pruned (Andrew, 2026-09-28: keep old todos). Either way, any default the
+// user has not deleted for good and is not already in the list comes back. Returns the same object when nothing changed.
 export function rollover(todos: Todos | undefined, day = today()): Todos {
   if (!todos) return defaultTodos(day);
   let next = todos;
@@ -21,8 +20,7 @@ export function rollover(todos: Todos | undefined, day = today()): Todos {
     const history = { ...todos.history };
     const done = todos.items.filter(t => t.done);
     if (done.length) history[todos.day] = [...(history[todos.day] ?? []), ...done];
-    const kept = Object.keys(history).sort().slice(-HISTORY_DAYS);
-    next = { ...todos, day, items: todos.items.filter(t => !t.done), history: Object.fromEntries(kept.map(k => [k, history[k]])) };
+    next = { ...todos, day, items: todos.items.filter(t => !t.done), history };
   }
   const missing = DEFAULT_TODOS.filter(d => !next.removedDefaults.includes(d.key) && !next.items.some(t => t.defaultKey === d.key));
   return missing.length ? { ...next, items: [...next.items, ...missing.map(d => defaultTodo(d.key))] } : next;

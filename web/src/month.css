@@ -1,11 +1,122 @@
-/* MonthCalendar.tsx. Dark tokens from styles.css. */
-.month-nav{display:flex;align-items:center;gap:4px}
-.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;padding:0 1px 1px;background:var(--border)}
-.month-weekday{padding:8px 0;background:var(--panel);font-size:11px;font-weight:600;text-align:center;color:var(--muted)}
-.month-day{display:flex;flex-direction:column;gap:3px;min-height:76px;padding:6px;background:var(--panel);min-width:0}
-.month-day[data-outside] .month-date{color:var(--subtle)}
-.month-date{align-self:flex-start;min-width:22px;height:22px;line-height:22px;font-size:12px;text-align:center;border-radius:11px;font-variant-numeric:tabular-nums}
-.month-day[data-today] .month-date{background:var(--copper);color:#191410;font-weight:600}
-.month-event{display:block;padding:2px 6px;border-radius:4px;background:var(--panel-raised);border:1px solid var(--border);font-size:11.5px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.month-event small{margin-right:4px;color:var(--muted);font-size:11px}
-@media (max-width:640px){.month-day{min-height:52px;padding:4px}.month-event{font-size:0;padding:0;height:6px;border:0;background:var(--copper)}}
+/* MonthCalendar.tsx: the #calendar page, ported from ff_technical_instructions' master calendar (.kcal), and
+   MiniCalendar, the same look as a small card on Today. Theme tokens from styles.css. Every chip carries two
+   variables, --c its pale fill and --d its stripe and dot, set per item from the colour key, the way the
+   reference's chips carry theirs; the rules below only ever read them. */
+.kcal{padding:16px 20px 12px;font-size:13px;line-height:1.45}
+.kcal-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px}
+.kcal-title{font-family:var(--font-serif);font-size:20px;font-weight:700;color:var(--deep);margin:0;line-height:1.2;min-width:12ch}
+.kcal-nav{display:inline-flex;align-items:center;gap:4px;margin-right:auto}
+/* The view switch: a segmented control, the current view on a white sheet with accent ink (acc-fill at night,
+   where --acc is white and would not stand out from the other two). */
+.kcal-views{display:inline-flex;gap:2px;border:1px solid var(--line);border-radius:var(--radius-control);padding:3px;background:var(--band)}
+.kcal-views button{height:28px;padding:0 12px;border:0;border-radius:6px;background:none;color:var(--sub);font-size:12.5px;font-weight:600}
+.kcal-views button:hover{color:var(--ink)}
+.kcal-views button[aria-pressed="true"]{background:var(--sheet);color:var(--acc);box-shadow:var(--shadow-1)}
+:root[data-theme="dark"] .kcal-views button[aria-pressed="true"]{background:var(--acc-fill);color:var(--on-acc)}
+.kcal-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+.kcal-search{position:relative;flex:1 1 220px;min-width:160px;display:flex}
+.kcal-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
+.kcal-search input{width:100%;height:34px;padding:0 32px 0 32px;font-size:13px}
+.kcal-clear{position:absolute;right:4px;top:4px;width:26px;height:26px;display:grid;place-items:center;border:0;border-radius:6px;background:none;color:var(--mut)}
+.kcal-clear:hover{background:var(--btn-hover);color:var(--ink)}
+.kcal-cats{display:flex;flex-wrap:wrap;gap:5px}
+.kcal-cat{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 7px;border-radius:999px;border:1px solid var(--line);background:var(--btn-bg);color:var(--sub);font-size:12px;font-weight:600}
+.kcal-cat:hover{background:var(--btn-hover)}
+.kcal-cat[aria-pressed="true"]{background:var(--c);border-color:var(--d);color:var(--ink)}
+.kcal .dot{display:inline-block;flex:0 0 auto;width:11px;height:11px;border-radius:50%;background:var(--d)}
+.kcal-active{display:flex;align-items:center;gap:8px;margin:-4px 0 10px;font-size:12.5px;color:var(--sub)}
+.kcal .today-note{padding:0 0 10px}
+
+/* Month grid. Chips are one line with the start time; the full text is the title and the dialog. The class
+   names are the page's older ones (month-*), which the tests read. */
+.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--radius-control);overflow:hidden}
+.month-weekday{padding:6px 4px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);background:var(--soft);border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.month-day{display:flex;flex-direction:column;gap:3px;min-height:96px;padding:4px;min-width:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--sheet)}
+.month-weekday:nth-child(7),.month-day:nth-child(7n){border-right:0}
+.month-day:nth-last-child(-n+7){border-bottom:0}
+.month-day[data-outside]{background:var(--soft)}
+.month-day[data-outside] .month-date{color:var(--mut)}
+.month-date{align-self:flex-start;display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;font-size:12px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+.month-day[data-today] .month-date{background:var(--acc-fill);color:var(--on-acc)}
+.month-day[data-focus]{box-shadow:inset 0 0 0 2px var(--acc)}
+.month-event,.kcal-card{display:block;width:100%;text-align:left;border:0;border-left:3px solid var(--d);background:var(--c);color:var(--ink);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.month-event{border-radius:4px;padding:3px 5px;font-size:11.5px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.month-event small,.kcal-card small{margin-right:4px;font-weight:500;color:var(--sub);font-size:11px}
+.month-event:hover,.kcal-card:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.18);position:relative;z-index:2}
+.month-event[data-done],.kcal-card[data-done],.kcal-row b[data-done]{text-decoration:line-through;opacity:.7}
+.kcal-more{align-self:flex-start;border:0;background:none;color:var(--acc);font-size:11.5px;font-weight:600;padding:1px 4px;border-radius:4px;text-decoration:underline}
+.kcal-more:hover{background:var(--btn-hover)}
+
+/* Week view: seven columns of full cards rather than an hour grid, as in the reference; most days hold a few
+   evening things, so an hour grid would be mostly empty rows. */
+.kcal-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.kcal-wcol{min-width:0}
+.kcal-wh{text-align:center;padding:4px 0 6px;border-bottom:1px solid var(--line);margin-bottom:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)}
+.kcal-wh b{display:block;font-family:var(--font-serif);font-size:17px;letter-spacing:0;color:var(--deep)}
+.kcal-wcol[data-today] .kcal-wh{border-bottom:2px solid var(--acc-fill)}
+.kcal-wcol[data-today] .kcal-wh b{color:var(--acc)}
+.kcal-card{border-radius:6px;padding:6px 7px;margin-bottom:6px;font-size:12px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.kcal-card small{display:block;margin:0 0 1px}
+.kcal-none{margin:0;padding:6px 0;text-align:center;font-size:12px;color:var(--mut)}
+
+/* List view, grouped by day, the way an agenda reads top to bottom. */
+.kcal-list{max-height:620px;overflow-y:auto;padding-right:4px}
+.kcal-lday{margin-bottom:14px}
+.kcal-lday h3{position:sticky;top:0;margin:0 0 6px;padding:4px 0;background:var(--sheet);font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+.kcal-lday[data-today] h3{color:var(--acc)}
+.kcal-row{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--btn-bg);color:var(--ink);padding:8px 10px;margin-bottom:6px;transition:box-shadow .15s,border-color .15s}
+.kcal-row:hover{border-color:var(--acc-fill);box-shadow:var(--shadow-1)}
+.kcal-row .dot{margin-top:4px}
+.kcal-row .body{flex:1 1 auto;min-width:0}
+.kcal-row b{display:block;font-size:13px;color:var(--deep)}
+.kcal-row .meta{font-size:12px;color:var(--sub)}
+.kcal-tag{flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.kcal-empty{padding:36px 0;text-align:center;color:var(--sub)}
+.kcal-foot{margin:10px 0 0;padding-top:8px;border-top:1px solid var(--line);font-size:12px;color:var(--sub)}
+
+/* Dialogs: an item's details and the colour key, both native <dialog>. */
+.kcal-dialog{width:min(420px,calc(100vw - 32px));padding:0;border:1px solid var(--line);border-radius:14px;background:var(--sheet);color:var(--ink);box-shadow:var(--shadow-2);font-size:13px;line-height:1.5}
+.kcal-dialog::backdrop{background:var(--scrim)}
+.kcal-dh{display:flex;align-items:center;gap:10px;padding:16px 14px 6px 18px}
+.kcal-dh h3{flex:1;margin:0;font-family:var(--font-serif);font-size:16px;font-weight:700;color:var(--deep)}
+.kcal-dh .dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--d)}
+.kcal-db{padding:4px 18px 16px}
+.kcal-db p{margin:0}
+.kcal-db .lbl{margin:10px 0 2px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+.kcal-db .val{font-size:13.5px}
+.kcal-df{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:0 18px 16px}
+.kcal-df a.button{text-decoration:none}
+.kcal-key{list-style:none;margin:6px 0 0;padding:0}
+.kcal-key li{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.kcal-key li:last-child{border-bottom:0}
+.kcal-key .sw{flex:0 0 auto;width:28px;height:18px;margin-top:2px;border-radius:4px;background:var(--c);border-left:3px solid var(--d)}
+.kcal-key b{display:block}
+.kcal-key span span{font-size:12px;color:var(--sub)}
+
+@media (max-width:640px){
+  .kcal{padding:12px 12px 8px}
+  .month-day{min-height:60px;padding:3px 2px}
+  .month-event{font-size:0;padding:0;height:6px;border-left:0;border-radius:3px;background:var(--d)}
+  .kcal-week{grid-template-columns:1fr}
+  .kcal-wh{display:flex;gap:8px;align-items:baseline;text-align:left}
+  .kcal-wh b{display:inline}
+}
+@media (prefers-reduced-motion:reduce){.month-event,.kcal-card,.kcal-row{transition:none}.month-event:hover,.kcal-card:hover{transform:none}}
+
+/* MiniCalendar: the month as a small card on Today, about 300px, one link per day, in the same look: today a
+   filled accent circle, a dot under days with events or todos. */
+.mini-cal{padding:0}
+.mini-cal .section-heading a{display:inline-flex;align-items:center;gap:4px;text-decoration:none}
+.mini-cal-body{padding:8px 14px 14px}
+.mini-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mini-cal-nav strong{font-family:var(--font-serif);font-size:14px;font-weight:700;color:var(--deep)}
+.mini-cal-nav .icon-button{width:30px;height:30px;min-width:30px;min-height:30px}
+.mini-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;text-align:center}
+.mini-cal-weekday{padding:4px 0;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)}
+.mini-cal-day{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:50%;font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:none;font-variant-numeric:tabular-nums}
+.mini-cal-day:hover{background:var(--btn-hover)}
+.mini-cal-day[data-outside]{color:var(--mut);font-weight:400}
+.mini-cal-day[data-today]{background:var(--acc-fill);color:var(--on-acc);font-weight:700}
+.mini-cal-day[data-marked]::after{content:"";position:absolute;bottom:3px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--acc-fill)}
+.mini-cal-day[data-today][data-marked]::after{background:var(--on-acc)}
+.mini-cal .today-note{margin:8px 0 0}

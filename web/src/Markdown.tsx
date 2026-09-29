@@ -2,6 +2,7 @@
 // --- rules, fenced code, | tables |, and inline `code`, **bold**, *italic* and links. Shared by
 // Chat, the file preview and the Skills page, which is why it lives in its own file.
 import type { ReactNode } from 'react';
+import { CodeBlock } from '@/components/ui/code-block';
 import './markdown.css';
 
 // An HTML entity in prose (a table cell reading `CLS &lt; 0.1`) shows as its character. Inside a
@@ -96,6 +97,7 @@ function Table({ rows }: { rows: string[][] }) {
 function blocks(content: string, join: boolean): ReactNode[] {
   const out: ReactNode[] = [];
   let code: string[] | null = null;   // lines inside an open ``` fence
+  let lang = '';                      // the word after the opening fence, for the code block's label and highlighting
   let table: string[][] | null = null; // cells of the | rows | read so far
   let quote: string[] | null = null;   // lines of an open > quote, without the >
   let para: { text: string; bullet: boolean; depth: number; task?: string } | null = null; // the paragraph being joined; task is ' ' or 'x' on a - [ ] line
@@ -107,8 +109,8 @@ function blocks(content: string, join: boolean): ReactNode[] {
   };
   for (const line of content.split('\n')) {
     const fence = line.trimStart().startsWith('```');
-    if (code) { if (fence) { out.push(<pre key={out.length}>{code.join('\n')}</pre>); code = null; } else code.push(line); continue; }
-    if (fence) { end(); code = []; continue; }
+    if (code) { if (fence) { out.push(<CodeBlock key={out.length} code={code.join('\n')} language={lang}/>); code = null; } else code.push(line); continue; }
+    if (fence) { end(); code = []; lang = line.trim().slice(3).trim().split(/\s+/)[0] || ''; continue; }
     if (/^\s*>/.test(line)) { if (!quote) end(); (quote ??= []).push(line.replace(/^\s*>\s?/, '')); continue; }
     if (line.trimStart().startsWith('|')) {
       if (!table) end();
@@ -128,7 +130,7 @@ function blocks(content: string, join: boolean): ReactNode[] {
     else { end(); para = { text: line.trim(), bullet: false, depth: 0 }; }
   }
   end();
-  if (code) out.push(<pre key="unclosed">{code.join('\n')}</pre>); // a fence left open runs to the end
+  if (code) out.push(<CodeBlock key="unclosed" code={code.join('\n')} language={lang}/>); // a fence left open runs to the end
   return out;
 }
 

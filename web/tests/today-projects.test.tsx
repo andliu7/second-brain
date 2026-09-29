@@ -29,54 +29,34 @@ const section = (name: RegExp) => screen.getByRole('heading', { level: 2, name }
 const openAgenda = () => { location.hash = '#agenda'; render(<App />); };
 
 describe('Today and Projects, live from disk', () => {
-  it('opens on Today: courses with git state, uncommitted repos, the newest STATUS.md entry, skill runs', async () => {
+  // 2026-09-28: uncommitted work, courses, Blueberry's status, pinned files and skill runs left Today at
+  // Andrew's word ("I don't see their use"); Projects and Skills carry them. Today is one screen: the
+  // quote as a small box in the heading, a plus to capture, quick capture, todos. The mini board left
+  // the same day ("remove kanban from today"): the board lives on Kanban only.
+  it('opens on Today: one screen with the quote box, the plus, quick capture and the todos, and no board', async () => {
     openAgenda();
     expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
-    expect(await within(section(/Courses/)).findByText('assignment-1')).toBeInTheDocument();
-    expect(within(section(/Courses/)).getByText('2 uncommitted')).toBeInTheDocument();
-    expect(within(section(/Courses/)).getByText('No project folders in school/CMSC434 yet.')).toBeInTheDocument();
-    const uncommitted = section(/Uncommitted work/);
-    expect(within(uncommitted).getByText('grignard-app-source')).toBeInTheDocument();
-    expect(within(uncommitted).getByText('15 uncommitted')).toBeInTheDocument();
-    expect(within(uncommitted).queryByText('Pibble')).not.toBeInTheDocument();
-    expect(within(uncommitted).queryByText('Portfolio')).not.toBeInTheDocument();
-    const status = section(/Blueberry/);
-    expect(within(status).getByText('Two measured checks now run')).toBeInTheDocument();
-    expect(within(status).queryByText('An older entry')).not.toBeInTheDocument();
-    expect(await within(section(/Skill runs/)).findByText('Done in 42s')).toBeInTheDocument();
-    expect(within(section(/Skill runs/)).getByRole('link', { name: /Clean up/ })).toHaveAttribute('href', '#skills');
-    expect(within(section(/Pinned/)).getByText('Welcome to your second brain')).toBeInTheDocument();
+    for (const gone of [/Courses/, /Uncommitted work/, /Blueberry/, /Skill runs/, /Pinned/]) expect(screen.queryByRole('heading', { level: 2, name: gone })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Capture a thought' })).toBeInTheDocument();
+    expect(document.querySelector('.today-heading .quote-board')).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Board' })).toBeNull();
+    expect(document.querySelector('.kanban-board, .sticky-canvas')).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Read for 15 minutes' })).toBeInTheDocument();
     expect(within(section(/Quick capture/)).getByLabelText('Your quick thought')).toBeInTheDocument();
-    // No hero, no slogan, no stat cards: the header is the title and one action.
-    expect(document.querySelector('.page-heading')?.textContent).toBe('TodayCapture a thought');
+    // 2026-09-28: the activity heat map is a progress widget now, not a folded panel, and there is one copy.
+    expect(screen.getByRole('heading', { level: 3, name: 'Activity' }).closest('li')?.querySelector('.heat-grid')).not.toBeNull();
+    expect(document.querySelectorAll('.heat-grid')).toHaveLength(1);
+    // No hero, no slogan, no stat cards: the header is the title, the quote and one action.
+    expect(document.querySelector('.page-heading h1')?.textContent).toBe('Today');
     expect(document.querySelectorAll('main .eyebrow, main .stat-card, main .welcome')).toHaveLength(0);
     // One workspace: no switcher, and the nav in the order the piece names. Projects has no row (Today
     // links to it), Files is gone and Generate lives inside Chat (Andrew's decisions of 2026-09-24).
     expect(screen.queryByText('Personal workspace')).not.toBeInTheDocument();
     expect(screen.queryByText('YOUR PERSONAL WORKSPACE')).not.toBeInTheDocument();
     const nav = within(screen.getByRole('navigation'));
-    expect(nav.getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI$/g, ''))).toEqual(['Today', 'Board', 'Buy', 'Skills', 'Chat', 'Network', 'Goals']);
+    expect(nav.getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI$/g, ''))).toEqual(['Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard', 'PDF tools']); // 2026-09-25: one Kanban page; Network, Goals, Buy are not tabs. 2026-09-28: Docs, Whiteboard and Resume joined, and Resume then moved under Docs (a note of kind Resume); PDF tools joined after them
     expect(screen.getByRole('link', { name: /^Projects/ })).toHaveAttribute('href', '#projects');
     expect(screen.getByRole('link', { name: /^Projects/ })).toHaveTextContent('4 repos');
-  });
-
-  // P2b round 6: the Run button moved off the skill's page and into the run column on Skills, and a skill
-  // now opens in a pop-up that holds no Run. "the run row links to #skills/clean-up" measured the page
-  // that layout replaced; the replacement is the same claim about the layout that is there now, and it
-  // says more than the old one did: one click on the row reaches the enabled Run itself, focused, with
-  // its output area, and no pop-up over it.
-  it("a Skill runs row goes to the run column on Skills, not to the skill's pop-up", async () => {
-    const user = userEvent.setup();
-    openAgenda();
-    await screen.findByRole('heading', { level: 1, name: 'Today' });
-    await user.click(await within(section(/Skill runs/)).findByRole('link', { name: /Clean up/ }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Skills' })).toBeInTheDocument();
-    expect(location.hash).toBe('#skills');
-    const play = await screen.findByRole('button', { name: 'Run Clean up' });
-    expect(play).toBeEnabled();
-    expect(play).toHaveFocus();
-    expect(screen.getByRole('log', { name: 'Clean up output' })).toBeInTheDocument();
-    expect(document.querySelector('dialog[open]')).toBeNull();
   });
 
   it('lists every repo and course project on Projects, each opening to its details', async () => {

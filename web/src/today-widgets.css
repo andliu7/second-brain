@@ -1,0 +1,34 @@
+/* Today's progress widgets (TodayWidgets.tsx). Cells are square and can be as small as 170px, so each
+   card is a column whose chart takes whatever height is left. App tokens only, each with a fallback. */
+.tw{margin-top:16px}
+.tw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.tw-head h2{margin:0;font-size:15px}
+.tw-card{box-sizing:border-box;height:100%;display:flex;flex-direction:column;gap:4px;padding:12px 14px;overflow:hidden;background:var(--sheet,#fff);color:var(--ink,#1A1B22);border:1px solid var(--line,#DAD7E4);border-radius:var(--radius,12px)}
+.tw-title{margin:0;font-size:13px;font-weight:600;color:var(--sub,#4A4756)}
+.tw-big{margin:0;line-height:1.1}
+.tw-num{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums}
+.tw-caption{font-size:12px;color:var(--mut,#8B8798)}
+.tw-change{margin:0;font-size:12px;color:var(--sub,#4A4756)}
+.tw-change[data-dir=up]{color:var(--green-dk,var(--green,#2E7A61))}
+.tw-change[data-dir=down]{color:var(--red,#B3261E)}
+/* An empty widget keeps its cell (the grid is not changed) but reads as meant: a quiet dashed frame, and
+   an icon over one short line, both centred in whatever height the cell has. */
+.tw-card[data-empty]{background:transparent;border-style:dashed}
+.tw-empty{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px 6px;text-align:center;color:var(--mut,#8B8798)}
+.tw-empty p{margin:0;max-width:26ch;font-size:12px;line-height:1.45}
+.tw-empty a{color:inherit;text-decoration:underline;text-decoration-color:var(--line,#DAD7E4);text-underline-offset:3px}
+.tw-empty a:hover{color:var(--ink,#1A1B22);text-decoration-color:currentColor}
+.tw-note{margin:2px 0 0;font-size:11px;color:var(--mut,#8B8798)}
+.tw-chart{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:4px}
+.tw-bars{flex:1;width:100%;min-height:24px}
+.tw-bars rect{fill:var(--acc-fill,var(--acc,#6B4EA8))}
+.tw-dots{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;align-content:end;flex:1}
+.tw-dots span{aspect-ratio:1;max-height:16px;border-radius:50%;border:1px solid var(--line,#DAD7E4)}
+.tw-dots span[data-on]{background:var(--acc-fill,var(--acc,#6B4EA8));border-color:transparent}
+.tw-meters{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0}
+.tw-meter{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px}
+.tw-meter-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tw-meter-count{color:var(--mut,#8B8798);font-variant-numeric:tabular-nums}
+.tw-track{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--band,#F3F2F7);overflow:hidden}
+.tw-track span{display:block;height:100%;background:var(--acc-fill,var(--acc,#6B4EA8))}
+.tw-chart .heat{flex:1;min-height:0}

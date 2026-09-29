@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { QuoteBoard } from '../src/QuoteBoard';
 import { QUOTES, pickQuote, quoteText } from '../src/lib/quotes';
 import { wrapText } from '../src/components/ui/text-flipping-board';
 
 const ROWS = 6; const COLS = 22;
+// Today's 2 by 36 board as its rows read once settled: the wrapped text, then blank rows to fill it.
+const compact = (text: string) => { const lines = wrapText(text.toUpperCase(), 36, 2); while (lines.length < 2) lines.push(''); return lines; };
 const rows = () => [...document.querySelectorAll('.flap-row')].map(row => row.textContent?.trimEnd() ?? '');
 
 describe('the split-flap quote board', () => {
@@ -47,5 +49,41 @@ describe('the split-flap quote board', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }));
     render(<QuoteBoard/>);
     expect(rows().join('')).toBe('');
+  });
+
+  it('fits every quote on the compact Today board, 2 rows of 36, with the author under it', () => {
+    for (const quote of QUOTES) {
+      const lines = wrapText(quote.text.toUpperCase(), 36);
+      expect(lines.length, quote.text).toBeLessThanOrEqual(2);
+    }
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    render(<QuoteBoard rows={2} cols={36} byline/>);
+    expect(rows()).toHaveLength(2);
+    expect(document.querySelectorAll('.flap-row')[0].children).toHaveLength(36);
+    expect(rows()).toEqual(compact(QUOTES[0].text));
+  });
+
+  it('has the quote and its author as text in the region as soon as it mounts', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    render(<QuoteBoard rows={2} cols={36} byline/>);
+    const region = screen.getByRole('region', { name: 'Quote of the day' });
+    expect(region).toHaveTextContent(QUOTES[0].text);
+    expect(region).toHaveTextContent('- ' + QUOTES[0].by);
+  });
+
+  it('always ends on the quote when motion is allowed, even when the interval runs late', () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    try {
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }));
+      render(<QuoteBoard rows={2} cols={36} byline/>);
+      expect(rows().join('')).toBe('');
+      // A throttled background tab fires the interval once a second or less: six seconds pass on the
+      // clock, the interval fires once, and the board still lands.
+      vi.setSystemTime(Date.now() + 6000);
+      act(() => { vi.advanceTimersByTime(45); });
+      expect(rows()).toEqual(compact(QUOTES[0].text));
+      expect(document.querySelectorAll('.flap-face[style*="rotateX(-90deg)"]')).toHaveLength(0);
+    } finally { vi.useRealTimers(); }
   });
 });

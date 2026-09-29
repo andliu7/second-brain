@@ -25,7 +25,7 @@ beforeEach(() => {
 async function openGenerate() {
   render(<App />);
   await screen.findByRole('button', { name: /Capture a thought/ });
-  await userEvent.click(screen.getByRole('button', { name: /^Chat\s*AI?$/ }));
+  await userEvent.click(screen.getByRole('button', { name: /^andliu\.ai\s*AI?$/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Generate' }));
 }
 
