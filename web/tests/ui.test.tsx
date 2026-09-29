@@ -75,7 +75,8 @@ describe('real workspace flows in a test DOM (not visual QA)',()=>{
  });
  it('disables sending when the selected provider has no configured key',async()=>{
   const user=userEvent.setup();render(<App/>);await ready();await user.click(screen.getByRole('button',{name:/^andliu\.ai\s*AI?$/}));
-  await user.selectOptions(screen.getByLabelText('Chat provider'),'openai');await user.type(await screen.findByLabelText('Message'),'Hello');
+  // 2026-09-28: provider and model are one menu inside the message box; choosing an OpenAI model chooses OpenAI.
+  await user.click(await screen.findByRole('button',{name:/^Chat model/}));await user.click(within(screen.getByRole('option',{name:/GPT-5\.4/})).getByRole('button'));await user.type(await screen.findByLabelText('Message'),'Hello');
   expect(screen.getByRole('button',{name:'Send message'})).toBeDisabled();
   expect(requests.some(r=>r.url.endsWith('/chat'))).toBe(false);
  });

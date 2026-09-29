@@ -17,7 +17,7 @@ beforeEach(() => {
 const columns = () => screen.getAllByRole('region').map(el => el.getAttribute('aria-label')).filter(name => ['To do', 'Doing', 'Done'].includes(name || ''));
 
 describe('the shell after the restructure', () => {
-  it('#agenda stacks the quote board, the todo card with its two defaults, no kanban, the calendar card and the heat calendar', async () => {
+  it('#agenda stacks the quote board, the todo card with its two defaults, no kanban, and the calendar and activity card', async () => {
     location.hash = '#agenda';
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
@@ -26,12 +26,15 @@ describe('the shell after the restructure', () => {
     expect(screen.getByRole('checkbox', { name: 'Write for 15 minutes' })).toBeInTheDocument();
     // 2026-09-28: the board left Today ("remove kanban from today"); it is on #board only.
     expect(columns()).toEqual([]);
-    // 2026-09-28: Today carries a small calendar card; the full month is its own page, #calendar.
-    const calendar = screen.getByRole('region', { name: 'Calendar' });
+    // 2026-09-28: Today carries a small calendar card; the full month is its own page, #calendar. The same
+    // day the activity heat map joined it ("calendar combine it with activity"): the collapsed card shades its
+    // days by activity, and Show more opens the heat calendar inside the card.
+    const calendar = screen.getByRole('region', { name: 'Calendar and activity' });
     expect(calendar).toHaveClass('mini-cal');
     expect(within(calendar).getByText(new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' }))).toBeInTheDocument();
     expect(await within(calendar).findByRole('link', { name: 'Connect' })).toHaveAttribute('href', '/api/calendar/connect');
-    expect(document.querySelector('.heat-grid')).toBeInTheDocument();
+    await userEvent.setup().click(within(calendar).getByRole('button', { name: 'Show more' }));
+    expect(calendar.querySelector('.heat-grid')).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.queryByRole('heading', { name: 'Board' })).toBeNull();
     // The old page is still there under the new pieces, and Projects is a row at the end, not a nav item.
@@ -80,7 +83,7 @@ describe('the shell after the restructure', () => {
   it('Today shows the small calendar card, not the big grid, and its link and days open #calendar', async () => {
     location.hash = '#agenda';
     render(<App />);
-    const card = await screen.findByRole('region', { name: 'Calendar' });
+    const card = await screen.findByRole('region', { name: 'Calendar and activity' });
     expect(document.querySelector('.month-grid')).toBeNull();
     expect(card.querySelectorAll('.mini-cal-day')).toHaveLength(42);
     expect(card.querySelectorAll('.mini-cal-day[data-today]')).toHaveLength(1);

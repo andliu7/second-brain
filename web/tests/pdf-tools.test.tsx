@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { useRef, useState } from 'react';
 import { PDFDocument, PDFArray, PDFRawStream, decodePDFRawStream, type PDFPage } from 'pdf-lib';
 import { PdfTools, buildPamphlet, buildPdf, type Source } from '../src/PdfTools';
+import { Docs } from '../src/Docs';
+import { Write } from '../src/Write';
 import { BLANK, fromShown, history, record, toShown, undo, type PageItem, type Rotation } from '../src/lib/pdf-pages';
-import { initialWorkspace } from '../src/lib/storage';
+import { initialWorkspace, makeDoc, readData } from '../src/lib/storage';
 import { validateWorkspace } from '../shared/validate.mjs';
-import type { Workspace } from '../src/types';
+import type { Doc, Workspace } from '../src/types';
 
 // pdf.js only draws thumbnails, and jsdom has no canvas to draw on, so it is replaced by a stand-in whose
 // render resolves at once. Everything that writes a PDF is the real pdf-lib.
@@ -210,9 +212,123 @@ describe('PDF tools: edit, pamphlet and save', () => {
     await user.click(screen.getByRole('button', { name: 'Save to workspace' }));
     await waitFor(() => expect(latest).not.toBeNull());
     const doc = latest!.docs[0];
-    expect(doc).toMatchObject({ name: 'deck.pdf', kind: 'file', mime: 'application/pdf' });
+    // The PDF tag (2026-09-28) puts it in Docs under PDFs.
+    expect(doc).toMatchObject({ name: 'deck.pdf', kind: 'file', mime: 'application/pdf', tags: ['PDF'] });
     expect(doc.data).toMatch(/^data:application\/pdf;base64,/);
     expect(validateWorkspace(latest!)).toBe(latest);
     expect((await PDFDocument.load(Uint8Array.from(atob(doc.data!.split(',')[1]), c => c.charCodeAt(0)))).getPageCount()).toBe(5);
+  });
+});
+
+// 2026-09-28: PDF tools merged into Docs. A PDF is a document (a file doc with the PDF tag), and opening
+// one shows these tools working on it; Save writes back into the same doc.
+const pdfDoc = async (n: number, name = 'notes.pdf'): Promise<Doc> => {
+  const bytes = await makePdf(n);
+  return { ...makeDoc(name, '', 'file', ['PDF']), mime: 'application/pdf', data: await readData(new Blob([bytes], { type: 'application/pdf' })), size: bytes.length };
+};
+const bytesOf = (doc: Doc) => Uint8Array.from(atob(doc.data!.split(',')[1]), c => c.charCodeAt(0));
+
+function DocsHost({ initial, onCommit }: { initial: Workspace; onCommit?: (w: Workspace) => void }) {
+  const current = useRef(initial);
+  const [workspace, setWorkspace] = useState(initial);
+  const commit = async (update: (w: Workspace) => Workspace) => { const next = update(current.current); current.current = next; setWorkspace(next); onCommit?.(next); return true; };
+  return <Docs workspace={workspace} commit={commit}/>;
+}
+
+describe('PDF tools on a document', () => {
+  it("opens the document's pages, Save writes the change back into the same doc, and Save as new PDF adds a copy", async () => {
+    const user = userEvent.setup();
+    const doc = await pdfDoc(3);
+    let latest: Workspace = { ...initialWorkspace(), docs: [doc] };
+    function DocHost() {
+      const [workspace, setWorkspace] = useState(latest);
+      const commit = async (update: (w: Workspace) => Workspace) => { latest = update(latest); setWorkspace(latest); return true; };
+      return <PdfTools workspace={workspace} commit={commit} doc={workspace.docs.find(d => d.id === doc.id)}/>;
+    }
+    render(<DocHost/>);
+    await waitFor(() => expect(tiles()).toHaveLength(3));
+    expect(order()).toEqual(['notes.pdf page 1', 'notes.pdf page 2', 'notes.pdf page 3']);
+    // No page heading or name field: Docs shows the title. Nothing to save until something changes.
+    expect(screen.queryByRole('heading', { name: 'PDF tools' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    // The loaded pages are the starting point, so Undo has nothing to take away.
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+
+    await user.click(tiles()[2]);
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument());
+    expect(latest.docs).toHaveLength(1);
+    const saved = latest.docs[0];
+    expect(saved.id).toBe(doc.id);
+    expect(saved.size).toBe(bytesOf(saved).length);
+    expect(widths(await PDFDocument.load(bytesOf(saved)))).toEqual([301, 302]);
+    expect(validateWorkspace(latest)).toBe(latest);
+
+    await user.click(screen.getByRole('button', { name: 'Save as new PDF' }));
+    await waitFor(() => expect(latest.docs).toHaveLength(2));
+    expect(latest.docs[0]).toMatchObject({ name: 'notes copy.pdf', kind: 'file', mime: 'application/pdf', tags: ['PDF'] });
+    expect(widths(await PDFDocument.load(bytesOf(latest.docs[0])))).toEqual([301, 302]);
+  });
+});
+
+describe('PDFs in Docs', () => {
+  const list = () => screen.getAllByRole('listitem').map(li => li.querySelector('strong')!.textContent);
+  it('Import PDF adds each chosen PDF as a document under PDFs, skips what is not a PDF, and opens the first in PDF tools', async () => {
+    const user = userEvent.setup();
+    let latest: Workspace | null = null;
+    render(<DocsHost initial={{ ...initialWorkspace(), docs: [makeDoc('Alpha', 'first', 'note', ['Note'])] }} onCommit={w => { latest = w; }}/>);
+    await user.click(screen.getByRole('button', { name: 'New, other kinds' }));
+    expect(within(screen.getByRole('menu', { name: 'New document' })).getAllByRole('menuitem').map(item => item.textContent)).toContain('Import PDF');
+    // The menu item clicks the hidden file input; the upload stands in for the file dialog.
+    await user.click(screen.getByRole('menuitem', { name: 'Import PDF' }));
+    await user.upload(screen.getByLabelText('Choose PDF files to import'), [
+      new File([await makePdf(2)], 'lecture.pdf', { type: 'application/pdf' }),
+      new File(['not a pdf at all'], 'fake.pdf', { type: 'application/pdf' }),
+    ]);
+    await waitFor(() => expect(latest?.docs.filter(d => d.tags.includes('PDF'))).toHaveLength(1));
+    expect(screen.getByRole('alert')).toHaveTextContent('Skipped fake.pdf (not a PDF).');
+    const imported = latest!.docs[0];
+    expect(imported).toMatchObject({ name: 'lecture.pdf', kind: 'file', mime: 'application/pdf', tags: ['PDF'] });
+    expect(validateWorkspace(latest!)).toBe(latest);
+    // All notes lists it beside the notes, open, marked with its badge; PDFs holds only the PDF.
+    expect(list().sort()).toEqual(['Alpha', 'lecture.pdf']);
+    expect(screen.getByRole('button', { name: /lecture\.pdf/ })).toHaveAttribute('aria-current', 'true');
+    await user.click(screen.getByRole('button', { name: 'PDFs' }));
+    expect(list()).toEqual(['lecture.pdf']);
+    expect(screen.getByRole('button', { name: /lecture\.pdf/ }).querySelector('.docs-pdf-badge')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Import PDF' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Organize' }, { timeout: 10000 })).toBeInTheDocument();
+    await waitFor(() => expect(tiles()).toHaveLength(2));
+    // A PDF is not a note to print.
+    expect(screen.getByRole('region', { name: 'Editor' })).not.toHaveClass('note-print');
+  });
+
+  it('a PDF saved by PDF tools before the merge is listed too, and its Full screen opens #write/<id>', async () => {
+    const user = userEvent.setup();
+    const old = { ...(await pdfDoc(1, 'old.pdf')), tags: [] };
+    render(<DocsHost initial={{ ...initialWorkspace(), docs: [old] }}/>);
+    await user.click(screen.getByRole('button', { name: 'PDFs' }));
+    expect(list()).toEqual(['old.pdf']);
+    await user.click(screen.getByRole('button', { name: /old\.pdf/ }));
+    await waitFor(() => expect(tiles()).toHaveLength(1));
+    await user.click(screen.getByRole('button', { name: /Full screen/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#write/' + old.id));
+    window.location.hash = '';
+  });
+
+  it('#write/<id> for a PDF shows PDF tools on the whole page with its title, and no word count or print button', async () => {
+    const doc = await pdfDoc(2, 'reader.pdf');
+    const workspace = { ...initialWorkspace(), docs: [doc] };
+    render(<Write workspace={workspace} commit={async () => true} id={doc.id}/>);
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('reader.pdf');
+    await waitFor(() => expect(tiles()).toHaveLength(2), { timeout: 10000 });
+    expect(screen.getByRole('main')).toHaveClass('write-pdf');
+    expect(screen.getByRole('main')).not.toHaveClass('note-print');
+    expect(screen.queryByText(/\d+ words?$/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save as PDF' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
   });
 });

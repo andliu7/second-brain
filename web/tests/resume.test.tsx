@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { useRef, useState } from 'react';
 import { Resume, resumeText, emptyResume } from '../src/Resume';
+import { parseLatexResume } from '../src/lib/latex-resume';
 import { initialWorkspace, loadWorkspace, saveWorkspace } from '../src/lib/storage';
 import { validateWorkspace } from '../shared/validate.mjs';
 import type { Workspace } from '../src/types';
@@ -111,7 +112,8 @@ describe('the resume page', () => {
     const user = userEvent.setup();
     const first = render(<Host initial={initialWorkspace()}/>);
     const picker = screen.getByRole('combobox', { name: 'Template' });
-    expect(Array.from((picker as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['Classic', 'Onyx', 'Ditto', 'Azurill']);
+    // Re-pointed 2026-09-28: five more of Reactive Resume's templates joined the menu (Ditgar to Scizor).
+    expect(Array.from((picker as HTMLSelectElement).options).map(o => o.textContent)).toEqual(['Classic', 'Onyx', 'Ditto', 'Azurill', 'Ditgar', 'Leafish', 'Kakuna', 'Meowth', 'Scizor']);
     expect(preview()).toHaveAttribute('data-template', 'classic');
     await user.selectOptions(picker, 'Ditto');
     expect(preview()).toHaveAttribute('data-template', 'ditto');
@@ -122,7 +124,7 @@ describe('the resume page', () => {
     expect(screen.getByRole('combobox', { name: 'Template' })).toHaveValue('ditto');
     // Each template has its own rules in the stylesheet, not just a name in the menu.
     const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src/resume.css'), 'utf8');
-    for (const id of ['onyx', 'ditto', 'azurill']) expect(css).toContain(`.resume-page[data-template="${id}"]`);
+    for (const id of ['onyx', 'ditto', 'azurill', 'ditgar', 'leafish', 'kakuna', 'meowth', 'scizor']) expect(css).toContain(`.resume-page[data-template="${id}"]`);
   });
 
   it('has a print stylesheet that prints the letter page alone', () => {
@@ -131,5 +133,91 @@ describe('the resume page', () => {
     expect(css).toContain('@media print');
     expect(print).toContain('@page{size:letter;margin:0}');
     expect(print).toContain('body:has(.resume-page) *:not(:has(.resume-page)):not(.resume-page):not(.resume-page *){display:none!important}');
+  });
+});
+
+// 2026-09-28: the sidebar templates put the skills in a column of their own, and the resume reads and
+// writes LaTeX (Andrew: "can we make it so that it reads latex too?").
+describe('sidebar templates and LaTeX', () => {
+  const readBlob = (blob: Blob) => new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.readAsText(blob); });
+  const TEX = String.raw`\documentclass{article}
+\begin{document}
+\begin{center}
+  \textbf{\Huge Lin Park} \\ \href{mailto:lin@example.com}{\underline{lin@example.com}} $|$ Rockville, MD
+\end{center}
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading{Research Assistant}{Jan. 2026 -- Present}{Chem Lab \& Co}{College Park, MD}
+      \resumeItemListStart
+        \resumeItem{Automated 90\% of the titrations}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+\section{Technical Skills}
+  \begin{itemize}[leftmargin=0.15in, label={}]
+    \item{\textbf{Languages}{: Python, R}}
+  \end{itemize}
+\section{Hobbies}
+  Climbing
+\end{document}`;
+
+  it('a sidebar template draws the skills in the side column and the sections in the main one', async () => {
+    const user = userEvent.setup();
+    const { resume } = parseLatexResume(TEX);
+    render(<Host initial={{ ...initialWorkspace(), resume }}/>);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Template' }), 'Ditgar');
+    expect(preview()).toHaveAttribute('data-template', 'ditgar');
+    expect(preview().querySelector('.resume-side')!.textContent).toBe('SkillsLanguages: Python, R');
+    expect(preview().querySelector('.resume-main')!.textContent).toContain('Chem Lab & Co');
+  });
+
+  it('Import LaTeX reads a pasted file, lists what it could not read, and replaces the resume only when asked, keeping the template', async () => {
+    const user = userEvent.setup();
+    render(<Host initial={{ ...initialWorkspace(), resume: { ...emptyResume(), profile: { ...emptyResume().profile, name: 'Old Name' }, template: 'scizor' } }}/>);
+    await user.click(screen.getByRole('button', { name: 'Import LaTeX' }));
+    const panel = screen.getByRole('region', { name: 'Import a LaTeX resume' });
+    // user.type reads { and [ as key names, so the source is pasted the way a person would paste it.
+    await user.click(within(panel).getByRole('textbox', { name: 'LaTeX source' }));
+    await user.paste(TEX);
+    await user.click(within(panel).getByRole('button', { name: 'Read it' }));
+    const result = within(panel).getByRole('status');
+    expect(result).toHaveTextContent('Found the name, 1 experience entry, 1 skills line.');
+    expect(within(result).getAllByRole('listitem').map(li => li.textContent)).toEqual(['The Hobbies section has no place in this resume, so it was left out: "Climbing".']);
+    // Nothing has changed yet.
+    expect(within(profile()).getByLabelText('Name')).toHaveValue('Old Name');
+    await user.click(within(panel).getByRole('button', { name: 'Replace my resume with this' }));
+    expect(within(profile()).getByLabelText('Name')).toHaveValue('Lin Park');
+    expect(result).toHaveTextContent('Imported. Found the name');
+    expect(within(preview()).getByText('Chem Lab & Co')).toBeInTheDocument();
+    await waitFor(async () => expect(await saved()).toMatchObject({ profile: { name: 'Lin Park', email: 'lin@example.com', location: 'Rockville, MD' }, skills: ['Languages: Python, R'], template: 'scizor' }), { timeout: 3000 });
+    const [job] = (await saved())!.experience;
+    expect(job).toMatchObject({ title: 'Chem Lab & Co', subtitle: 'Research Assistant', date: 'Jan. 2026 \u2013 Present', location: 'College Park, MD', bullets: ['Automated 90% of the titrations'] });
+    expect(validateWorkspace(await loadWorkspace())).toBeTruthy();
+  });
+
+  it('Import LaTeX opens a .tex file too', async () => {
+    const user = userEvent.setup();
+    render(<Host initial={initialWorkspace()}/>);
+    await user.click(screen.getByRole('button', { name: 'Import LaTeX' }));
+    await user.upload(screen.getByLabelText('Choose a .tex file'), new File([TEX], 'resume.tex', { type: 'application/x-tex' }));
+    expect(await screen.findByText(/Found the name, 1 experience entry/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'LaTeX source' })).toHaveValue(TEX);
+  });
+
+  it('Export LaTeX downloads a .tex named for the person, which imports back to the same resume', async () => {
+    const user = userEvent.setup();
+    const { resume } = parseLatexResume(TEX);
+    render(<Host initial={{ ...initialWorkspace(), resume }}/>);
+    const create = URL.createObjectURL as unknown as ReturnType<typeof vi.fn>;
+    create.mockClear();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { expect(this.download).toBe('Lin-Park.tex'); });
+    await user.click(screen.getByRole('button', { name: 'Export LaTeX' }));
+    expect(click).toHaveBeenCalledTimes(1);
+    const tex = await readBlob(create.mock.calls.at(-1)![0] as Blob);
+    expect(tex).toContain('\\resumeSubheading');
+    const back = parseLatexResume(tex).resume;
+    expect(back.profile).toEqual(resume.profile);
+    expect(back.experience.map(({ id: _id, ...e }) => e)).toEqual(resume.experience.map(({ id: _id, ...e }) => e));
+    expect(back.skills).toEqual(resume.skills);
+    click.mockRestore();
   });
 });

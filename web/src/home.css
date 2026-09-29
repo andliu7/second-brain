@@ -7,20 +7,59 @@
 .app-home .topbar{display:none}
 .app-home .main-shell{margin:0;width:100%}
 .app-home .main-content{padding:0;max-width:none;display:flex;min-height:100vh}
-.home{position:relative;flex:1;min-width:0;min-height:100vh;background:#0c1222;overflow:hidden;color:var(--ink)}
+/* The globe's sky: the page's glow token (styles.css) over the home's own navy, which is set as its ground
+   here so the gradient starts from the navy the canvas labels are backed with. The canvas itself is clear. */
+.home{--ground:#0c1222;position:relative;flex:1;min-width:0;min-height:100vh;background:var(--glow);overflow:hidden;color:var(--ink)}
 .sphere-canvas{position:absolute;inset:0}
 .sphere-canvas canvas{display:block;touch-action:none;cursor:grab;outline:none}
 .sphere-canvas canvas:active{cursor:grabbing}
 .sphere-canvas canvas:focus-visible{outline:2px solid var(--acc);outline-offset:-3px}
-.home-top{position:absolute;left:12px;top:12px;z-index:6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 24px)}
+.home-top{position:absolute;left:12px;top:12px;z-index:6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 110px)}
 .home-burger{width:36px;height:36px;color:var(--ink);background:#111a30e6;border:1px solid #2a3552}
-.home-brand{font-weight:600;font-size:14px;margin-right:4px}
 .home-top .button{background:#111a30e6;border-color:#2a3552}
 .home-top kbd{font:inherit;font-size:11px;color:var(--sub)}
-.home-key{position:absolute;left:12px;top:64px;z-index:5;display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:#111a30e6;border:1px solid #2a3552;border-radius:9px;font-size:12.5px;backdrop-filter:blur(6px)}
+/* The title and the search, centred over the globe. The title row keeps the eye when the title is
+   hidden, so there is always a way to bring it back; the h1 itself stays for screen readers. */
+.home-head{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:6;width:min(440px,calc(100% - 24px));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.home-head>*{pointer-events:auto}
+.home-title-row{display:flex;align-items:center;gap:4px}
+.home-title{margin:0;font-size:26px;font-weight:600;letter-spacing:-.01em;color:var(--ink);text-shadow:0 1px 12px #0c1222}
+.home-eye{width:28px;height:28px;color:var(--sub);background:#111a30b3;border-color:#2a3552}
+.home-eye:hover{color:var(--ink)}
+.home-search{width:100%}
+.home-search .action-search-field input{padding:9px 44px 9px 13px;font-size:14px;background:#111a30e6;border-color:#2a3552}
+.home-search kbd{font:inherit;font-size:11px;color:var(--mut)}
+.home-search .action-search-panel{z-index:8}
+/* A run started from the search: a card in the same column, under the field, until it is dismissed. */
+.home-run{width:100%;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:#111a30f2;border-color:#2a3552;font-size:13px}
+.home-run header{display:flex;align-items:center;justify-content:space-between}
+.home-run .icon-button{width:26px;height:26px;color:var(--sub)}
+.home-run-status{display:flex;align-items:center;gap:6px;margin:0;color:var(--sub)}
+.home-run-status.done{color:var(--green)}
+.home-run-status.failed{color:var(--red)}
+.home-run-output{margin:0;max-height:110px;overflow:auto;padding:6px 8px;border-radius:6px;background:#0c1222;font:11.5px/1.45 var(--font-mono);color:var(--sub);white-space:pre-wrap;word-break:break-word}
+.home-run a{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;color:var(--ink);font-size:12.5px}
+/* The key: a Key button at the right edge, its colours in a popover under it. While the detail
+   panel is open the button stands just left of the panel, so the two never overlap. */
+.home-right{position:absolute;right:12px;top:12px;z-index:8;display:flex;flex-direction:column;align-items:flex-end;gap:6px;transition:right .22s ease-out}
+.home-right-shifted{right:calc(min(420px,100vw - 56px) + 12px)}
+.home-right>.button{background:#111a30e6;border-color:#2a3552}
+.home-right>.button[aria-expanded="true"]{background:#1b2744;border-color:#3a4a70}
+.home-key{display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:#111a30f2;border:1px solid #2a3552;border-radius:9px;font-size:12.5px;backdrop-filter:blur(6px);box-shadow:0 12px 32px #0008;min-width:210px}
 .home-key span{display:flex;align-items:center;gap:8px}
 .home-key i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .home-key small{margin-left:auto;padding-left:14px;color:var(--sub);font-size:11.5px;font-variant-numeric:tabular-nums}
+/* The categories: the globe's departments down the left, open unless it was closed here last time. */
+.home-cats{position:absolute;left:12px;top:64px;z-index:5;width:220px;max-height:calc(100% - 110px);display:flex;flex-direction:column;background:#111a30e6;border:1px solid #2a3552;border-radius:9px;backdrop-filter:blur(6px);overflow:hidden}
+.home-cats-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border:0;background:none;color:var(--ink);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.home-cats-head svg{color:var(--sub);transition:transform .16s}
+.home-cats-closed .home-cats-head svg{transform:rotate(-90deg)}
+.home-cats ul{list-style:none;margin:0;padding:0 6px 8px;overflow:auto}
+.home-cats li button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:var(--ink);font-size:13px;text-align:left}
+.home-cats li button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.home-cats li button small{margin-left:auto;color:var(--sub);font-size:11.5px;font-variant-numeric:tabular-nums}
+.home-cats li button:hover{background:var(--tint-3)}
+.home-cats li button[aria-pressed="true"]{background:#e9ae8e26;box-shadow:inset 2px 0 0 #e9ae8e}
 .home-foot{position:absolute;left:14px;bottom:10px;margin:0;font-size:12px;pointer-events:none;z-index:5;max-width:calc(100% - 28px)}
 .home-loading,.home-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--sub);font-size:14px;padding:20px}
 .home-loading p{margin:0}
@@ -41,4 +80,8 @@
 .home-members li>button:first-child span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .home-members li>button:first-child small{margin-left:auto;color:var(--sub);font-size:11px;flex-shrink:0}
 .home-members .viewer-note{padding:0 14px 14px}
-@media (max-width:700px){.home-key{top:auto;bottom:34px;flex-direction:row;flex-wrap:wrap;gap:4px 12px;max-width:calc(100% - 24px);font-size:11.5px;padding:8px 10px}.home-key small{margin-left:0;padding-left:4px}.home-brand{display:none}}
+/* Narrower than the top row and the title side by side: the title and search drop under the top
+   row, and the categories move to the bottom left. On a phone the detail panel covers nearly the
+   whole width, so the Key button steps aside while it is open rather than hang off the left edge. */
+@media (max-width:1100px){.home-head{top:60px}.home-cats{top:auto;bottom:34px;max-height:40vh}}
+@media (max-width:700px){.home-title{font-size:21px}.home-cats{width:min(220px,calc(100% - 24px))}.home-right-shifted{display:none}.home-key{max-width:calc(100vw - 24px)}}

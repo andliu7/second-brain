@@ -5,7 +5,12 @@ import type { CategoryId } from './lib/categories';
 export type Page = 'today' | 'agenda' | 'projects' | 'calendar' | 'board' | 'buy' | 'files' | 'skills' | 'goals' | 'network' | 'chat' | 'generate' | 'settings' | 'docs' | 'draw' | 'resume' | 'write' | 'pdf';
 export type Doc = { id: string; name: string; content: string; kind: 'note' | 'file' | 'skill'; tags: string[]; pinned: boolean; created: string; updated: string; mime?: string; data?: string; size?: number; source?: string };
 export type Goal = { id: string; title: string; description: string; category: string; due: string; archived: boolean; milestones: {id: string; title: string; done: boolean}[]; created: string };
-export type Message = { id: string; role: 'user' | 'assistant'; content: string; created: string; provider?: string; model?: string };
+// How an assistant answer was made (server/trace.mjs, drawn by components/ui/agent-trace.tsx). Times are ms from
+// the start of the request; parentId nests a span under another; tokens is output tokens, tokensIn input tokens.
+// Optional on Message, so every conversation saved before traces existed is unchanged.
+export type TraceSpan = { id: string; label: string; start: number; end: number; kind: 'agent' | 'model' | 'tool' | 'io'; status: 'ok' | 'error' | 'cached'; parentId?: string; detail?: string; tokens?: number; tokensIn?: number; attempt?: number };
+export type AnswerTrace = { runId: string; model: string; spans: TraceSpan[]; duration: number };
+export type Message = { id: string; role: 'user' | 'assistant'; content: string; created: string; provider?: string; model?: string; trace?: AnswerTrace };
 export type Conversation = { id: string; title: string; messages: Message[]; updated: string };
 export type Generation = { id: string; prompt: string; provider: string; model: string; aspect: string; created: string; status: 'queued' | 'complete' | 'failed'; job?: string; images: string[]; error?: string };
 export type Activity = { id: string; text: string; page: Page; created: string };
@@ -17,8 +22,15 @@ export type Relation = { id: string; source: string; target: string; relation: '
 // minutes is the todo's estimate, shown as a chip. project marks a card promoted to a project: its
 // checklist items are then its stages (StageTimeline), detail a stage's notes and doneOn the day (YYYY-MM-DD)
 // it was ticked. All three are optional, so every checklist saved before them is already a list of stages.
-export type ChecklistItem = { id: string; title: string; done: boolean; detail?: string; doneOn?: string };
-export type Card = { id: string; title: string; notes: string; column: string; category?: CategoryId; checklist: ChecklistItem[]; attachments: string[]; due?: string; minutes?: number; eventId?: string; sourceTodoId?: string; sticky?: { x: number; y: number; rotate: number }; project?: boolean };
+// The pipeline fields (shared/pipeline.mjs holds their rules and bounds) are optional too: status, when absent
+// or out of step with done, is derived from done; progress is only ever what the owner set, never estimated;
+// updatedAt is the stamp the merge with the Claude Code mirror compares (server/pipelines.mjs).
+export type StageStatus = 'pending' | 'queued' | 'active' | 'paused' | 'completed' | 'warning' | 'failed' | 'skipped' | 'cancelled';
+export type ChecklistItem = { id: string; title: string; done: boolean; detail?: string; doneOn?: string;
+  status?: StageStatus; progress?: number; startedAt?: string; endedAt?: string; updatedAt?: string; attempt?: number; error?: string; warning?: string; logs?: string[]; output?: string; skippable?: boolean };
+// pipeline: the project's Pipeline view (PipelineView.tsx), off unless enabled; absent on every older card.
+export type PipelineSettings = { enabled: boolean; layout: 'vertical' | 'horizontal'; subtitle?: string };
+export type Card = { id: string; title: string; notes: string; column: string; category?: CategoryId; checklist: ChecklistItem[]; attachments: string[]; due?: string; minutes?: number; eventId?: string; sourceTodoId?: string; sticky?: { x: number; y: number; rotate: number }; project?: boolean; pipeline?: PipelineSettings };
 export type Column = { id: string; name: string };
 export type Board = { columns: Column[]; cards: Card[]; view: 'board' | 'sticky' };
 // The daily todo card (TodoCard.tsx). items are today's todos; history holds earlier days' completed
@@ -31,13 +43,17 @@ export type BuyOption = { id: string; store: string; price: number | null; curre
 export type BuyItem = { id: string; name: string; category: CategoryId; image: string; links: string[]; notes: string; options: BuyOption[] };
 // board, todos and buyList are optional because workspaces saved before they existed have none;
 // Kanban.tsx fills in defaultBoard(), TodoCard.tsx and BuyList.tsx fill in theirs.
-export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[]; board?: Board; todos?: Todos; buyList?: BuyItem[]; favorites?: Favorites; resume?: Resume; drawing?: Drawing; misc?: MiscItem[]; todayLayout?: TodayWidget[]; notebooks?: Notebook[] };
+export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[]; board?: Board; todos?: Todos; buyList?: BuyItem[]; favorites?: Favorites; resume?: Resume; drawing?: Drawing; misc?: MiscItem[]; todayLayout?: TodayWidget[]; notebooks?: Notebook[]; profile?: Profile };
 // A notebook on the Docs page. Only the name lives here; a note joins one with a "notebook:<id>" tag
 // (lib/docs-kinds.ts), so deleting a notebook drops the tag and keeps every note.
 export type Notebook = { id: string; name: string };
 // Today's progress dashboard (TodayWidgets.tsx): the widgets' order and sizes. Optional, because every
 // workspace saved before it had none; TodayWidgets falls back to its default layout.
 export type TodayWidget = { id: string; size: 'sm' | 'wide' | 'tall' | 'lg' };
+// The local profile (lib/profile.ts): what the top bar's avatar shows. Optional, because every workspace
+// saved before it had none; lib/profile.ts reads a missing one as its default.
+export type ProfileColor = 'accent' | 'green' | 'amber' | 'red' | 'ink';
+export type Profile = { name: string; avatar: string; color: ProfileColor; status?: string };
 // The brainstorm list (MiscList.tsx): loose lines that are not cards yet. created is an ISO timestamp.
 export type MiscItem = { id: string; text: string; kind: 'task' | 'idea' | 'note'; done: boolean; created: string };
 // The whiteboard (Whiteboard.tsx). elements are Drawnix's Plait elements exactly as it hands them over
@@ -50,7 +66,7 @@ export type Drawing = { elements: { id: string; [key: string]: unknown }[]; view
 export type ResumeEntry = { id: string; title: string; subtitle: string; date: string; location: string; bullets: string[] };
 export type Resume = { profile: { name: string; email: string; phone: string; location: string; links: string[] }; education: ResumeEntry[]; experience: ResumeEntry[]; projects: ResumeEntry[]; skills: string[]; template?: ResumeTemplate };
 // The look of the resume page (Resume.tsx TEMPLATES); optional, so a resume saved before it is Classic.
-export type ResumeTemplate = 'classic' | 'onyx' | 'ditto' | 'azurill';
+export type ResumeTemplate = 'classic' | 'onyx' | 'ditto' | 'azurill' | 'ditgar' | 'leafish' | 'kakuna' | 'meowth' | 'scizor';
 // Starred things (lib/favorites.ts): skills by slug, projects by repo path. Both pages sort these first.
 export type Favorites = { skills: string[]; projects: string[]; review?: string[] };  // review: skills bookmarked "mark for review"
 export type Source = { id: string; name: string; kind: 'file'; path: string; size: number; updated: string };

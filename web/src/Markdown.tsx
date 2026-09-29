@@ -1,9 +1,22 @@
 // A small Markdown renderer: headings, bullets (nested too), numbered lines, paragraphs, > quotes,
-// --- rules, fenced code, | tables |, and inline `code`, **bold**, *italic* and links. Shared by
-// Chat, the file preview and the Skills page, which is why it lives in its own file.
-import type { ReactNode } from 'react';
+// --- rules, fenced code, | tables |, and inline `code`, **bold**, *italic* and links, and LaTeX math:
+// $inline$ and $$display$$, on a line of their own or across lines. Shared by Chat, the file preview and
+// the Skills page, which is why it lives in its own file.
+import { useEffect, useState, type ReactNode } from 'react';
 import { CodeBlock } from '@/components/ui/code-block';
+import { KATEX_OPTIONS, loadKatex, loadedKatex } from './lib/docs-math';
 import './markdown.css';
+
+// One formula. KaTeX loads the first time a formula is drawn (lib/docs-math.ts), so a page with no math
+// never fetches it; until it arrives the formula shows as its source. dangerouslySetInnerHTML is React's
+// way to insert ready-made HTML: here it is KaTeX's own output, which escapes every character of the
+// source and, with trust off, refuses the commands that could add links or markup.
+function Formula({ tex, display }: { tex: string; display: boolean }) {
+  const [katex, setKatex] = useState(loadedKatex);
+  useEffect(() => { if (!katex) { let live = true; void loadKatex().then(k => { if (live) setKatex(() => k); }); return () => { live = false; }; } }, [katex]);
+  if (!katex) return <code className="markdown-math-source">{display ? `$$${tex}$$` : `$${tex}$`}</code>;
+  return <span className={display ? 'markdown-math display' : 'markdown-math'} dangerouslySetInnerHTML={{ __html: katex.renderToString(tex, { ...KATEX_OPTIONS, displayMode: display }) }}/>;
+}
 
 // An HTML entity in prose (a table cell reading `CLS &lt; 0.1`) shows as its character. Inside a
 // `code` span it stays literal, as on GitHub. An entity not in this list is left as written.
@@ -19,7 +32,8 @@ const entities = (text: string) => text.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi,
 const KEEP = /[-\u2010-\u2015/|]/; // hyphen, the Unicode dashes, slash, pipe
 const words = (text: string): ReactNode[] => text.split(/(\S+)/).map((part, i) => i % 2 && KEEP.test(part) ? <span key={i} className="nowrap">{part}</span> : part);
 
-// The marks inline() reads: three code-span patterns, then **bold**, *italic* and a [link](url), in
+// The marks inline() reads: three code-span patterns, then **bold**, *italic*, a [link](url), and math:
+// $$display$$, then $inline$ by the rule in lib/docs-math.ts (so "$5 and $10" stays text), in
 // one capture group, so split() keeps them at the odd indexes. Whichever starts first in the text
 // wins, which is how a code span inside a link label ([`a/path.md`](...)) stays the label's.
 // A code span opens with a run of backticks and closes with a run of the same length, the way every
@@ -27,7 +41,7 @@ const words = (text: string): ReactNode[] => text.split(/(\S+)/).map((part, i) =
 // (fenced ``` and indented)", in caveman-compress) is text and shows as the file wrote it. A regex
 // cannot count a run it has already read, so there is one pattern per run length, longest first; a run
 // of any other length inside a span is content. The lookbehind keeps a pattern off a longer run's tail.
-const MARKS = /((?<!`)```(?!`)(?:[^`]|`{1,2}(?!`)|`{4,})+?```(?!`)|(?<!`)``(?!`)(?:[^`]|`(?!`)|`{3,})+?``(?!`)|(?<!`)`(?!`)(?:[^`]|`{2,})+?`(?!`)|\*\*(?:[^*]|\*(?!\*))+?\*\*|\*[^\s*](?:[^*]*[^\s*])?\*|\[[^\]]+\]\([^)\s]+\))/;
+const MARKS = /((?<!`)```(?!`)(?:[^`]|`{1,2}(?!`)|`{4,})+?```(?!`)|(?<!`)``(?!`)(?:[^`]|`(?!`)|`{3,})+?``(?!`)|(?<!`)`(?!`)(?:[^`]|`{2,})+?`(?!`)|\*\*(?:[^*]|\*(?!\*))+?\*\*|\*[^\s*](?:[^*]*[^\s*])?\*|\[[^\]]+\]\([^)\s]+\)|(?<![\\$])\$\$(?:\\.|[^$\\])+?\$\$|(?<![\\$])\$(?=[^\s$])(?:\\.|[^$\\\n])+?(?<!\s)\$(?![\d$]))/;
 // A span may be padded with one space each side, which is the room that lets it hold a backtick of
 // its own ("` ``` `"); the padding is not content.
 function chip(part: string) {
@@ -49,9 +63,12 @@ function inline(text: string, cell = false): ReactNode[] {
   // (?:[^*]|\*(?!\*)) takes any character except the closing **, and the lazy + stops at the first one.
   return text.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1').split(MARKS).map((part, i) => {
     // An asterisk a skill wrote out as \* (import-memory: /preferences/\*) is one asterisk, not a backslash
-    // and an asterisk. Only \* is unescaped: \. would eat the dot out of a Windows path written in prose.
-    if (i % 2 === 0) return plain(entities(part).replace(/\\\*/g, '*'));
+    // and an asterisk. Only \* and \$ (a written dollar sign, not math) are unescaped: \. would eat the
+    // dot out of a Windows path written in prose.
+    if (i % 2 === 0) return plain(entities(part).replace(/\\([*$])/g, '$1'));
     if (part.startsWith('`')) return <code key={i}>{chip(part)}</code>; // in a table, CSS keeps a code chip on one line
+    if (part.startsWith('$$')) return <Formula key={i} tex={part.slice(2, -2)} display/>;
+    if (part.startsWith('$')) return <Formula key={i} tex={part.slice(1, -1)} display={false}/>;
     if (part.startsWith('**')) return <strong key={i}>{inline(part.slice(2, -2), cell)}</strong>;
     if (part.startsWith('*')) return <em key={i}>{inline(part.slice(1, -1), cell)}</em>;
     const [, label, href] = /^\[(.*)\]\((.*)\)$/.exec(part)!;
@@ -100,6 +117,7 @@ function blocks(content: string, join: boolean): ReactNode[] {
   let lang = '';                      // the word after the opening fence, for the code block's label and highlighting
   let table: string[][] | null = null; // cells of the | rows | read so far
   let quote: string[] | null = null;   // lines of an open > quote, without the >
+  let math: string[] | null = null;    // lines of an open $$ display formula, without the $$
   let para: { text: string; bullet: boolean; depth: number; task?: string } | null = null; // the paragraph being joined; task is ' ' or 'x' on a - [ ] line
   const end = () => {
     if (table) out.push(<Table key={out.length} rows={table}/>);
@@ -111,6 +129,15 @@ function blocks(content: string, join: boolean): ReactNode[] {
     const fence = line.trimStart().startsWith('```');
     if (code) { if (fence) { out.push(<CodeBlock key={out.length} code={code.join('\n')} language={lang}/>); code = null; } else code.push(line); continue; }
     if (fence) { end(); code = []; lang = line.trim().slice(3).trim().split(/\s+/)[0] || ''; continue; }
+    // A display formula whose $$ open a line and close a later one (or the same one) is a block of its own.
+    if (math) { const close = line.trimEnd().endsWith('$$'); math.push(close ? line.trimEnd().slice(0, -2) : line); if (close) { out.push(<div key={out.length} className="markdown-math-block"><Formula tex={math.join('\n')} display/></div>); math = null; } continue; }
+    if (/^\s*\$\$/.test(line) && !/^\s*\$\$.*\$\$\s*\S/.test(line)) {
+      end();
+      const rest = line.trim().slice(2);
+      if (rest.endsWith('$$') && rest.length > 2) out.push(<div key={out.length} className="markdown-math-block"><Formula tex={rest.slice(0, -2)} display/></div>);
+      else math = [rest];
+      continue;
+    }
     if (/^\s*>/.test(line)) { if (!quote) end(); (quote ??= []).push(line.replace(/^\s*>\s?/, '')); continue; }
     if (line.trimStart().startsWith('|')) {
       if (!table) end();
@@ -131,6 +158,7 @@ function blocks(content: string, join: boolean): ReactNode[] {
   }
   end();
   if (code) out.push(<CodeBlock key="unclosed" code={code.join('\n')} language={lang}/>); // a fence left open runs to the end
+  if (math) out.push(<p key="unclosed-math">{'$$' + (math as string[]).join('\n')}</p>); // $$ never closed: the text as written
   return out;
 }
 

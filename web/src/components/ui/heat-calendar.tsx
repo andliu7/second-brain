@@ -9,11 +9,17 @@ import './heat-calendar.css';
 
 const DAY = 24 * 60 * 60 * 1000;
 const key = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+// Exported for Today's calendar card (MonthCalendar.tsx), which shades its month with the same levels.
+export function activityCounts(activity: { created: string }[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const entry of activity) { const k = key(new Date(entry.created)); counts.set(k, (counts.get(k) || 0) + 1); }
+  return counts;
+}
+export const levelOf = (count: number, max: number) => count === 0 ? 0 : Math.ceil((count / Math.max(1, max)) * 4);
 
 export function HeatCalendar({ activity, weeks = 16 }: { activity: { created: string }[]; weeks?: number }) {
   const days = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const entry of activity) { const k = key(new Date(entry.created)); counts.set(k, (counts.get(k) || 0) + 1); }
+    const counts = activityCounts(activity);
     // Whole weeks, Sunday first, with today in the last column; the days after today are drawn empty.
     const today = new Date(); today.setHours(12, 0, 0, 0);
     const start = new Date(today.getTime() - (weeks - 1) * 7 * DAY);
@@ -21,7 +27,7 @@ export function HeatCalendar({ activity, weeks = 16 }: { activity: { created: st
     const list: { key: string; count: number; future: boolean }[] = [];
     for (let d = new Date(start); list.length < weeks * 7; d = new Date(d.getTime() + DAY)) list.push({ key: key(d), count: counts.get(key(d)) || 0, future: d > today });
     const max = Math.max(1, ...list.map(day => day.count));
-    return list.map(day => ({ ...day, level: day.count === 0 ? 0 : Math.ceil((day.count / max) * 4) }));
+    return list.map(day => ({ ...day, level: levelOf(day.count, max) }));
   }, [activity, weeks]);
   const total = days.reduce((sum, day) => sum + day.count, 0);
   return <div className="heat">

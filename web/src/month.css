@@ -103,11 +103,16 @@
 }
 @media (prefers-reduced-motion:reduce){.month-event,.kcal-card,.kcal-row{transition:none}.month-event:hover,.kcal-card:hover{transform:none}}
 
-/* MiniCalendar: the month as a small card on Today, about 300px, one link per day, in the same look: today a
-   filled accent circle, a dot under days with events or todos. */
-.mini-cal{padding:0}
+/* MiniCalendar: Today's "Calendar and activity" card. Collapsed it is the month, about 300px, one link per
+   day in the same look as the page: today a filled accent circle, a dot under days with events or todos, and
+   each day washed with the accent by its activity level (the heat calendar's five steps). Expanded, the month
+   keeps its place and the activity and the day's detail open beside it, or under it on a narrow screen. */
+.mini-cal{padding:0;max-width:360px}
+.mini-cal[data-expanded]{max-width:none}
 .mini-cal .section-heading a{display:inline-flex;align-items:center;gap:4px;text-decoration:none}
+.mini-cal-actions{display:inline-flex;align-items:center;gap:2px}
 .mini-cal-body{padding:8px 14px 14px}
+.mini-cal[data-expanded] .mini-cal-body{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:14px 22px;align-items:start}
 .mini-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .mini-cal-nav strong{font-family:var(--font-serif);font-size:14px;font-weight:700;color:var(--deep)}
 .mini-cal-nav .icon-button{width:30px;height:30px;min-width:30px;min-height:30px}
@@ -115,8 +120,28 @@
 .mini-cal-weekday{padding:4px 0;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)}
 .mini-cal-day{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:50%;font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:none;font-variant-numeric:tabular-nums}
 .mini-cal-day:hover{background:var(--btn-hover)}
+.mini-cal-day[data-level="1"]{background:color-mix(in srgb,var(--acc-fill) 14%,var(--sheet))}
+.mini-cal-day[data-level="2"]{background:color-mix(in srgb,var(--acc-fill) 26%,var(--sheet))}
+.mini-cal-day[data-level="3"]{background:color-mix(in srgb,var(--acc-fill) 40%,var(--sheet))}
+.mini-cal-day[data-level="4"]{background:color-mix(in srgb,var(--acc-fill) 55%,var(--sheet))}
 .mini-cal-day[data-outside]{color:var(--mut);font-weight:400}
 .mini-cal-day[data-today]{background:var(--acc-fill);color:var(--on-acc);font-weight:700}
+.mini-cal-day[data-shown]{box-shadow:inset 0 0 0 2px var(--acc)}
 .mini-cal-day[data-marked]::after{content:"";position:absolute;bottom:3px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--acc-fill)}
 .mini-cal-day[data-today][data-marked]::after{background:var(--on-acc)}
 .mini-cal .today-note{margin:8px 0 0}
+.mini-cal-more{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px 20px;align-items:start;min-width:0}
+.mini-cal-more h3{margin:4px 0 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)}
+.mini-cal-big{margin:0 0 8px;font-size:12px;color:var(--sub)}
+.mini-cal-big strong{margin-right:2px;font-size:22px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+.mini-cal-change{display:block;margin-top:2px}
+.mini-cal-change[data-dir=up]{color:var(--green-dk)}
+.mini-cal-change[data-dir=down]{color:var(--red)}
+.mini-cal-detail ul{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.mini-cal-detail li{padding:4px 8px;border-left:3px solid var(--acc-fill);border-radius:4px;background:var(--soft);overflow-wrap:anywhere}
+.mini-cal-detail li[data-done]{text-decoration:line-through;color:var(--sub)}
+.mini-cal-detail small{margin-right:6px;color:var(--sub)}
+.mini-cal-empty,.mini-cal-logged{margin:0 0 8px;font-size:12px;color:var(--mut)}
+.mini-cal-detail .text-button{padding-left:0}
+@media (max-width:1100px){.mini-cal-more{grid-template-columns:1fr}}
+@media (max-width:700px){.mini-cal{max-width:none}.mini-cal[data-expanded] .mini-cal-body{grid-template-columns:1fr}}

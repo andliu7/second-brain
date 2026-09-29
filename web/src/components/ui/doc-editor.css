@@ -43,3 +43,14 @@
 .doc-bubble button:hover{background:var(--tint-2);color:var(--ink)}
 .doc-bubble button[aria-pressed="true"]{background:var(--acc-soft);color:var(--acc)}
 .doc-bubble button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+
+/* LaTeX math (lib/docs-math-editor.ts). KaTeX draws in the text colour, so both themes work; a formula
+   is a click target, with a faint wash on hover and the accent ring when selected. A display formula is
+   centred and scrolls sideways when it is wider than the column. */
+.doc-editor-body .doc-math{cursor:pointer;border-radius:4px}
+.doc-editor-body .doc-math:hover{background:var(--tint-1)}
+.doc-editor-body .doc-math.is-selected{outline:2px solid var(--acc);outline-offset:1px}
+.doc-editor-body .doc-math[data-display="true"]{display:block;margin:.6em 0;padding:4px 0;overflow-x:auto;text-align:center}
+.doc-editor-body .doc-math .katex-error{color:var(--red)!important}
+.doc-math-source{font-family:var(--font-mono);font-size:.9em;color:var(--ink);background:var(--soft);border:1px solid var(--acc);border-radius:4px;padding:1px 5px;outline:none}
+textarea.doc-math-source{display:block;width:100%;resize:vertical;text-align:left;padding:6px 8px}

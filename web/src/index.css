@@ -69,15 +69,10 @@
   .prompt-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
   .prompt-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
   .prompt-scrollbar:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted-foreground) 30%, transparent); }
-  .chat-prompt-composer { margin: 13px 22px 0; }
-  .chat-prompt-composer .composer-controls { padding: 14px 0 0; }
-  .chat-prompt-composer .attached-context:empty { display: none; }
-  .chat-prompt-composer .prompt-input { margin-inline: auto; }
   .prompt-gallery { margin: 0; padding: 0; border: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: transparent; overflow: hidden; }
   .prompt-gallery::backdrop { background: transparent; }
 }
 @media (max-width: 500px) {
-  .chat-prompt-composer { margin-inline: 12px; }
   .prompt-input textarea { font-size: 16px; }
 }
 @media (pointer: coarse) {

@@ -1,16 +1,20 @@
-// The kinds of document the Docs page writes: Note, Journal, Idea and Resume. Doc.kind stays 'note' for
-// all of them (the schema's kind means note, file or skill), and the kind is a tag instead, so no schema
-// change and every other page still reads these as notes. A note with none of the kind tags, such as a
-// quick capture from Today, counts as a Note. A Resume note opens the resume editor (Resume.tsx, whose
+// The kinds of document the Docs page holds: Note, Journal, Idea, Resume and PDF. Doc.kind stays 'note'
+// for the first four (the schema's kind means note, file or skill), and the kind is a tag instead, so no
+// schema change and every other page still reads these as notes. A note with none of the kind tags, such
+// as a quick capture from Today, counts as a Note. A Resume note opens the resume editor (Resume.tsx, whose
 // data is workspace.resume) instead of the text editor, and there is one, so its body stays empty.
+// A PDF is the exception: it is a real file, so it stays Doc.kind 'file' with its bytes in Doc.data,
+// and Chat and the file preview keep treating it as one. It carries the PDF tag like the other kinds,
+// but it is known by its MIME type, so a PDF saved from PDF tools before Docs listed PDFs shows up too.
+// Opening one shows PDF tools (PdfTools.tsx) working on that document.
 // Kept free of TipTap so it costs nothing at start.
 //
 // Notebooks and the left pane's views live here too, as plain functions over workspace.docs, so the
 // page and the tests share one definition of "what is in this view".
 import type { Doc } from '../types';
-import { makeDoc } from './storage';
+import { makeDoc, readData } from './storage';
 
-export const DOC_KINDS = ['Note', 'Journal', 'Idea', 'Resume'] as const;
+export const DOC_KINDS = ['Note', 'Journal', 'Idea', 'Resume', 'PDF'] as const;
 export type DocKind = typeof DOC_KINDS[number];
 // The kinds a written note can switch between in its Kind menu. A note does not turn into the resume.
 export const TEXT_KINDS: DocKind[] = ['Note', 'Journal', 'Idea'];
@@ -19,7 +23,11 @@ export const TEXT_KINDS: DocKind[] = ['Note', 'Journal', 'Idea'];
 // title field shows it as empty again, with Untitled as its placeholder.
 export const UNTITLED = 'Untitled';
 
-export const kindOf = (doc: Doc): DocKind => DOC_KINDS.find(kind => doc.tags.includes(kind)) ?? 'Note';
+// A stored PDF: a file doc whose bytes are a PDF, the same test PDF tools used to list them.
+export const isPdfDoc = (doc: Doc) => doc.kind === 'file' && !!doc.data && (doc.mime ?? '').startsWith('application/pdf');
+// What the Docs page lists: every note, and the stored PDFs. Other files and skills have their own homes.
+export const isListed = (doc: Doc) => doc.kind === 'note' || isPdfDoc(doc);
+export const kindOf = (doc: Doc): DocKind => isPdfDoc(doc) ? 'PDF' : DOC_KINDS.find(kind => kind !== 'PDF' && doc.tags.includes(kind)) ?? 'Note';
 
 // Journals are titled by their date, in the local time zone, e.g. "Monday, September 28, 2026".
 export const journalTitle = (date: Date) => date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -29,12 +37,12 @@ const sameDay = (iso: string, date: Date) => new Date(iso).toDateString() === da
 // so a note pinned here is pinned there too.
 const byPinThenNewest = (a: Doc, b: Doc) => Number(b.pinned) - Number(a.pinned) || b.updated.localeCompare(a.updated);
 
-// The documents the page lists: notes only (files and skills have their own homes), pinned first then
-// newest edit, narrowed by kind when one is picked and by a search over title and body.
+// The documents the page lists: notes and PDFs (isListed), pinned first then newest edit, narrowed by
+// kind when one is picked and by a search over title and body (a PDF's body is empty, so its name).
 export function listDocs(docs: Doc[], kind: DocKind | null, query: string): Doc[] {
   const q = query.trim().toLowerCase();
   return docs
-    .filter(doc => doc.kind === 'note')
+    .filter(isListed)
     .filter(doc => !kind || kindOf(doc) === kind)
     .filter(doc => !q || doc.name.toLowerCase().includes(q) || doc.content.toLowerCase().includes(q))
     .sort(byPinThenNewest);
@@ -56,6 +64,25 @@ export function newDocFor(kind: DocKind, docs: Doc[], today = new Date()): { doc
   return { doc: makeDoc(UNTITLED, '', 'note', [kind]), existing: false };
 }
 
+// shared/validate.mjs refuses a doc's data over 25 MiB, so an import or a save checks first and says so.
+export const MAX_PDF_BYTES = 25 * 1024 * 1024;
+
+// Import PDF: each file as a PDF doc, or a reason it was skipped. A file is taken as a PDF by its first
+// bytes ("%PDF-"), not its name, so a renamed file is caught here rather than failing inside PDF tools.
+// The data URL is made from a Blob typed application/pdf, because a file the system could not type
+// reads as application/octet-stream and the validator requires Doc.mime to match the data URL.
+export async function importPdfs(files: File[]): Promise<{ docs: Doc[]; skipped: string[] }> {
+  const docs: Doc[] = [];
+  const skipped: string[] = [];
+  for (const file of files) {
+    if (file.size > MAX_PDF_BYTES) { skipped.push(`${file.name} (${(file.size / 1048576).toFixed(1)} MiB; the workspace holds files up to 25 MiB)`); continue; }
+    const data = await readData(new Blob([file], { type: 'application/pdf' }));
+    if (!atob(data.slice(data.indexOf(',') + 1, data.indexOf(',') + 9)).startsWith('%PDF-')) { skipped.push(`${file.name} (not a PDF)`); continue; }
+    docs.push({ ...makeDoc(file.name, '', 'file', ['PDF']), mime: 'application/pdf', data, size: file.size });
+  }
+  return { docs, skipped };
+}
+
 // Notebooks. A note's notebook is one tag, "notebook:<id>", so a note sits in at most one notebook,
 // needs no schema change, and still reads as a plain note everywhere else. The names live in the
 // optional Workspace.notebooks, so renaming a notebook touches one record, not every note in it.
@@ -67,18 +94,18 @@ export const withNotebook = (tags: string[], id: string | null) => [...tags.filt
 const isUserTag = (tag: string) => !(DOC_KINDS as readonly string[]).includes(tag) && !tag.startsWith(NOTEBOOK_TAG);
 export const userTags = (tags: string[]) => tags.filter(isUserTag);
 export const withUserTags = (tags: string[], next: string[]) => [...tags.filter(tag => !isUserTag(tag)), ...new Set(next.map(tag => tag.trim()).filter(tag => tag && isUserTag(tag)))];
-// Every typed tag across the notes, for the left pane, alphabetical.
-export const allUserTags = (docs: Doc[]) => [...new Set(docs.filter(doc => doc.kind === 'note').flatMap(doc => userTags(doc.tags)))].sort((a, b) => a.localeCompare(b));
+// Every typed tag across the notes and PDFs, for the left pane, alphabetical.
+export const allUserTags = (docs: Doc[]) => [...new Set(docs.filter(isListed).flatMap(doc => userTags(doc.tags)))].sort((a, b) => a.localeCompare(b));
 
 // What the left pane can show. A string rather than an object so a view compares with === and could
 // go into an address later without a parser.
-export type View = 'all' | 'journal' | 'ideas' | 'pinned' | `notebook:${string}` | `tag:${string}`;
+export type View = 'all' | 'journal' | 'ideas' | 'pdfs' | 'pinned' | `notebook:${string}` | `tag:${string}`;
 
 // The documents in a view. The journal reads by the day each entry was written (created), newest
 // first, since an entry is about its day; every other view keeps pinned first, then newest edit.
 export function viewDocs(docs: Doc[], view: View, query: string): Doc[] {
   if (view === 'journal') return listDocs(docs, 'Journal', query).sort((a, b) => b.created.localeCompare(a.created));
-  const listed = listDocs(docs, view === 'ideas' ? 'Idea' : null, query);
+  const listed = listDocs(docs, view === 'ideas' ? 'Idea' : view === 'pdfs' ? 'PDF' : null, query);
   if (view === 'pinned') return listed.filter(doc => doc.pinned);
   if (view.startsWith('notebook:')) return listed.filter(doc => notebookOf(doc) === view.slice('notebook:'.length));
   if (view.startsWith('tag:')) return listed.filter(doc => doc.tags.includes(view.slice('tag:'.length)));

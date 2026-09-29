@@ -39,36 +39,75 @@ export function fibonacci(n: number): [number, number, number][] {
   return out;
 }
 
-export type SphereLayout = { pos: Float32Array; scatter: Float32Array; cap: Float32Array };
-// Each department is a cap of the sphere around its Fibonacci centre, its contents laid out inside
-// the cap the way the flat map packs them (layout in network.ts: folders as circles inside their
-// parent's circle), so a folder still reads as one blob. A bigger department gets a wider cap,
-// never wider than the room between centres. Deterministic: the same tree lands the same way.
-// scatter is where each node starts on a cold open, well outside the sphere, before it flies in.
+export type SphereLayout = { pos: Float32Array; scatter: Float32Array; cap: Float32Array; mid: Float32Array };
+// Every node takes its own point of one Fibonacci lattice over the whole sphere, so the globe is
+// an evenly filled ball with a round silhouette rather than lumpy caps with bare sea between them
+// (2026-09-28, "make the whole thing more circular"). Each department still reads as one blob:
+// its node sits on its Fibonacci centre, and it claims the free lattice points nearest that centre
+// until it has one per node inside it. Inside that patch, the flat map's packing (layout in
+// network.ts: folders as circles inside their parent's circle) is projected onto a cap around the
+// centre as a target, and each node, nearest the centre first, takes the free point of the patch
+// nearest its target, so a folder still sits together. Deterministic: the same tree lands the
+// same way. scatter is where each node starts on a cold open, well outside the sphere, before it
+// flies in. mid holds, per edge, the lifted midpoint of its great-circle arc (arcMid below).
 export function sphereLayout(model: Model): SphereLayout {
   const { nodes, children, tops } = model; const n = nodes.length; const flat = layout(model);
   const pos = new Float32Array(n * 3); const scatter = new Float32Array(n * 3); const cap = new Float32Array(n);
   const centres = fibonacci(tops.length);
   const lists = tops.map(t => { const list: number[] = []; const walk = (i: number) => { for (const c of children[i]) { list.push(c); walk(c); } }; walk(t); return list; });
-  const most = Math.max(1, ...lists.map(l => l.length));
-  const set = (i: number, x: number, y: number, z: number) => { pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z; };
+  const set = (i: number, [x, y, z]: [number, number, number]) => { pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z; };
+  const angle = (a: [number, number, number], b: [number, number, number]) => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])));
+  // The lattice, less the point nearest each centre, since the department's own node stands there.
+  let lattice = fibonacci(n);
+  for (const c of centres) { let best = -1, bestAngle = Infinity; lattice.forEach((p, k) => { const d = angle(p, c); if (d < bestAngle) { bestAngle = d; best = k; } }); if (best >= 0) lattice = lattice.filter((_, k) => k !== best); }
+  // Each department claims points nearest its centre first, until it holds one per member.
+  const room = lists.map(list => list.length); const owner = new Int32Array(lattice.length).fill(-1);
+  const pairs: [number, number, number][] = [];
+  lattice.forEach((p, k) => centres.forEach((c, j) => { if (room[j]) pairs.push([angle(p, c), k, j]); }));
+  pairs.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  for (const [, k, j] of pairs) if (owner[k] < 0 && room[j] > 0) { owner[k] = j; room[j]--; }
   tops.forEach((t, j) => {
-    const [cx, cy, cz] = centres[j]; const list = lists[j];
+    const c = centres[j]; const [cx, cy, cz] = c; const list = lists[j]; set(t, c);
+    const patch = lattice.filter((_, k) => owner[k] === j); const free = patch.map(() => true);
+    // The patch's reach from the centre is the cap the flat packing is projected onto.
+    const reach = Math.max(0.05, ...patch.map(p => angle(p, c))); cap[t] = reach;
     // An orthonormal frame at the centre: u and v span the cap, c points out of the sphere.
     const upx = Math.abs(cy) > 0.9 ? 1 : 0, upy = 1 - upx;
     let ux = -cz * upy, uy = cz * upx, uz = cx * upy - cy * upx; const ul = Math.hypot(ux, uy, uz) || 1; ux /= ul; uy /= ul; uz /= ul;
     const vx = cy * uz - cz * uy, vy = cz * ux - cx * uz, vz = cx * uy - cy * ux;
-    const reach = Math.min(0.56, 0.14 + 0.42 * Math.sqrt(list.length / most)); cap[t] = reach; set(t, cx, cy, cz);
-    let extent = 1; for (const i of list) extent = Math.max(extent, Math.hypot(flat.x[i] - flat.x[t], flat.y[i] - flat.y[t]));
-    for (const i of list) {
-      const dx = flat.x[i] - flat.x[t], dy = flat.y[i] - flat.y[t]; const theta = reach * Math.hypot(dx, dy) / (extent * 1.04); const phi = Math.atan2(dy, dx);
-      const lx = Math.sin(theta) * Math.cos(phi), ly = Math.sin(theta) * Math.sin(phi), lz = Math.cos(theta); cap[i] = reach;
-      set(i, ux * lx + vx * ly + cx * lz, uy * lx + vy * ly + cy * lz, uz * lx + vz * ly + cz * lz);
+    const offset = (i: number) => Math.hypot(flat.x[i] - flat.x[t], flat.y[i] - flat.y[t]);
+    let extent = 1; for (const i of list) extent = Math.max(extent, offset(i));
+    for (const i of [...list].sort((a, b) => offset(a) - offset(b) || a - b)) {
+      const theta = reach * offset(i) / extent; const phi = Math.atan2(flat.y[i] - flat.y[t], flat.x[i] - flat.x[t]);
+      const lx = Math.sin(theta) * Math.cos(phi), ly = Math.sin(theta) * Math.sin(phi), lz = Math.cos(theta);
+      const target: [number, number, number] = [ux * lx + vx * ly + cx * lz, uy * lx + vy * ly + cy * lz, uz * lx + vz * ly + cz * lz];
+      let best = -1, bestDot = -Infinity; patch.forEach((p, k) => { if (!free[k]) return; const d = p[0] * target[0] + p[1] * target[1] + p[2] * target[2]; if (d > bestDot) { bestDot = d; best = k; } }); // the largest dot is the smallest angle, without an acos per pair
+      free[best] = false; set(i, patch[best]); cap[i] = reach;
     }
   });
   for (let i = 0; i < n; i++) { const h = (k: number) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1; const far = 2.2 + h(1); for (let a = 0; a < 3; a++) scatter[i * 3 + a] = pos[i * 3 + a] * far + (h(2 + a) - 0.5) * 1.2; }
-  return { pos, scatter, cap };
+  const mid = new Float32Array(model.edges.length * 3);
+  model.edges.forEach(([a, b], e) => { if (a < 0 || b < 0 || a >= n || b >= n) return; const m = arcMid(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2], pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]); mid[e * 3] = m[0]; mid[e * 3 + 1] = m[1]; mid[e * 3 + 2] = m[2]; });
+  return { pos, scatter, cap, mid };
 }
+
+// The connections are curved (2026-09-28): each edge follows the great circle between its two
+// ends, lifted a little off the surface, instead of a straight chord through the ball. One point
+// per edge carries the curve: the arc's midpoint, which the canvas projects and draws through with
+// one quadratic (control = 2 * mid - (a + b) / 2 passes the curve through mid), so a frame strokes
+// the same number of segments as the straight lines did. The lift grows with the arc's length, so
+// a long link bows outward and a short one hugs the surface. Two opposite ends have no single
+// great circle; any perpendicular will do, and it is still on the surface, never through the centre.
+export const ARC_LIFT = 0.12;
+export function arcMid(ax: number, ay: number, az: number, bx: number, by: number, bz: number): [number, number, number] {
+  let mx = ax + bx, my = ay + by, mz = az + bz; let len = Math.hypot(mx, my, mz);
+  if (len < 1e-6) { mx = -ay; my = ax; mz = 0; len = Math.hypot(mx, my, mz); if (len < 1e-6) { mx = 1; my = 0; mz = 0; len = 1; } }
+  const theta = Math.acos(Math.max(-1, Math.min(1, ax * bx + ay * by + az * bz))); const r = 1 + ARC_LIFT * theta / Math.PI;
+  return [mx / len * r, my / len * r, mz / len * r];
+}
+// The point at t along the quadratic through a, mid and b (t = 0 is a, 0.5 is mid, 1 is b), for
+// the canvas's messages, which travel the same curve the edge is drawn on. Screen or sphere space.
+export const curveAt = (a: number, m: number, b: number, t: number) => { const c = 2 * m - (a + b) / 2; return (1 - t) * (1 - t) * a + 2 * t * (1 - t) * c + t * t * b; };
 
 // The load-in: nodes fly from scatter to their place over about 1.2 s, each on its own slight
 // delay, and the edges fade in after them. Under reduced motion both are complete at once, so

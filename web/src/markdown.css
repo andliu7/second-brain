@@ -20,3 +20,9 @@
 .markdown blockquote{margin:6px 0;padding:2px 0 2px 14px;border-left:2px solid var(--line);color:var(--sub)}
 .markdown hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .markdown pre{margin:8px 0;padding:12px 14px;background:var(--ground);border:1px solid var(--line);border-radius:8px;overflow-x:auto;white-space:pre;font:13px/1.55 ui-monospace,Consolas,monospace;color:var(--ink)}
+/* LaTeX math (Formula in Markdown.tsx). KaTeX draws in the text colour, so both themes work. A display
+   formula is centred on its own line and scrolls sideways when wider than the column; until KaTeX has
+   loaded a formula shows as its source, in the code style. */
+.markdown-math.display{display:block;overflow-x:auto;overflow-y:hidden;text-align:center;margin:6px 0}
+.markdown-math-block{margin:8px 0}
+.markdown-math-source{white-space:pre-wrap}

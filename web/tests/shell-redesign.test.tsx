@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import App from '../src/App';
 
 // The 2026-09-25 shell: one Kanban page, andliu.ai, the welcome as a notification, and a chat that asks the
@@ -24,13 +27,16 @@ describe('the redesigned shell', () => {
     window.location.hash = 'board';
     render(<App/>);
     const nav = await screen.findByRole('complementary', { name: 'Workspace navigation' });
-    expect(within(nav).getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI/g, '').trim())).toEqual(['Second Brain.', 'Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard', 'PDF tools', 'Settings', 'Collapse sidebar']); // 2026-09-28: Resume left the nav for Docs (a note of kind Resume; #resume still opens). Docs, Whiteboard and Resume joined the nav; PDF tools joined after them
+    expect(within(nav).getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI/g, '').trim())).toEqual(['Second Brain.', 'Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard', 'Settings', 'Hide sidebar', 'Auto-hide']); // 2026-09-28: Resume left the nav for Docs (a note of kind Resume; #resume still opens). Docs, Whiteboard and Resume joined the nav; PDF tools joined after them, then folded into Docs (#pdf still opens)
     // The Kanban page carries the board, the day's todos, the buy list and the goals together.
     expect(await screen.findByRole('heading', { level: 1, name: 'Board' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Read for 15 minutes' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'To buy' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Goals' })).toBeInTheDocument(); // one h1 per page: Goals is a block here
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    // The profile moved from the sidebar foot to the top bar (2026-09-28); its "Local storage" line went with it.
+    expect(screen.getByRole('button', { name: /^Profile, / })).toBeInTheDocument();
+    expect(nav).not.toHaveTextContent('Local storage');
   });
 
   it('shows the welcome as a notification with a ping and a banner, and Got it marks it read for this browser', async () => {
@@ -58,7 +64,8 @@ describe('the redesigned shell', () => {
     render(<App/>);
     expect(await screen.findByRole('heading', { level: 1, name: 'andliu.ai' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Brain/ })).toBeChecked();
-    expect(screen.getByRole('combobox', { name: 'Chat model' })).toHaveValue('claude-sonnet-5');
+    // 2026-09-28: the model is picked in a menu inside the message box, named for people, not a select above it.
+    expect(screen.getByRole('button', { name: /^Chat model/ })).toHaveTextContent(/^Claude Sonnet 5$/);
     await screen.findByRole('option', { name: 'calibrate' });
     await user.type(await screen.findByLabelText('Message'), 'where is the blueberry status file');
     await user.click(screen.getByRole('button', { name: 'Send message' }));
@@ -91,33 +98,44 @@ describe('the redesigned shell', () => {
   });
 });
 
-// Andrew, 2026-09-28: the sidebar folds to an icon rail on every page, and the Kanban page is the board
-// first, full width, with the other lists under it.
-describe('the collapsible sidebar and the Kanban page layout', () => {
+// Andrew, 2026-09-28: the sidebar hides away behind a burger or slides away on its own (it replaced the
+// icon rail the same day), and the Kanban page is the board first, full width, with the other lists under it.
+describe('the hideable sidebar and the Kanban page layout', () => {
   beforeEach(() => localStorage.clear());
 
-  it('folds to an icon rail from its button, keeps every name, and remembers the choice', async () => {
+  it('hides entirely from its button, remembers the choice, and the burger brings it back', async () => {
     const user = userEvent.setup();
     window.location.hash = 'board';
     const { unmount } = render(<App/>);
     const nav = await screen.findByRole('complementary', { name: 'Workspace navigation' });
     const shell = nav.closest('.app-shell')!;
-    expect(shell).not.toHaveClass('sidebar-collapsed');
-    await user.click(within(nav).getByRole('button', { name: 'Collapse sidebar' }));
-    expect(shell).toHaveClass('sidebar-collapsed');
-    expect(localStorage.getItem('brain-sidebar-collapsed')).toBe('1');
-    // Icons only, but each button keeps its accessible name and gets a tooltip.
-    expect(within(nav).getByRole('button', { name: 'Kanban' })).toHaveAttribute('title', 'Kanban');
-    expect(within(nav).getByRole('button', { name: 'Settings' })).toHaveAttribute('title', 'Settings');
-    expect(within(nav).getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false');
+    expect(shell).toHaveClass('sidebar-open');
+    await user.click(within(nav).getByRole('button', { name: 'Hide sidebar' }));
+    expect(shell).toHaveClass('sidebar-hidden', 'sidebar-away');
+    expect(localStorage.getItem('brain-sidebar-mode')).toBe('hidden');
     unmount();
-    // A reload opens folded.
+    // A reload opens hidden.
     render(<App/>);
     const again = await screen.findByRole('complementary', { name: 'Workspace navigation' });
-    expect(again.closest('.app-shell')).toHaveClass('sidebar-collapsed');
-    await user.click(within(again).getByRole('button', { name: 'Expand sidebar' }));
-    expect(again.closest('.app-shell')).not.toHaveClass('sidebar-collapsed');
-    expect(localStorage.getItem('brain-sidebar-collapsed')).toBe('0');
+    expect(again.closest('.app-shell')).toHaveClass('sidebar-hidden', 'sidebar-away');
+    await user.click(screen.getByRole('button', { name: 'Show sidebar' }));
+    expect(again.closest('.app-shell')).toHaveClass('sidebar-open');
+    expect(again.closest('.app-shell')).not.toHaveClass('sidebar-away');
+    expect(localStorage.getItem('brain-sidebar-mode')).toBe('open');
+  });
+
+  it('Auto-hide is a pressed toggle that puts the shell in auto mode', async () => {
+    const user = userEvent.setup();
+    window.location.hash = 'board';
+    render(<App/>);
+    const nav = await screen.findByRole('complementary', { name: 'Workspace navigation' });
+    const auto = within(nav).getByRole('button', { name: 'Auto-hide' });
+    expect(auto).toHaveAttribute('aria-pressed', 'false');
+    await user.click(auto);
+    expect(auto).toHaveAttribute('aria-pressed', 'true');
+    expect(nav.closest('.app-shell')).toHaveClass('sidebar-auto');
+    await user.click(auto);
+    expect(nav.closest('.app-shell')).toHaveClass('sidebar-open');
   });
 
   it('Ctrl B toggles it anywhere except while typing in a field', async () => {
@@ -127,12 +145,12 @@ describe('the collapsible sidebar and the Kanban page layout', () => {
     const nav = await screen.findByRole('complementary', { name: 'Workspace navigation' });
     const shell = nav.closest('.app-shell')!;
     await user.keyboard('{Control>}b{/Control}');
-    expect(shell).toHaveClass('sidebar-collapsed');
+    expect(shell).toHaveClass('sidebar-hidden');
     await user.keyboard('{Control>}b{/Control}');
-    expect(shell).not.toHaveClass('sidebar-collapsed');
+    expect(shell).not.toHaveClass('sidebar-hidden');
     await user.click(screen.getByRole('textbox', { name: 'New todo' }));
     await user.keyboard('{Control>}b{/Control}');
-    expect(shell).not.toHaveClass('sidebar-collapsed');
+    expect(shell).not.toHaveClass('sidebar-hidden');
   });
 
   it('puts the board first and full width, with the todos, the buy list and the goals after it', async () => {
@@ -146,5 +164,54 @@ describe('the collapsible sidebar and the Kanban page layout', () => {
     expect(after(screen.getByRole('checkbox', { name: 'Read for 15 minutes' }))).toBeGreaterThan(0);
     expect(after(screen.getByRole('heading', { level: 2, name: 'To buy' }))).toBeGreaterThan(0);
     expect(after(screen.getByRole('heading', { level: 2, name: 'Goals' }))).toBeGreaterThan(0);
+  });
+});
+
+// Andrew, 2026-09-28: arriving on Today sweeps the page in. The overlay is only a copy of the page, so it
+// needs WebGL2 and motion allowed (tests/setup.ts turns reduced motion on); without them the page just swaps.
+describe('the page sweep', () => {
+  const motionAllowed = () => vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }));
+  const kanbanToToday = async () => {
+    const user = userEvent.setup();
+    window.location.hash = 'board';
+    render(<App/>);
+    await screen.findByRole('heading', { level: 1, name: 'Board' });
+    await user.click(within(screen.getByRole('complementary', { name: 'Workspace navigation' })).getByRole('button', { name: 'Today' }));
+  };
+
+  it('does not mount the overlay without WebGL2', async () => {
+    motionAllowed();
+    await kanbanToToday();
+    expect(document.querySelector('.page-sweep-layer')).toBeNull();
+  });
+
+  it('mounts it, over a copy of the Kanban page, when WebGL2 exists', async () => {
+    motionAllowed();
+    vi.stubGlobal('WebGL2RenderingContext', class {});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) => kind === 'webgl2' ? ({} as RenderingContext) : null) as HTMLCanvasElement['getContext']);
+    vi.spyOn(console, 'error').mockImplementation(() => {}); // jsdom's fake context: the engine reports it and the safety timer settles
+    await kanbanToToday();
+    const layer = document.querySelector('.page-sweep-layer');
+    expect(layer).not.toBeNull();
+    expect(layer).toHaveAttribute('inert');
+    expect(layer!.textContent).toContain('Board');
+  });
+});
+
+// The top bar is sticky with a z-index, so it is a stacking context: its menus can only rise above the
+// andliu.ai panel if the bar itself does. jsdom does not lay out, so this reads the rules themselves.
+describe('top-bar menus over the andliu.ai panel', () => {
+  const css = (file: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src', file), 'utf8');
+  const z = (text: string, selector: RegExp) => Number(text.match(selector)?.[1]);
+  it('lifts the top bar above the panel while any of its popovers is open', () => {
+    const styles = css('styles.css');
+    const panel = z(css('chat.css'), /\.ai-panel\{[^}]*z-index:(\d+)/);
+    const bar = z(styles, /^\.topbar\{position:sticky[^}]*z-index:(\d+)/m);
+    const lifted = styles.match(/\.topbar:has\(([^)]*)\)\{z-index:(\d+)\}/);
+    const sidebar = z(styles, /^\.sidebar\{[^}]*z-index:(\d+)/m);
+    expect(bar).toBeLessThan(panel); // at rest the panel covers the bar, as before
+    expect(lifted?.[1].split(',')).toEqual(expect.arrayContaining(['.pf-menu', '.notif-panel', '.focus-card', '.action-search-panel']));
+    expect(Number(lifted?.[2])).toBeGreaterThan(panel);
+    expect(Number(lifted?.[2])).toBeLessThan(sidebar);
   });
 });

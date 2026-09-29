@@ -1,0 +1,32 @@
+/* PipelineView.tsx: the Pipeline view switch, the sync line, and the edit mode's fields. The timeline
+   itself is styled in components/ui/processing-timeline.css. */
+.pipeline-view{display:grid;gap:14px;min-width:0}
+/* The switch: a track and knob beside its label, the whole row the button */
+.pipeline-switch{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 8px;border:0;border-radius:8px;background:none;color:var(--ink);font-size:13px;font-weight:600}
+.pipeline-switch:hover{background:var(--tint-1)}
+.pipeline-switch-track{position:relative;display:inline-block;width:32px;height:18px;border-radius:999px;background:var(--tint-4);transition:background .15s}
+.pipeline-switch-track>span{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--sheet);box-shadow:var(--shadow-1);transition:transform .15s}
+.pipeline-switch[aria-checked="true"] .pipeline-switch-track{background:var(--acc-fill)}
+.pipeline-switch[aria-checked="true"] .pipeline-switch-track>span{transform:translateX(14px)}
+.pipeline-sync{font-size:12px;color:var(--sub)}
+.pipeline-sync[data-state="shared"]{color:var(--green)}
+.pipeline-sync[data-state="offline"]{color:var(--mut)}
+.pipeline-view .button[aria-pressed="true"]{border-color:var(--acc-fill);background:var(--acc-soft);color:var(--acc)}
+/* Edit mode */
+.pipeline-settings{display:flex;flex-wrap:wrap;gap:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;background:var(--band)}
+.pipeline-settings label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+.pipeline-settings label:first-child{flex:1;min-width:200px}
+.pipeline-editor{display:grid;gap:8px;margin:4px 0 0;padding:10px 12px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--tint-1);min-width:0}
+.pipeline-editor legend{padding:0 4px;font-size:12px;font-weight:600;color:var(--sub)}
+.pipeline-editor label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+.pipeline-editor input:not([type="checkbox"]):not([type="range"]),.pipeline-editor select,.pipeline-editor textarea{font-size:13px;padding:6px 9px}
+.pipeline-editor textarea{resize:vertical;line-height:1.45}
+.pipeline-editor-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
+.pipeline-grow{flex:1;min-width:140px}
+.pipeline-progress input[type="number"]{width:84px}
+.pipeline-progress input[type="range"]{accent-color:var(--acc-fill)}
+.pipeline-editor-tools{align-items:center}
+.pipeline-editor .pipeline-check{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:13px}
+.pipeline-add{display:flex;gap:6px}
+.pipeline-add input{flex:1;min-width:0;padding:8px 11px;font-size:13.5px}
+@media (prefers-reduced-motion:reduce){.pipeline-switch-track,.pipeline-switch-track>span{transition:none}}

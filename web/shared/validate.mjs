@@ -1,3 +1,4 @@
+import { stageProblem, pipelineProblem } from './pipeline.mjs';
 // Shared by browser persistence/import and the local backup endpoint. Validation
 // deliberately returns the original value so supported extensions are not lost.
 const MiB = 1024 * 1024;
@@ -149,6 +150,36 @@ function boundedData(value, path, depth, budget, ancestors) {
   ancestors.delete(value);
 }
 
+// "How this answer was made" on an assistant message (server/trace.mjs builds it). Optional, so conversations
+// saved before it validate unchanged. Times are ms from the request's start; an hour bounds them, far past the
+// provider's 100 second timeout, and 200 spans is well over the dozen or so one chat request produces.
+const TRACE_MS = 60 * 60 * 1000;
+function traceMs(value, path) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > TRACE_MS) invalid(path, 'must be a number of milliseconds from 0 to one hour');
+}
+function optionalCount(value, path, max) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 0 || value > max)) invalid(path, `must be an integer from 0 to ${max}`);
+}
+function answerTrace(trace, path) {
+  object(trace, path);
+  string(trace.runId, `${path}.runId`, 128, true);
+  string(trace.model, `${path}.model`, 512);
+  traceMs(trace.duration, `${path}.duration`);
+  records(trace.spans, `${path}.spans`, 200, (span, spanPath) => {
+    string(span.label, `${spanPath}.label`, 512);
+    traceMs(span.start, `${spanPath}.start`);
+    traceMs(span.end, `${spanPath}.end`);
+    if (span.end < span.start) invalid(`${spanPath}.end`, 'must not be before its start');
+    oneOf(span.kind, `${spanPath}.kind`, ['agent', 'model', 'tool', 'io']);
+    oneOf(span.status, `${spanPath}.status`, ['ok', 'error', 'cached']);
+    optionalString(span.parentId, `${spanPath}.parentId`, 256);
+    optionalString(span.detail, `${spanPath}.detail`, 2048);
+    optionalCount(span.tokens, `${spanPath}.tokens`, 100000000);
+    optionalCount(span.tokensIn, `${spanPath}.tokensIn`, 100000000);
+    optionalCount(span.attempt, `${spanPath}.attempt`, 100);
+  });
+}
+
 /** Validate a version-1 workspace without modifying or pruning any fields. */
 export function validateWorkspace(value) {
   object(value, 'workspace');
@@ -194,6 +225,7 @@ export function validateWorkspace(value) {
       timestamp(message.created, `${messagePath}.created`);
       optionalString(message.provider, `${messagePath}.provider`, 256);
       optionalString(message.model, `${messagePath}.model`, 512);
+      if (message.trace !== undefined) answerTrace(message.trace, `${messagePath}.trace`);
     });
   });
   records(value.generations, 'generations', 10000, (generation, path) => {
@@ -247,8 +279,11 @@ export function validateWorkspace(value) {
         // A project's stage (Kanban.tsx): its notes, and the day it was ticked.
         optionalString(item.detail, `${itemPath}.detail`, MiB);
         if (item.doneOn !== undefined) { string(item.doneOn, `${itemPath}.doneOn`, 10); dateOnly(item.doneOn, `${itemPath}.doneOn`); }
+        // Its pipeline fields (status, progress, times, logs...), bounded in shared/pipeline.mjs, which the server mirror uses too.
+        const stage = stageProblem(item); if (stage) invalid(`${itemPath}.${stage.field}`, stage.reason);
       });
       if (card.project !== undefined) boolean(card.project, `${path}.project`);
+      if (card.pipeline !== undefined) { const problem = pipelineProblem(card.pipeline); if (problem) invalid(`${path}.pipeline${problem.field ? '.' + problem.field : ''}`, problem.reason); }
       array(card.attachments, `${path}.attachments`, 100);
       for (let i = 0; i < card.attachments.length; i++) if (!docIds.has(card.attachments[i])) invalid(`${path}.attachments[${i}]`, 'must name an existing doc');
       if (card.due !== undefined) { string(card.due, `${path}.due`, 10); dateOnly(card.due, `${path}.due`); }
@@ -327,7 +362,7 @@ export function validateWorkspace(value) {
     array(resume.skills, 'resume.skills', 200);
     for (let i = 0; i < resume.skills.length; i++) string(resume.skills[i], `resume.skills[${i}]`, 4096);
     // The template (Resume.tsx TEMPLATES) came later still; a resume without one uses Classic.
-    if (resume.template !== undefined) oneOf(resume.template, 'resume.template', ['classic', 'onyx', 'ditto', 'azurill']);
+    if (resume.template !== undefined) oneOf(resume.template, 'resume.template', ['classic', 'onyx', 'ditto', 'azurill', 'ditgar', 'leafish', 'kakuna', 'meowth', 'scizor']);
   }
   // The whiteboard came later too. Its elements are Drawnix's own JSON, so beyond a distinct id each
   // is left to the size, depth and finite-number bounds that boundedData applies to everything.
@@ -354,6 +389,15 @@ export function validateWorkspace(value) {
   // Notebooks came later too: a distinct id and a non-empty name each. Notes join one by a tag.
   if (value.notebooks !== undefined) {
     records(value.notebooks, 'notebooks', 1000, (notebook, path) => string(notebook.name, `${path}.name`, 256, true));
+  }
+  // The profile came later too (src/lib/profile.ts holds the same bounds): a name, an avatar that is
+  // initials or an emoji and may be empty, one of the theme's colours, and an optional status line.
+  if (value.profile !== undefined) {
+    object(value.profile, 'profile');
+    string(value.profile.name, 'profile.name', 80);
+    string(value.profile.avatar, 'profile.avatar', 16);
+    oneOf(value.profile.color, 'profile.color', ['accent', 'green', 'amber', 'red', 'ink']);
+    optionalString(value.profile.status, 'profile.status', 140);
   }
   boundedData(value, 'workspace', 0, { nodes: 0, chars: 0 }, new Set());
   return value;

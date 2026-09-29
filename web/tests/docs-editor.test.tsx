@@ -322,8 +322,9 @@ describe('the notebook and journal page', () => {
     const b = at('2026-09-27T10:00:00.000Z', makeDoc('Beta', 'second', 'note', ['Idea', 'Reading']));
     await saveWorkspace(withDocs(a, b));
     render(<Host initial={withDocs(a, b)}/>);
-    // Tags: only the typed ones, never the kind.
-    expect(within(nav()).getAllByRole('button').map(button => button.textContent)).toEqual(['All notes', 'Journal', 'Ideas', 'Pinned', '', 'Reading1']);
+    // Tags: only the typed ones, never the kind. Re-pointed 2026-09-28: PDFs joined the fixed views when
+    // PDF tools merged into Docs.
+    expect(within(nav()).getAllByRole('button').map(button => button.textContent)).toEqual(['All notes', 'Journal', 'Ideas', 'PDFs', 'Pinned', '', 'Reading1']);
     await user.click(within(nav()).getByRole('button', { name: /^Reading/ }));
     expect(list()).toEqual(['Beta']);
     await user.click(screen.getByRole('button', { name: 'All notes' }));
@@ -402,7 +403,8 @@ describe('Save as PDF and the resume under Docs', () => {
     const user = userEvent.setup();
     render(<Host initial={withDocs(makeDoc('Alpha', 'first', 'note', ['Note']))}/>);
     await user.click(screen.getByRole('button', { name: 'New, other kinds' }));
-    expect(within(screen.getByRole('menu', { name: 'New document' })).getAllByRole('menuitem').map(item => item.textContent)).toEqual(['Note', 'Journal entry', 'Idea', 'Resume, from a template']);
+    // Re-pointed 2026-09-28: Import PDF joined the menu when PDF tools merged into Docs.
+    expect(within(screen.getByRole('menu', { name: 'New document' })).getAllByRole('menuitem').map(item => item.textContent)).toEqual(['Note', 'Journal entry', 'Idea', 'Resume, from a template', 'Import PDF']);
     await user.click(screen.getByRole('menuitem', { name: 'Resume, from a template' }));
     expect(await screen.findByRole('article', { name: 'Resume preview' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Template' })).toBeInTheDocument();
@@ -417,5 +419,74 @@ describe('Save as PDF and the resume under Docs', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Resume, from a template' }));
     await waitFor(async () => expect((await loadWorkspace()).docs.filter(d => d.tags.includes('Resume'))).toHaveLength(1));
     expect(await screen.findByRole('article', { name: 'Resume preview' })).toBeInTheDocument();
+  });
+});
+
+// 2026-09-28, Andrew: "can we make it so that it reads latex too?" $inline$ and $$display$$ math, drawn by
+// KaTeX in the editor and in the read-only renderer, saved back exactly as written.
+describe('LaTeX math', () => {
+  const MATH_NOTE = 'Euler: $e^{i\\pi} + 1 = 0$, and it costs $5 or $10.\n\n$$\n\\int_0^1 x\\,dx = \\frac{1}{2}\n$$\n\n$$a^2 + b^2 = c^2$$';
+  const mathNodes = (editor: Editor) => { const found: string[] = []; editor.state.doc.descendants(node => { if (node.type.name.endsWith('Math')) found.push(`${node.type.name}:${node.attrs.latex}`); }); return found; };
+  it('reads $...$ and $$...$$ into formulas, leaves prices alone, and saves the markdown back exactly', () => {
+    const editor = editorWith(MATH_NOTE);
+    expect(mathNodes(editor)).toEqual(['inlineMath:e^{i\\pi} + 1 = 0', 'blockMath:\n\\int_0^1 x\\,dx = \\frac{1}{2}\n', 'blockMath:a^2 + b^2 = c^2']);
+    expect(editor.state.doc.textContent).toContain('it costs $5 or $10.');
+    expect(markdownOf(editor)).toBe(MATH_NOTE);
+    expect(markdownOf(editorWith(markdownOf(editor)))).toBe(MATH_NOTE);
+    // Written-out dollars stay text across saves: the one that could open a formula keeps its backslash.
+    const escaped = editorWith('Not math: \\$x\\$ and \\$5.');
+    expect(mathNodes(escaped)).toEqual([]);
+    expect(escaped.state.doc.textContent).toBe('Not math: $x$ and $5.');
+    expect(markdownOf(escaped)).toBe('Not math: \\$x$ and $5.');
+    expect(mathNodes(editorWith(markdownOf(escaped)))).toEqual([]);
+    escaped.destroy();
+    // KaTeX drew them: its markup is in the editor, not the dollar signs.
+    expect(editor.view.dom.querySelectorAll('.doc-math .katex')).toHaveLength(3);
+    editor.destroy();
+  });
+  it('typing $x^2$ makes an inline formula, and a paragraph of $$...$$ a display one; a price stays text', () => {
+    const editor = editorWith();
+    type(editor, 'Area $\\pi r^2$ costs $5 and $6');
+    expect(mathNodes(editor)).toEqual(['inlineMath:\\pi r^2']);
+    expect(markdownOf(editor)).toBe('Area $\\pi r^2$ costs $5 and $6');
+    editor.destroy();
+    const block = editorWith();
+    type(block, '$$\\sum_i x_i$$');
+    expect(outline(block)).toBe('blockMath');
+    expect(markdownOf(block)).toBe('$$\\sum_i x_i$$');
+    block.destroy();
+  });
+  it('a click shows the source to edit: Enter keeps it, Escape drops it, and an empty source removes the formula', async () => {
+    let saved = '';
+    render(<DocEditor markdown={'Mass $m_0$ here'} onChange={markdown => { saved = markdown; }}/>);
+    const formula = () => document.querySelector('.doc-math') as HTMLElement;
+    expect(formula().querySelector('.katex')).not.toBeNull();
+    fireEvent.click(formula());
+    const field = screen.getByRole('textbox', { name: 'LaTeX source of the formula' }) as HTMLInputElement;
+    expect(field.value).toBe('m_0');
+    fireEvent.change(field, { target: { value: 'm_1' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(saved).toBe('Mass $m_1$ here');
+    expect(formula().querySelector('.katex')).not.toBeNull();
+    fireEvent.click(formula());
+    fireEvent.change(screen.getByRole('textbox', { name: 'LaTeX source of the formula' }), { target: { value: 'wrong' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'LaTeX source of the formula' }), { key: 'Escape' });
+    expect(saved).toBe('Mass $m_1$ here');
+    fireEvent.click(formula());
+    fireEvent.change(screen.getByRole('textbox', { name: 'LaTeX source of the formula' }), { target: { value: '' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'LaTeX source of the formula' }), { key: 'Enter' });
+    expect(saved).toBe('Mass  here');
+    expect(document.querySelector('.doc-math')).toBeNull();
+  });
+  it('the read-only renderer draws the same formulas once KaTeX has loaded, and leaves prices and \\$ as text', async () => {
+    const { container } = render(<Markdown content={MATH_NOTE}/>);
+    await waitFor(() => expect(container.querySelectorAll('.markdown-math .katex')).toHaveLength(3));
+    expect(container.querySelectorAll('.markdown-math.display')).toHaveLength(2);
+    expect(container.textContent).toContain('it costs $5 or $10.');
+    expect(render(<Markdown content={'A written \\$ sign, and \\$x\\$.'}/>).container.textContent).toBe('A written $ sign, and $x$.');
+    // A formula in a line of prose, and one inside a code span that must stay code.
+    const inline = render(<Markdown content={'Here $$x+1$$ sits in text, and `$y$` is code.'}/>);
+    await waitFor(() => expect(inline.container.querySelectorAll('.markdown-math.display .katex')).toHaveLength(1));
+    expect(inline.container.querySelector('code')!.textContent).toBe('$y$');
   });
 });

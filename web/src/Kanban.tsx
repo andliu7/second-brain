@@ -28,6 +28,7 @@ import { Checklist, checklistSummary } from '@/components/ui/checklist';
 import { ColorSwatches } from '@/components/ui/color-swatches';
 import { StickyNote, type StickyPosition } from '@/components/ui/sticky-note';
 import { StageProgress, StageTimeline } from '@/components/ui/stage-timeline';
+import { PipelineSwitch, PipelineView } from './PipelineView';
 import './kanban.css';
 
 export type Commit = (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>;
@@ -278,7 +279,9 @@ export function ProjectList({ board, open }: { board: Board; open: (id: string) 
 // and Tab stays inside it (the browser's own focus trap, which the card dialog relies on too). Esc or
 // Close shut it, and focus goes back to whatever opened it. Every stage edit is saved at once through
 // patch, the board's own path, so there is no draft and nothing to lose. edit is Kanban's way to the full
-// card dialog; Projects.tsx leaves it out.
+// card dialog; Projects.tsx leaves it out. The Pipeline view switch in the bar swaps the stage timeline for
+// PipelineView (the same stages with statuses, progress and logs, shared with Claude Code); its title
+// then names the dialog, so the aside's heading is not drawn twice.
 export function ProjectPanel({ card, patch, close, edit }: { card: Card; patch: Patch; close: () => void; edit?: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -302,16 +305,17 @@ export function ProjectPanel({ card, patch, close, edit }: { card: Card; patch: 
     onCancel={event => { event.preventDefault(); dismiss(); }} onClick={event => { if (event.target === dialog.current) dismiss(); }}>
     <div className="project-panel-bar">
       {edit && <button type="button" className="text-button" onClick={edit}><SquarePen size={14}/>Edit card</button>}
+      <PipelineSwitch card={card} change={change}/>
       <span className="project-panel-hint">Esc closes this panel</span>
       <button type="button" className="icon-button" aria-label="Close" title="Close (Esc)" onClick={dismiss}><X size={16}/></button>
     </div>
     <div className="project-panel-body">
-      <StageTimeline stages={card.checklist} aside={aside}
+      {card.pipeline?.enabled ? <PipelineView card={card} change={change} titleId="project-panel-title"/> : <StageTimeline stages={card.checklist} aside={aside}
         onToggle={id => change(c => toggleItem(c, id), card.checklist.find(stage => stage.id === id)?.done ? undefined : 'Stage done')}
         onEdit={(id, edits) => change(c => ({ ...c, checklist: c.checklist.map(stage => stage.id === id ? { ...stage, ...edits } : stage) }))}
         onMove={(id, by) => change(c => ({ ...c, checklist: shiftItem(c.checklist, id, by) }))}
         onRemove={id => change(c => ({ ...c, checklist: c.checklist.filter(stage => stage.id !== id) }), 'Stage deleted')}
-        onAdd={title => change(c => ({ ...c, checklist: [...c.checklist, { id: uid(), title, done: false }] }))}/>
+        onAdd={title => change(c => ({ ...c, checklist: [...c.checklist, { id: uid(), title, done: false }] }))}/>}
     </div>
   </dialog>;
 }

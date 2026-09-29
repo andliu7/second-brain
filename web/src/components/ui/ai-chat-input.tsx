@@ -83,13 +83,13 @@ function MorphingText({ text }: { text: string }) {
   </span>;
 }
 
-function ModelIcon({ model }: { model: string }) {
+export function ModelIcon({ model }: { model: string }) {
   // Local Lucide symbols represent model families without external logo requests.
   const Icon = /gemini/i.test(model) ? Sparkles : /composer/i.test(model) ? Code2 : /opus|claude/i.test(model) ? Zap : Bot;
   return <Icon size={14} aria-hidden="true" className="shrink-0 opacity-80" />;
 }
 
-function DynamicBarsIcon({ level, count }: { level: number; count: number }) {
+export function DynamicBarsIcon({ level, count }: { level: number; count: number }) {
   const filled = count <= 1 ? 3 : 1 + Math.round(level / (count - 1) * 2);
   return <span aria-hidden="true" className="flex h-3.5 w-3.5 shrink-0 items-end gap-0.5">{[5, 9, 13].map((height, index) =>
     <span key={height} className="w-[3px] rounded-sm bg-current transition-opacity duration-300" style={{ height, opacity: index < filled ? 1 : 0.3 }} />

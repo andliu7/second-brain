@@ -1,0 +1,2219 @@
+{
+  "version": 1,
+  "docs": [
+    {
+      "id": "doc-orgo-sn",
+      "name": "SN1 vs SN2 cheat sheet",
+      "content": "# SN1 vs SN2\n\n- **SN2**: one step, backside attack, inversion. Primary > secondary. Polar aprotic solvent (DMSO, acetone).\n- **SN1**: carbocation first, racemizes. Tertiary > secondary. Polar protic solvent (water, ethanol).\n\n## Tells on an exam\n\n- [x] Look at the substrate first\n- [x] Then the nucleophile: strong and small means SN2\n- [ ] Rearrangements only happen through a carbocation\n",
+      "kind": "note",
+      "tags": [
+        "notebook:nb-orgo",
+        "exam-1",
+        "mechanisms"
+      ],
+      "pinned": true,
+      "created": "2026-09-09T01:00:00.000Z",
+      "updated": "2026-09-27T02:15:00.000Z"
+    },
+    {
+      "id": "doc-orgo-ir",
+      "name": "IR peaks to memorize",
+      "content": "| Group | Wavenumber |\n| --- | --- |\n| O-H (alcohol) | 3200 to 3550, broad |\n| C=O | 1680 to 1750, sharp |\n| C-H (sp3) | just under 3000 |\n\nMnemonic from study group: \"broad is bonded to hydrogen\".",
+      "kind": "note",
+      "tags": [
+        "notebook:nb-orgo",
+        "spectroscopy"
+      ],
+      "pinned": false,
+      "created": "2026-09-16T23:00:00.000Z",
+      "updated": "2026-09-23T22:00:00.000Z"
+    },
+    {
+      "id": "doc-cs-heaps",
+      "name": "Heaps and priority queues",
+      "content": "# Binary heaps\n\nArray layout: children of `i` are `2i + 1` and `2i + 2`.\n\n```python\ndef sift_down(a, i, n):\n    while 2 * i + 1 < n:\n        c = 2 * i + 1\n        if c + 1 < n and a[c + 1] < a[c]:\n            c += 1\n        if a[i] <= a[c]:\n            break\n        a[i], a[c] = a[c], a[i]\n        i = c\n```\n\nBuild heap is O(n), not O(n log n). Ask in office hours why.",
+      "kind": "note",
+      "tags": [
+        "notebook:nb-cs",
+        "exam-1",
+        "algorithms"
+      ],
+      "pinned": false,
+      "created": "2026-09-19T20:00:00.000Z",
+      "updated": "2026-09-28T00:40:00.000Z"
+    },
+    {
+      "id": "doc-cs-p2",
+      "name": "Project 2 plan: spell checker",
+      "content": "Trie for the dictionary, edit distance for suggestions.\n\n1. Load words into a trie\n2. Walk the input, flag misses\n3. Suggest the three closest by Levenshtein distance\n\nPartner: Priya (does the tests).",
+      "kind": "note",
+      "tags": [
+        "notebook:nb-cs",
+        "projects"
+      ],
+      "pinned": false,
+      "created": "2026-09-22T18:00:00.000Z",
+      "updated": "2026-09-28T12:10:00.000Z"
+    },
+    {
+      "id": "doc-lab-log",
+      "name": "Lab notebook: aspirin synthesis",
+      "content": "Week 3 of the undergraduate research rotation with Dr. Okafor (made-up lab, made-up data).\n\n- Recrystallized from ethanol and water\n- Melting point 134 to 136 C, close to the literature 135 C\n- Yield up from 68% to 74% after slower cooling\n\nNext: TLC before and after to show the salicylic acid is gone.",
+      "kind": "note",
+      "tags": [
+        "notebook:nb-lab",
+        "research"
+      ],
+      "pinned": false,
+      "created": "2026-09-13T21:00:00.000Z",
+      "updated": "2026-09-25T21:30:00.000Z"
+    },
+    {
+      "id": "doc-reading",
+      "name": "Reading list",
+      "content": "- *The Disappearing Spoon*, Sam Kean\n- *Grokking Algorithms*, Aditya Bhargava\n- *Atomic Habits*, James Clear (half done)",
+      "kind": "note",
+      "tags": [
+        "books"
+      ],
+      "pinned": false,
+      "created": "2026-08-29T16:00:00.000Z",
+      "updated": "2026-09-18T16:00:00.000Z"
+    },
+    {
+      "id": "doc-idea-flash",
+      "name": "Idea: spaced repetition for reaction mechanisms",
+      "content": "Flashcards that show a starting material and ask for the arrow pushing, not just the product. Could reuse the heap from CS for the review queue.",
+      "kind": "note",
+      "tags": [
+        "Idea",
+        "mechanisms",
+        "projects"
+      ],
+      "pinned": false,
+      "created": "2026-09-22T03:00:00.000Z",
+      "updated": "2026-09-22T03:00:00.000Z"
+    },
+    {
+      "id": "doc-idea-club",
+      "name": "Idea: chem club demo night",
+      "content": "Elephant toothpaste, a flame test rainbow, and a liquid nitrogen ice cream table. Needs a safety sign-off from the department.",
+      "kind": "note",
+      "tags": [
+        "Idea",
+        "club"
+      ],
+      "pinned": false,
+      "created": "2026-09-24T17:00:00.000Z",
+      "updated": "2026-09-24T17:00:00.000Z"
+    },
+    {
+      "id": "doc-idea-app",
+      "name": "Idea: dining hall macro tracker",
+      "content": "Scrape the posted menu each morning, let people tick what they ate. Probably overkill; a spreadsheet might do.",
+      "kind": "note",
+      "tags": [
+        "Idea"
+      ],
+      "pinned": false,
+      "created": "2026-09-17T13:00:00.000Z",
+      "updated": "2026-09-17T13:00:00.000Z"
+    },
+    {
+      "id": "doc-j-today",
+      "name": "Monday, September 28, 2026",
+      "content": "Up early. Orgo quiz is Thursday, so today is mechanisms and one heap problem before lab.",
+      "kind": "note",
+      "tags": [
+        "Journal",
+        "school"
+      ],
+      "pinned": false,
+      "created": "2026-09-28T11:45:00.000Z",
+      "updated": "2026-09-28T11:45:00.000Z"
+    },
+    {
+      "id": "doc-j-1",
+      "name": "Sunday, September 27, 2026",
+      "content": "Long day. Lab ran over but the yield was the best yet. Called home; Mom says the dog learned to open the pantry.",
+      "kind": "note",
+      "tags": [
+        "Journal"
+      ],
+      "pinned": false,
+      "created": "2026-09-28T02:00:00.000Z",
+      "updated": "2026-09-28T02:00:00.000Z"
+    },
+    {
+      "id": "doc-j-2",
+      "name": "Saturday, September 26, 2026",
+      "content": "Office hours helped: build heap is O(n) because most nodes are near the bottom and barely move.",
+      "kind": "note",
+      "tags": [
+        "Journal",
+        "school"
+      ],
+      "pinned": false,
+      "created": "2026-09-27T01:30:00.000Z",
+      "updated": "2026-09-27T01:30:00.000Z"
+    },
+    {
+      "id": "doc-j-4",
+      "name": "Thursday, September 24, 2026",
+      "content": "Ran 5k without stopping for the first time. Slow, but done.",
+      "kind": "note",
+      "tags": [
+        "Journal",
+        "running"
+      ],
+      "pinned": false,
+      "created": "2026-09-25T02:10:00.000Z",
+      "updated": "2026-09-25T02:10:00.000Z"
+    },
+    {
+      "id": "doc-j-8",
+      "name": "Sunday, September 20, 2026",
+      "content": "Rough exam week ahead. Made a plan on the board and felt better right away.",
+      "kind": "note",
+      "tags": [
+        "Journal"
+      ],
+      "pinned": false,
+      "created": "2026-09-21T00:00:00.000Z",
+      "updated": "2026-09-21T00:00:00.000Z"
+    },
+    {
+      "id": "doc-j-15",
+      "name": "Sunday, September 13, 2026",
+      "content": "First day in the lab. Everyone is kind; I broke nothing.",
+      "kind": "note",
+      "tags": [
+        "Journal",
+        "research"
+      ],
+      "pinned": false,
+      "created": "2026-09-14T01:00:00.000Z",
+      "updated": "2026-09-14T01:00:00.000Z"
+    },
+    {
+      "id": "doc-j-month",
+      "name": "Friday, August 28, 2026",
+      "content": "Move-in weekend. New room, same bad lamp. Wrote the goals for the semester.",
+      "kind": "note",
+      "tags": [
+        "Journal"
+      ],
+      "pinned": false,
+      "created": "2026-08-29T00:30:00.000Z",
+      "updated": "2026-08-29T00:30:00.000Z"
+    },
+    {
+      "id": "doc-j-year",
+      "name": "Sunday, September 28, 2025",
+      "content": "Freshman year, week one. Signed up for chem club and immediately got lost finding the building.",
+      "kind": "note",
+      "tags": [
+        "Journal"
+      ],
+      "pinned": false,
+      "created": "2025-09-29T00:30:00.000Z",
+      "updated": "2025-09-29T00:30:00.000Z"
+    },
+    {
+      "id": "doc-resume",
+      "name": "Resume",
+      "content": "",
+      "kind": "note",
+      "tags": [
+        "Resume"
+      ],
+      "pinned": false,
+      "created": "2026-09-03T19:00:00.000Z",
+      "updated": "2026-09-25T19:00:00.000Z"
+    },
+    {
+      "id": "doc-skill-lab",
+      "name": "Lab report outline",
+      "content": "---\nname: lab-report-outline\ndescription: Turn raw lab notes into a report skeleton.\n---\n\nGiven a lab notebook entry, write: Purpose, Procedure (past tense, passive), Data (as a table), Discussion (yield, sources of error), Conclusion. Never invent numbers.",
+      "kind": "skill",
+      "tags": [
+        "writing"
+      ],
+      "pinned": false,
+      "created": "2026-09-10T20:00:00.000Z",
+      "updated": "2026-09-22T20:00:00.000Z"
+    },
+    {
+      "id": "doc-file-yield",
+      "name": "aspirin-yields.csv",
+      "content": "trial,mass_g,yield_pct\n1,2.41,68\n2,2.38,71\n3,2.44,74\n",
+      "kind": "file",
+      "tags": [
+        "research"
+      ],
+      "pinned": false,
+      "created": "2026-09-25T21:40:00.000Z",
+      "updated": "2026-09-25T21:40:00.000Z",
+      "mime": "text/csv",
+      "size": 53,
+      "data": "data:text/csv;base64,dHJpYWwsbWFzc19nLHlpZWxkX3BjdAoxLDIuNDEsNjgKMiwyLjM4LDcxCjMsMi40NCw3NAo="
+    }
+  ],
+  "goals": [
+    {
+      "id": "goal-gpa",
+      "title": "Finish the semester with a 3.6",
+      "description": "Mostly means not letting orgo slide.",
+      "category": "Academic",
+      "due": "2026-12-12",
+      "archived": false,
+      "created": "2026-08-19T14:00:00.000Z",
+      "milestones": [
+        {
+          "id": "ms-gpa-1",
+          "title": "B+ or better on Orgo exam 1",
+          "done": true
+        },
+        {
+          "id": "ms-gpa-2",
+          "title": "Submit Project 2 on time",
+          "done": false
+        },
+        {
+          "id": "ms-gpa-3",
+          "title": "Weekly office hours for Data Structures",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "goal-5k",
+      "title": "Run a 5k under 30 minutes",
+      "description": "Couch to 5k, three runs a week.",
+      "category": "Fitness",
+      "due": "2026-11-07",
+      "archived": false,
+      "created": "2026-08-24T11:00:00.000Z",
+      "milestones": [
+        {
+          "id": "ms-5k-1",
+          "title": "Run 5k without stopping",
+          "done": true
+        },
+        {
+          "id": "ms-5k-2",
+          "title": "Break 33 minutes",
+          "done": false
+        },
+        {
+          "id": "ms-5k-3",
+          "title": "Break 30 minutes",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "goal-research",
+      "title": "Earn a summer research spot",
+      "description": "Ask Dr. Okafor about the summer program by winter break.",
+      "category": "Professional",
+      "due": "2027-01-06",
+      "archived": false,
+      "created": "2026-08-29T15:00:00.000Z",
+      "milestones": [
+        {
+          "id": "ms-r-1",
+          "title": "Finish the rotation",
+          "done": false
+        },
+        {
+          "id": "ms-r-2",
+          "title": "Update resume",
+          "done": true
+        },
+        {
+          "id": "ms-r-3",
+          "title": "Send the email",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "goal-old",
+      "title": "Learn to cook five dinners",
+      "description": "Done over the summer.",
+      "category": "Personal",
+      "due": "2026-08-14",
+      "archived": true,
+      "created": "2026-05-31T22:00:00.000Z",
+      "milestones": [
+        {
+          "id": "ms-old-1",
+          "title": "Stir fry",
+          "done": true
+        },
+        {
+          "id": "ms-old-2",
+          "title": "Chili",
+          "done": true
+        }
+      ]
+    }
+  ],
+  "conversations": [
+    {
+      "id": "chat-heap",
+      "title": "Why is build heap O(n)?",
+      "updated": "2026-09-26T23:05:00.000Z",
+      "messages": [
+        {
+          "id": "m-h-1",
+          "role": "user",
+          "content": "Why is building a heap O(n) and not O(n log n)?",
+          "created": "2026-09-26T23:00:00.000Z"
+        },
+        {
+          "id": "m-h-2",
+          "role": "assistant",
+          "content": "Most nodes sit near the bottom. Half the nodes are leaves and never move, a quarter move at most one level, and so on. The sum n/4 + 2n/8 + 3n/16 + ... converges to n, so the total work is linear.",
+          "created": "2026-09-26T23:01:00.000Z",
+          "provider": "claude",
+          "model": "sample-model",
+          "trace": {
+            "runId": "run-sample-1",
+            "model": "sample-model",
+            "duration": 2140,
+            "spans": [
+              {
+                "id": "sp-1",
+                "label": "Answer",
+                "start": 0,
+                "end": 2140,
+                "kind": "agent",
+                "status": "ok"
+              },
+              {
+                "id": "sp-2",
+                "label": "Brain search",
+                "start": 20,
+                "end": 310,
+                "kind": "tool",
+                "status": "ok",
+                "parentId": "sp-1",
+                "detail": "heaps"
+              },
+              {
+                "id": "sp-3",
+                "label": "Model call",
+                "start": 330,
+                "end": 2120,
+                "kind": "model",
+                "status": "ok",
+                "parentId": "sp-1",
+                "tokensIn": 812,
+                "tokens": 96
+              }
+            ]
+          }
+        },
+        {
+          "id": "m-h-3",
+          "role": "user",
+          "content": "So sift down from the middle, not sift up from the start?",
+          "created": "2026-09-26T23:04:00.000Z"
+        },
+        {
+          "id": "m-h-4",
+          "role": "assistant",
+          "content": "Exactly. Sifting up from the start would be O(n log n), because the deep nodes are the ones doing the long trips.",
+          "created": "2026-09-26T23:05:00.000Z",
+          "provider": "claude",
+          "model": "sample-model"
+        }
+      ]
+    },
+    {
+      "id": "chat-email",
+      "title": "Email to ask about summer research",
+      "updated": "2026-09-23T01:02:00.000Z",
+      "messages": [
+        {
+          "id": "m-e-1",
+          "role": "user",
+          "content": "Help me write a short email asking my rotation PI about the summer program.",
+          "created": "2026-09-23T01:00:00.000Z"
+        },
+        {
+          "id": "m-e-2",
+          "role": "assistant",
+          "content": "Subject: Summer research in the lab\n\nHi Dr. Okafor,\n\nI have really enjoyed the rotation, especially working on the recrystallization yields. I would love to keep going over the summer. Is there a chance of a spot, and what should I do to apply?\n\nThank you,\nSam",
+          "created": "2026-09-23T01:02:00.000Z",
+          "provider": "claude",
+          "model": "sample-model"
+        }
+      ]
+    }
+  ],
+  "generations": [
+    {
+      "id": "gen-1",
+      "prompt": "A flat illustration of a sunset over rolling hills, warm colours, for a study playlist cover",
+      "provider": "gemini",
+      "model": "sample-image-model",
+      "aspect": "16:9",
+      "created": "2026-09-24T02:00:00.000Z",
+      "status": "complete",
+      "images": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAgCAIAAADbtmxLAAABLElEQVR42u3OP0tCURzG8eflnFei5Us4LyKQIAKRtDBFpD9yTcRSQ5OLEg0FQUNDQ9DQ4CA4NDQIDQkOgoOLDWe53Hv+mN4fHkT4LD/ufQ5fzDp7VsHUjVsFk/a+VTBuHVgFv81Dq+DnNkFqPnryMv6PYT1Jx1cj6Cf4vkkRkdYImhW+qscUNDWCaohBJUPBGKQaol/OUjAGqYbolfIUjEGqIT6dAgVjkGqIj+I5EU2NZoX3i0s60hr9BG9nDilfjfF/vBaurIKXfMUqeM5VrYLH01ro2C5nMc4inEU52+HBU7PFQ6YRIlWB9JS+gO5JMxSLFEhP3ztw03cr+m9B8PS+BvGhdeQuZ7kC6SkehPdDI9lZ3OoF0hPBD9eJe71wC8xB6z23QdugjQv6A4zS2zp5Ub7fAAAAAElFTkSuQmCC"
+      ]
+    }
+  ],
+  "activity": [
+    {
+      "id": "act-0-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-28T12:24:00.000Z"
+    },
+    {
+      "id": "act-0-1",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-28T14:43:00.000Z"
+    },
+    {
+      "id": "act-0-2",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-28T16:53:00.000Z"
+    },
+    {
+      "id": "act-0-3",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-28T18:17:00.000Z"
+    },
+    {
+      "id": "act-1-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-27T12:34:00.000Z"
+    },
+    {
+      "id": "act-2-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-26T12:40:00.000Z"
+    },
+    {
+      "id": "act-2-1",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-26T14:43:00.000Z"
+    },
+    {
+      "id": "act-3-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-25T12:09:00.000Z"
+    },
+    {
+      "id": "act-4-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-24T12:59:00.000Z"
+    },
+    {
+      "id": "act-4-1",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-24T14:39:00.000Z"
+    },
+    {
+      "id": "act-4-2",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-24T16:37:00.000Z"
+    },
+    {
+      "id": "act-4-3",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-24T18:47:00.000Z"
+    },
+    {
+      "id": "act-5-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-23T12:07:00.000Z"
+    },
+    {
+      "id": "act-5-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-23T14:44:00.000Z"
+    },
+    {
+      "id": "act-5-2",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-23T16:33:00.000Z"
+    },
+    {
+      "id": "act-6-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-22T12:15:00.000Z"
+    },
+    {
+      "id": "act-6-1",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-22T14:08:00.000Z"
+    },
+    {
+      "id": "act-6-2",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-22T16:58:00.000Z"
+    },
+    {
+      "id": "act-6-3",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-22T18:51:00.000Z"
+    },
+    {
+      "id": "act-7-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-21T12:47:00.000Z"
+    },
+    {
+      "id": "act-7-1",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-21T14:37:00.000Z"
+    },
+    {
+      "id": "act-7-2",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-21T16:22:00.000Z"
+    },
+    {
+      "id": "act-8-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-20T12:58:00.000Z"
+    },
+    {
+      "id": "act-9-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-19T12:06:00.000Z"
+    },
+    {
+      "id": "act-9-1",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-19T14:57:00.000Z"
+    },
+    {
+      "id": "act-10-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-18T12:59:00.000Z"
+    },
+    {
+      "id": "act-10-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-18T14:23:00.000Z"
+    },
+    {
+      "id": "act-10-2",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-18T16:54:00.000Z"
+    },
+    {
+      "id": "act-10-3",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-18T18:01:00.000Z"
+    },
+    {
+      "id": "act-10-4",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-18T20:25:00.000Z"
+    },
+    {
+      "id": "act-11-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-17T12:36:00.000Z"
+    },
+    {
+      "id": "act-12-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-16T12:27:00.000Z"
+    },
+    {
+      "id": "act-12-1",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-16T14:24:00.000Z"
+    },
+    {
+      "id": "act-12-2",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-16T16:53:00.000Z"
+    },
+    {
+      "id": "act-12-3",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-16T18:37:00.000Z"
+    },
+    {
+      "id": "act-12-4",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-16T20:43:00.000Z"
+    },
+    {
+      "id": "act-13-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-15T12:13:00.000Z"
+    },
+    {
+      "id": "act-13-1",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-15T14:50:00.000Z"
+    },
+    {
+      "id": "act-14-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-14T12:21:00.000Z"
+    },
+    {
+      "id": "act-14-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-14T14:11:00.000Z"
+    },
+    {
+      "id": "act-14-2",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-14T16:07:00.000Z"
+    },
+    {
+      "id": "act-14-3",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-14T18:43:00.000Z"
+    },
+    {
+      "id": "act-14-4",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-14T20:55:00.000Z"
+    },
+    {
+      "id": "act-15-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-13T12:05:00.000Z"
+    },
+    {
+      "id": "act-15-1",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-13T14:56:00.000Z"
+    },
+    {
+      "id": "act-15-2",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-13T16:54:00.000Z"
+    },
+    {
+      "id": "act-15-3",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-13T18:49:00.000Z"
+    },
+    {
+      "id": "act-16-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-12T12:03:00.000Z"
+    },
+    {
+      "id": "act-16-1",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-12T14:44:00.000Z"
+    },
+    {
+      "id": "act-16-2",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-12T16:19:00.000Z"
+    },
+    {
+      "id": "act-16-3",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-12T18:29:00.000Z"
+    },
+    {
+      "id": "act-16-4",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-09-12T20:33:00.000Z"
+    },
+    {
+      "id": "act-17-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-11T12:42:00.000Z"
+    },
+    {
+      "id": "act-17-1",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-11T14:09:00.000Z"
+    },
+    {
+      "id": "act-17-2",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-11T16:10:00.000Z"
+    },
+    {
+      "id": "act-17-3",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-11T18:02:00.000Z"
+    },
+    {
+      "id": "act-17-4",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-11T20:59:00.000Z"
+    },
+    {
+      "id": "act-18-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-10T12:10:00.000Z"
+    },
+    {
+      "id": "act-18-1",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-10T14:08:00.000Z"
+    },
+    {
+      "id": "act-19-0",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-09T12:10:00.000Z"
+    },
+    {
+      "id": "act-19-1",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-09T14:23:00.000Z"
+    },
+    {
+      "id": "act-19-2",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-09T16:24:00.000Z"
+    },
+    {
+      "id": "act-19-3",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-09T18:10:00.000Z"
+    },
+    {
+      "id": "act-19-4",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-09T20:26:00.000Z"
+    },
+    {
+      "id": "act-20-0",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-08T12:56:00.000Z"
+    },
+    {
+      "id": "act-20-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-08T14:40:00.000Z"
+    },
+    {
+      "id": "act-20-2",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-08T16:27:00.000Z"
+    },
+    {
+      "id": "act-20-3",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-08T18:23:00.000Z"
+    },
+    {
+      "id": "act-22-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-06T12:08:00.000Z"
+    },
+    {
+      "id": "act-22-1",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-06T14:36:00.000Z"
+    },
+    {
+      "id": "act-23-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-09-05T12:53:00.000Z"
+    },
+    {
+      "id": "act-23-1",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-09-05T14:14:00.000Z"
+    },
+    {
+      "id": "act-26-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-09-02T12:18:00.000Z"
+    },
+    {
+      "id": "act-27-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-09-01T12:28:00.000Z"
+    },
+    {
+      "id": "act-27-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-09-01T14:18:00.000Z"
+    },
+    {
+      "id": "act-28-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-08-31T12:31:00.000Z"
+    },
+    {
+      "id": "act-31-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-08-28T12:55:00.000Z"
+    },
+    {
+      "id": "act-33-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-08-26T12:20:00.000Z"
+    },
+    {
+      "id": "act-33-1",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-08-26T14:05:00.000Z"
+    },
+    {
+      "id": "act-37-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-08-22T12:31:00.000Z"
+    },
+    {
+      "id": "act-37-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-08-22T14:47:00.000Z"
+    },
+    {
+      "id": "act-39-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-08-20T12:57:00.000Z"
+    },
+    {
+      "id": "act-41-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-08-18T12:29:00.000Z"
+    },
+    {
+      "id": "act-41-1",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-08-18T14:47:00.000Z"
+    },
+    {
+      "id": "act-47-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-08-12T12:06:00.000Z"
+    },
+    {
+      "id": "act-50-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-08-09T12:05:00.000Z"
+    },
+    {
+      "id": "act-51-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-08-08T12:35:00.000Z"
+    },
+    {
+      "id": "act-62-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-28T12:00:00.000Z"
+    },
+    {
+      "id": "act-62-1",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-07-28T14:04:00.000Z"
+    },
+    {
+      "id": "act-63-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-07-27T12:22:00.000Z"
+    },
+    {
+      "id": "act-63-1",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-07-27T14:58:00.000Z"
+    },
+    {
+      "id": "act-64-0",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-07-26T12:13:00.000Z"
+    },
+    {
+      "id": "act-65-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-07-25T12:55:00.000Z"
+    },
+    {
+      "id": "act-65-1",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-07-25T14:52:00.000Z"
+    },
+    {
+      "id": "act-66-0",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-07-24T12:58:00.000Z"
+    },
+    {
+      "id": "act-66-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-24T14:42:00.000Z"
+    },
+    {
+      "id": "act-67-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-23T12:32:00.000Z"
+    },
+    {
+      "id": "act-67-1",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-07-23T14:28:00.000Z"
+    },
+    {
+      "id": "act-69-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-21T12:22:00.000Z"
+    },
+    {
+      "id": "act-70-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-07-20T12:47:00.000Z"
+    },
+    {
+      "id": "act-70-1",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-07-20T14:20:00.000Z"
+    },
+    {
+      "id": "act-77-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-07-13T12:09:00.000Z"
+    },
+    {
+      "id": "act-78-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-07-12T12:33:00.000Z"
+    },
+    {
+      "id": "act-78-1",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-12T14:52:00.000Z"
+    },
+    {
+      "id": "act-79-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-07-11T12:29:00.000Z"
+    },
+    {
+      "id": "act-81-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-09T12:58:00.000Z"
+    },
+    {
+      "id": "act-84-0",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-07-06T12:11:00.000Z"
+    },
+    {
+      "id": "act-84-1",
+      "text": "Opened the map",
+      "page": "network",
+      "created": "2026-07-06T14:49:00.000Z"
+    },
+    {
+      "id": "act-88-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-02T12:12:00.000Z"
+    },
+    {
+      "id": "act-89-0",
+      "text": "Finished a todo",
+      "page": "today",
+      "created": "2026-07-01T12:14:00.000Z"
+    },
+    {
+      "id": "act-89-1",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-07-01T14:15:00.000Z"
+    },
+    {
+      "id": "act-94-0",
+      "text": "Moved a card",
+      "page": "board",
+      "created": "2026-06-26T12:44:00.000Z"
+    },
+    {
+      "id": "act-99-0",
+      "text": "Ticked a milestone",
+      "page": "goals",
+      "created": "2026-06-21T12:44:00.000Z"
+    },
+    {
+      "id": "act-99-1",
+      "text": "Asked a question",
+      "page": "chat",
+      "created": "2026-06-21T14:40:00.000Z"
+    },
+    {
+      "id": "act-102-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-06-18T12:37:00.000Z"
+    },
+    {
+      "id": "act-105-0",
+      "text": "Ran a skill",
+      "page": "skills",
+      "created": "2026-06-15T12:29:00.000Z"
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel-1",
+      "source": "doc:doc-idea-flash",
+      "target": "doc:doc-orgo-sn",
+      "relation": "references",
+      "created": "2026-09-22T03:00:00.000Z"
+    },
+    {
+      "id": "rel-2",
+      "source": "doc:doc-idea-flash",
+      "target": "doc:doc-cs-heaps",
+      "relation": "related_to",
+      "created": "2026-09-22T03:00:00.000Z"
+    },
+    {
+      "id": "rel-3",
+      "source": "doc:doc-cs-p2",
+      "target": "goal:goal-gpa",
+      "relation": "supports",
+      "created": "2026-09-22T18:00:00.000Z"
+    },
+    {
+      "id": "rel-4",
+      "source": "doc:doc-lab-log",
+      "target": "doc:doc-skill-lab",
+      "relation": "uses_skill",
+      "created": "2026-09-25T21:00:00.000Z"
+    }
+  ],
+  "board": {
+    "view": "board",
+    "columns": [
+      {
+        "id": "todo",
+        "name": "To do"
+      },
+      {
+        "id": "doing",
+        "name": "Doing"
+      },
+      {
+        "id": "done",
+        "name": "Done"
+      }
+    ],
+    "cards": [
+      {
+        "id": "card-p2",
+        "title": "Project 2: spell checker",
+        "notes": "Data Structures, with Priya.",
+        "column": "doing",
+        "category": "project",
+        "project": true,
+        "due": "2026-10-07",
+        "attachments": [
+          "doc-cs-p2"
+        ],
+        "checklist": [
+          {
+            "id": "st-p2-1",
+            "title": "Read the spec",
+            "done": true,
+            "doneOn": "2026-09-16",
+            "detail": "Due date and grading rubric are on the course site."
+          },
+          {
+            "id": "st-p2-2",
+            "title": "Trie loads the dictionary",
+            "done": true,
+            "doneOn": "2026-09-20"
+          },
+          {
+            "id": "st-p2-3",
+            "title": "Flag misspelled words",
+            "done": true,
+            "doneOn": "2026-09-25",
+            "detail": "Handles punctuation now."
+          },
+          {
+            "id": "st-p2-4",
+            "title": "Suggestions by edit distance",
+            "done": false,
+            "detail": "Try the two-row DP to save memory."
+          },
+          {
+            "id": "st-p2-5",
+            "title": "Write the README and submit",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "card-lab",
+        "title": "Research rotation write-up",
+        "notes": "Due to Dr. Okafor at the end of the rotation.",
+        "column": "doing",
+        "category": "professional",
+        "project": true,
+        "due": "2026-10-16",
+        "attachments": [
+          "doc-lab-log",
+          "doc-file-yield"
+        ],
+        "checklist": [
+          {
+            "id": "st-lab-1",
+            "title": "Collect three trials",
+            "done": true,
+            "doneOn": "2026-09-23"
+          },
+          {
+            "id": "st-lab-2",
+            "title": "TLC plates",
+            "done": true,
+            "doneOn": "2026-09-26"
+          },
+          {
+            "id": "st-lab-3",
+            "title": "Draft the discussion",
+            "done": false
+          },
+          {
+            "id": "st-lab-4",
+            "title": "Get feedback",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "card-quiz",
+        "title": "Study for Orgo quiz",
+        "notes": "Chapters 7 and 8.",
+        "column": "todo",
+        "category": "academic",
+        "due": "2026-10-01",
+        "minutes": 90,
+        "attachments": [
+          "doc-orgo-sn"
+        ],
+        "checklist": [
+          {
+            "id": "ck-q-1",
+            "title": "Redo problem set 4",
+            "done": true
+          },
+          {
+            "id": "ck-q-2",
+            "title": "Mechanism flashcards",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "card-urgent",
+        "title": "Financial aid form",
+        "notes": "The portal closes Friday.",
+        "column": "todo",
+        "category": "urgent",
+        "due": "2026-09-30",
+        "attachments": [],
+        "checklist": []
+      },
+      {
+        "id": "card-call",
+        "title": "Call Grandma for her birthday",
+        "notes": "",
+        "column": "todo",
+        "category": "family",
+        "due": "2026-10-03",
+        "attachments": [],
+        "checklist": []
+      },
+      {
+        "id": "card-run",
+        "title": "Long run Saturday",
+        "notes": "6k at an easy pace.",
+        "column": "todo",
+        "category": "fitness",
+        "minutes": 40,
+        "attachments": [],
+        "checklist": [],
+        "sticky": {
+          "x": 40,
+          "y": 30,
+          "rotate": -2
+        }
+      },
+      {
+        "id": "card-club",
+        "title": "Chem club demo night proposal",
+        "notes": "",
+        "column": "todo",
+        "category": "other",
+        "attachments": [
+          "doc-idea-club"
+        ],
+        "checklist": []
+      },
+      {
+        "id": "card-dinner",
+        "title": "Dinner with the floor",
+        "notes": "Thai place, Friday.",
+        "column": "done",
+        "category": "relationships",
+        "attachments": [],
+        "checklist": []
+      },
+      {
+        "id": "card-ex1",
+        "title": "Orgo exam 1",
+        "notes": "Got an 88.",
+        "column": "done",
+        "category": "academic",
+        "attachments": [],
+        "checklist": []
+      }
+    ]
+  },
+  "todos": {
+    "day": "2026-09-28",
+    "removedDefaults": [],
+    "history": {
+      "2026-09-27": [
+        {
+          "id": "todo-h1-0",
+          "done": true,
+          "text": "Data Structures reading",
+          "category": "academic",
+          "minutes": 45
+        },
+        {
+          "id": "todo-h1-1",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        },
+        {
+          "id": "todo-h1-2",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        },
+        {
+          "id": "todo-h1-3",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        }
+      ],
+      "2026-09-26": [
+        {
+          "id": "todo-h2-0",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h2-1",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        }
+      ],
+      "2026-09-25": [
+        {
+          "id": "todo-h3-0",
+          "done": true,
+          "text": "Orgo problem set",
+          "category": "academic",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h3-1",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h3-2",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        }
+      ],
+      "2026-09-24": [
+        {
+          "id": "todo-h4-0",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h4-1",
+          "done": true,
+          "text": "Orgo problem set",
+          "category": "academic",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h4-2",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        }
+      ],
+      "2026-09-23": [
+        {
+          "id": "todo-h5-0",
+          "done": true,
+          "text": "Orgo problem set",
+          "category": "academic",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h5-1",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        }
+      ],
+      "2026-09-22": [
+        {
+          "id": "todo-h6-0",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h6-1",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        }
+      ],
+      "2026-09-21": [
+        {
+          "id": "todo-h7-0",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        },
+        {
+          "id": "todo-h7-1",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h7-2",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        },
+        {
+          "id": "todo-h7-3",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        }
+      ],
+      "2026-09-20": [
+        {
+          "id": "todo-h8-0",
+          "done": true,
+          "text": "Flashcards",
+          "category": "academic",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h8-1",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        }
+      ],
+      "2026-09-19": [
+        {
+          "id": "todo-h9-0",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        },
+        {
+          "id": "todo-h9-1",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        }
+      ],
+      "2026-09-18": [
+        {
+          "id": "todo-h10-0",
+          "done": true,
+          "text": "Data Structures reading",
+          "category": "academic",
+          "minutes": 45
+        },
+        {
+          "id": "todo-h10-1",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        }
+      ],
+      "2026-09-17": [
+        {
+          "id": "todo-h11-0",
+          "done": true,
+          "text": "Data Structures reading",
+          "category": "academic",
+          "minutes": 45
+        },
+        {
+          "id": "todo-h11-1",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        }
+      ],
+      "2026-09-16": [
+        {
+          "id": "todo-h12-0",
+          "done": true,
+          "text": "Data Structures reading",
+          "category": "academic",
+          "minutes": 45
+        },
+        {
+          "id": "todo-h12-1",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h12-2",
+          "done": true,
+          "text": "Flashcards",
+          "category": "academic",
+          "minutes": 20
+        }
+      ],
+      "2026-09-15": [
+        {
+          "id": "todo-h13-0",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        }
+      ],
+      "2026-09-14": [
+        {
+          "id": "todo-h14-0",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        },
+        {
+          "id": "todo-h14-1",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        },
+        {
+          "id": "todo-h14-2",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        }
+      ],
+      "2026-09-13": [
+        {
+          "id": "todo-h15-0",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h15-1",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h15-2",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        },
+        {
+          "id": "todo-h15-3",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        }
+      ],
+      "2026-09-11": [
+        {
+          "id": "todo-h17-0",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        }
+      ],
+      "2026-09-10": [
+        {
+          "id": "todo-h18-0",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        },
+        {
+          "id": "todo-h18-1",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h18-2",
+          "done": true,
+          "text": "Flashcards",
+          "category": "academic",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h18-3",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        }
+      ],
+      "2026-09-09": [
+        {
+          "id": "todo-h19-0",
+          "done": true,
+          "text": "Flashcards",
+          "category": "academic",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h19-1",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h19-2",
+          "done": true,
+          "text": "Gym with Jordan",
+          "category": "relationships",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h19-3",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        }
+      ],
+      "2026-09-08": [
+        {
+          "id": "todo-h20-0",
+          "done": true,
+          "text": "Orgo problem set",
+          "category": "academic",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h20-1",
+          "done": true,
+          "text": "Lab notebook entry",
+          "category": "professional",
+          "minutes": 20
+        },
+        {
+          "id": "todo-h20-2",
+          "done": true,
+          "text": "Orgo problem set",
+          "category": "academic",
+          "minutes": 60
+        },
+        {
+          "id": "todo-h20-3",
+          "done": true,
+          "text": "Data Structures reading",
+          "category": "academic",
+          "minutes": 45
+        }
+      ],
+      "2026-09-07": [
+        {
+          "id": "todo-h21-0",
+          "done": true,
+          "text": "Text Mom back",
+          "category": "family",
+          "minutes": 5
+        },
+        {
+          "id": "todo-h21-1",
+          "done": true,
+          "text": "Run",
+          "category": "fitness",
+          "minutes": 30
+        },
+        {
+          "id": "todo-h21-2",
+          "done": true,
+          "text": "Laundry",
+          "category": "other",
+          "minutes": 30
+        }
+      ]
+    },
+    "items": [
+      {
+        "id": "todo-read",
+        "text": "Read for 15 minutes",
+        "done": true,
+        "category": "other",
+        "minutes": 15,
+        "defaultKey": "read"
+      },
+      {
+        "id": "todo-write",
+        "text": "Write for 15 minutes",
+        "done": false,
+        "category": "other",
+        "minutes": 15,
+        "defaultKey": "write"
+      },
+      {
+        "id": "todo-mech",
+        "text": "Mechanism flashcards",
+        "done": true,
+        "category": "academic",
+        "minutes": 30,
+        "goal": "Finish the semester with a 3.6"
+      },
+      {
+        "id": "todo-p2",
+        "text": "Edit distance for Project 2",
+        "done": false,
+        "category": "project",
+        "minutes": 90,
+        "time": "14:00",
+        "goal": "Submit Project 2 on time"
+      },
+      {
+        "id": "todo-lab",
+        "text": "Lab, 3 to 6",
+        "done": false,
+        "category": "professional",
+        "time": "15:00"
+      },
+      {
+        "id": "todo-run",
+        "text": "Easy run",
+        "done": false,
+        "category": "fitness",
+        "minutes": 30
+      }
+    ]
+  },
+  "buyList": [
+    {
+      "id": "buy-goggles",
+      "name": "Splash-proof lab goggles",
+      "category": "academic",
+      "image": "",
+      "links": [
+        "https://example.com/goggles"
+      ],
+      "notes": "Required for lab. The anti-fog ones.",
+      "options": [
+        {
+          "id": "opt-g-1",
+          "store": "Campus bookstore",
+          "price": 18.5,
+          "currency": "USD",
+          "rating": 4.1,
+          "notes": "",
+          "link": "https://example.com/goggles"
+        },
+        {
+          "id": "opt-g-2",
+          "store": "Online retailer",
+          "price": 12.99,
+          "currency": "USD",
+          "rating": 4.4,
+          "notes": "Two-day shipping",
+          "link": "https://example.com/goggles-2"
+        }
+      ]
+    },
+    {
+      "id": "buy-shoes",
+      "name": "Running shoes",
+      "category": "fitness",
+      "image": "",
+      "links": [],
+      "notes": "Neutral, half size up.",
+      "options": [
+        {
+          "id": "opt-s-1",
+          "store": "Local running store",
+          "price": 110,
+          "currency": "USD",
+          "rating": 4.8,
+          "notes": "Gait check is free",
+          "link": ""
+        }
+      ]
+    },
+    {
+      "id": "buy-models",
+      "name": "Molecular model kit",
+      "category": "academic",
+      "image": "",
+      "links": [
+        "https://example.com/model-kit"
+      ],
+      "notes": "Chairs and boats are so much easier in 3D.",
+      "options": [
+        {
+          "id": "opt-m-1",
+          "store": "Online retailer",
+          "price": 24,
+          "currency": "USD",
+          "rating": 4.6,
+          "notes": "",
+          "link": "https://example.com/model-kit"
+        }
+      ]
+    },
+    {
+      "id": "buy-gift",
+      "name": "Birthday gift for Grandma",
+      "category": "family",
+      "image": "",
+      "links": [],
+      "notes": "A photo book from the summer?",
+      "options": []
+    }
+  ],
+  "misc": [
+    {
+      "id": "misc-1",
+      "text": "Ask the TA whether the final is cumulative",
+      "kind": "task",
+      "done": false,
+      "created": "2026-09-27T14:00:00.000Z"
+    },
+    {
+      "id": "misc-2",
+      "text": "A study playlist that is only lo-fi covers of video game music",
+      "kind": "idea",
+      "done": false,
+      "created": "2026-09-26T03:00:00.000Z"
+    },
+    {
+      "id": "misc-3",
+      "text": "Dining hall has pho on Wednesdays",
+      "kind": "note",
+      "done": false,
+      "created": "2026-09-23T16:00:00.000Z"
+    },
+    {
+      "id": "misc-4",
+      "text": "Return the library book",
+      "kind": "task",
+      "done": true,
+      "created": "2026-09-19T19:00:00.000Z"
+    },
+    {
+      "id": "misc-5",
+      "text": "Make the heap visualizer into a club workshop",
+      "kind": "idea",
+      "done": false,
+      "created": "2026-09-19T00:00:00.000Z"
+    },
+    {
+      "id": "misc-6",
+      "text": "Priya prefers texts over email",
+      "kind": "note",
+      "done": false,
+      "created": "2026-09-16T22:00:00.000Z"
+    }
+  ],
+  "resume": {
+    "template": "onyx",
+    "profile": {
+      "name": "Sam Rivera",
+      "email": "sam.rivera@example.com",
+      "phone": "(555) 010-0142",
+      "location": "Lakeshore, MI",
+      "links": [
+        "https://example.com/samrivera"
+      ]
+    },
+    "education": [
+      {
+        "id": "ed-1",
+        "title": "Lakeshore State University",
+        "subtitle": "B.S. Chemistry and Computer Science",
+        "date": "Expected May 2029",
+        "location": "Lakeshore, MI",
+        "bullets": [
+          "GPA 3.5",
+          "Coursework: Organic Chemistry I, Data Structures, Discrete Math"
+        ]
+      }
+    ],
+    "experience": [
+      {
+        "id": "ex-1",
+        "title": "Okafor Lab, Department of Chemistry",
+        "subtitle": "Undergraduate research assistant",
+        "date": "Fall 2026",
+        "location": "Lakeshore, MI",
+        "bullets": [
+          "Raised recrystallization yield from 68% to 74% by changing the cooling rate",
+          "Keep the shared lab notebook and TLC records"
+        ]
+      },
+      {
+        "id": "ex-2",
+        "title": "Lakeshore State Tutoring Center",
+        "subtitle": "Chemistry tutor",
+        "date": "Spring 2026 to present",
+        "location": "Lakeshore, MI",
+        "bullets": [
+          "Tutor general chemistry, four hours a week"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "id": "pr-1",
+        "title": "Spell checker",
+        "subtitle": "Python, tries, dynamic programming",
+        "date": "2026",
+        "location": "",
+        "bullets": [
+          "Suggests corrections by edit distance over a trie of 100,000 words"
+        ]
+      }
+    ],
+    "skills": [
+      "Python, Java, Git",
+      "Recrystallization, TLC, melting point, IR",
+      "Spanish (conversational)"
+    ]
+  },
+  "drawing": {
+    "viewport": {
+      "zoom": 1
+    },
+    "elements": [
+      {
+        "id": "wb-box-1",
+        "type": "geometry",
+        "shape": "rectangle",
+        "angle": 0,
+        "opacity": 1,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            180,
+            70
+          ]
+        ],
+        "text": {
+          "children": [
+            {
+              "text": "Trie of words"
+            }
+          ],
+          "type": "paragraph",
+          "align": "center"
+        }
+      },
+      {
+        "id": "wb-box-2",
+        "type": "geometry",
+        "shape": "rectangle",
+        "angle": 0,
+        "opacity": 1,
+        "points": [
+          [
+            260,
+            0
+          ],
+          [
+            440,
+            70
+          ]
+        ],
+        "text": {
+          "children": [
+            {
+              "text": "Edit distance"
+            }
+          ],
+          "type": "paragraph",
+          "align": "center"
+        }
+      },
+      {
+        "id": "wb-box-3",
+        "type": "geometry",
+        "shape": "rectangle",
+        "angle": 0,
+        "opacity": 1,
+        "points": [
+          [
+            130,
+            140
+          ],
+          [
+            310,
+            210
+          ]
+        ],
+        "text": {
+          "children": [
+            {
+              "text": "Top 3 suggestions"
+            }
+          ],
+          "type": "paragraph",
+          "align": "center"
+        }
+      },
+      {
+        "id": "wb-stroke-1",
+        "type": "freehand",
+        "shape": "feltTipPen",
+        "points": [
+          [
+            130,
+            230
+          ],
+          [
+            200,
+            238
+          ],
+          [
+            310,
+            226
+          ]
+        ]
+      }
+    ]
+  },
+  "todayLayout": [
+    {
+      "id": "todos",
+      "size": "wide"
+    },
+    {
+      "id": "streak",
+      "size": "sm"
+    },
+    {
+      "id": "stages",
+      "size": "sm"
+    },
+    {
+      "id": "projects",
+      "size": "tall"
+    },
+    {
+      "id": "board",
+      "size": "wide"
+    },
+    {
+      "id": "goals",
+      "size": "sm"
+    },
+    {
+      "id": "misc",
+      "size": "sm"
+    },
+    {
+      "id": "activity",
+      "size": "wide"
+    }
+  ],
+  "notebooks": [
+    {
+      "id": "nb-orgo",
+      "name": "Organic Chemistry"
+    },
+    {
+      "id": "nb-cs",
+      "name": "Data Structures"
+    },
+    {
+      "id": "nb-lab",
+      "name": "Research Lab"
+    }
+  ],
+  "favorites": {
+    "skills": [
+      "doc-skill-lab"
+    ],
+    "projects": [
+      "~/code/spell-checker"
+    ],
+    "review": []
+  }
+}

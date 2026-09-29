@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { TodayWidgets, DEFAULT_LAYOUT } from '../src/TodayWidgets';
+import { TodayWidgets, DEFAULT_LAYOUT, normalizeLayout } from '../src/TodayWidgets';
 import { arrange, candidatesFor, choose, pack, tile, type GridItem, type Placement, type WidgetSize } from '../src/components/ui/widget-grid';
 import { addDays, stagesPerWeek, todoSeries, todoStreak } from '../src/lib/progress';
 import { initialWorkspace, today } from '../src/lib/storage';
@@ -37,6 +37,10 @@ describe('the widget grid layout', () => {
     ['all small', seq('sm', 'sm', 'sm', 'sm', 'sm')],
     ['the default dashboard', DEFAULT_LAYOUT],
   ];
+  // The grid now spans the page, so it may run to eight columns on a wide screen.
+  it('tiles the default dashboard gap-free at 5 to 8 columns too', () => {
+    for (const cols of [5, 6, 7, 8]) expectExact(DEFAULT_LAYOUT, arrange(DEFAULT_LAYOUT, cols), cols);
+  });
   for (const cols of [2, 3, 4]) for (const [name, items] of cases) {
     it(`tiles ${name} gap-free at ${cols} columns`, () => {
       const placements = tile(items, cols);
@@ -72,6 +76,13 @@ describe('the widget grid layout', () => {
 });
 
 describe('Today widgets', () => {
+  it('drops the Activity widget from a layout saved before it moved into the calendar card', () => {
+    const saved = [{ id: 'activity', size: 'wide' as const }, { id: 'goals', size: 'lg' as const }];
+    expect(normalizeLayout(saved).map(w => w.id)).toEqual(['goals', 'todos', 'streak', 'stages', 'projects', 'board', 'misc']);
+    expect(normalizeLayout(saved)[0]).toEqual({ id: 'goals', size: 'lg' });
+    expect(DEFAULT_LAYOUT.some(w => w.id === 'activity')).toBe(false);
+  });
+
   it('moves a widget with Alt and an arrow while editing, and saves the layout in the workspace', () => {
     render(<Harness initial={initialWorkspace()}/>);
     // Off by default: widgets are not focusable, so Alt+arrow and dragging do nothing.
@@ -84,7 +95,7 @@ describe('Today widgets', () => {
     expect(latest.todayLayout!.map(w => w.id).slice(0, 2)).toEqual(['streak', 'todos']);
     expect(screen.getByRole('listitem', { name: 'Streak' })).toHaveAttribute('aria-posinset', '1');
     expect(document.activeElement).toBe(streak);  // the DOM order is fixed, so focus stays put
-    expect(screen.getByText('Streak, position 1 of 8')).toBeInTheDocument();
+    expect(screen.getByText('Streak, position 1 of 7')).toBeInTheDocument();  // seven widgets: Activity moved into the calendar card (2026-09-28)
   });
 
   it('changes a widget size from its menu while editing', async () => {
@@ -143,8 +154,9 @@ describe('Today widgets', () => {
       'No cards on the board yet; add one on Kanban and it shows here.',
       'No active goals yet; add one on Kanban, below the board, and its milestones show here.',
       'No brainstorm lines yet; add one and they are counted here.',
-      'No activity yet; everything you add or change is logged here.',
     ]) expect(screen.getByText(line)).toBeInTheDocument();
+    // The activity line moved with the heat map into the calendar card; calendar-activity.test.tsx holds it.
+    expect(screen.queryByText(/No activity yet/)).toBeNull();
     // The three that send you to another page name the page in the nav, Kanban, and link to it.
     for (const name of [/make a card a project on Kanban/, /add one on Kanban and it shows/, /add one on Kanban, below the board/]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', '#board');

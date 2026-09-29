@@ -1,0 +1,74 @@
+/* components/ui/agent-trace.tsx. The run as rows on one time axis: a name gutter, a track per span, a result
+   column. --t (the playhead, 0 to 1) is set on the card and --p (a bar's fill, 0 to 1) on each row by the
+   component's animation loop, so every moving part here is a calc() of one of the two. Colour by kind: the
+   accent for model calls, green for reading context, grey for tools and the run itself, red for a failure. */
+.agent-trace{container-type:inline-size;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--sheet);color:var(--ink);font-size:13px}
+/* The gutter and result column follow the card's own width, not the window's: a trace under a chat
+   answer is much narrower than the page. Every row, the ruler and the playhead layer share these three columns. */
+.at-body{--gutter:112px;--meta:72px;position:relative}
+@container (min-width:480px){.at-body{--gutter:168px;--meta:128px}}
+@container (min-width:760px){.at-body{--gutter:220px;--meta:170px}}
+.at-ruler,.at-row,.at-playhead-layer{display:grid;grid-template-columns:var(--gutter) minmax(0,1fr) var(--meta);column-gap:10px}
+
+.at-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.at-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.at-title strong{font:600 13px/1.3 var(--font-mono,monospace);color:var(--ink)}
+.at-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--sub)}
+.at-chip{flex:none;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--acc-soft);color:var(--acc)}
+.at-chip[data-done="true"]{background:var(--band);color:var(--sub)}
+
+.at-ruler{height:18px;margin-bottom:2px}
+.at-ticks{position:relative;border-bottom:1px solid var(--line)}
+.at-ticks span{position:absolute;top:0;translate:-50% 0;font:500 10.5px/1 var(--font-mono,monospace);color:var(--mut);white-space:nowrap}
+.at-ticks span:first-child{translate:0 0}
+
+.at-rows{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.at-row{align-items:center;min-height:28px;border-radius:6px}
+.at-row:hover{background:var(--band)}
+.at-name{display:flex;align-items:center;gap:6px;min-width:0;padding-left:calc(var(--depth,0) * 12px + 4px);color:var(--sub)}
+.at-name svg{flex:none}
+.at-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.at-row[data-state="queued"] .at-label{color:var(--mut)}
+.at-retry{flex:none;padding:0 5px;border:1px solid var(--line);border-radius:5px;font:600 10.5px/1.5 var(--font-mono,monospace);color:var(--sub);background:var(--band)}
+
+.at-track{position:relative;height:100%;min-height:28px}
+.at-bar{--kind:var(--mut);position:absolute;top:50%;height:10px;min-width:3px;translate:0 -50%;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--kind) 20%,transparent)}
+.at-fill{position:absolute;inset:0 auto 0 0;width:calc(var(--p,1) * 100%);background:var(--kind);border-radius:inherit}
+.at-row[data-kind="model"] .at-bar{--kind:var(--acc-fill)}
+.at-row[data-kind="io"] .at-bar{--kind:var(--green)}
+.at-row[data-status="error"] .at-bar{--kind:var(--red)}
+.at-row[data-status="cached"] .at-fill{background:repeating-linear-gradient(135deg,var(--kind) 0 4px,color-mix(in srgb,var(--kind) 45%,transparent) 4px 8px)}
+.at-row[data-state="running"] .at-bar{box-shadow:0 0 0 2px color-mix(in srgb,var(--kind) 30%,transparent)}
+
+.at-result{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+.at-tokens,.at-detail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.at-duration{flex:none;font-family:var(--font-mono,monospace);font-size:11.5px;color:var(--mut)}
+.at-row[data-state="error"] .at-duration{color:var(--red)}
+/* Too narrow for a detail line beside the duration: the duration stays, the detail keeps its title tooltip */
+@container (max-width:419px){.at-detail{display:none}}
+
+/* The playhead: one line over the track column of every row, positioned by --t */
+.at-playhead-layer{position:absolute;inset:0;pointer-events:none}
+.at-playhead-layer div{position:relative}
+.at-playhead{position:absolute;top:0;bottom:0;left:calc(var(--t,1) * 100%);width:1px;background:var(--acc)}
+
+.at-transport{display:flex;align-items:center;gap:10px}
+/* 32px to see, 44px to hit: the ::after widens the touch target without growing the button */
+.at-play{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:var(--acc-fill);color:var(--on-acc,#fff)}
+.at-play::after{content:"";position:absolute;inset:-6px}
+.at-rail{position:relative;flex:1;height:22px;cursor:pointer;touch-action:none;border-radius:6px}
+.at-rail::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;translate:0 -50%;border-radius:2px;background:var(--band);box-shadow:inset 0 0 0 1px var(--line)}
+.at-rail-fill{position:absolute;left:0;top:50%;height:4px;translate:0 -50%;width:calc(var(--t,1) * 100%);border-radius:2px;background:var(--acc-fill)}
+.at-rail-thumb{position:absolute;top:50%;left:calc(var(--t,1) * 100%);width:12px;height:12px;translate:-50% -50%;border-radius:50%;background:var(--sheet);border:2px solid var(--acc-fill)}
+.at-rail:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.at-clock{flex:none;font:500 11.5px/1 var(--font-mono,monospace);color:var(--sub);font-variant-numeric:tabular-nums}
+
+/* MessageTrace: the disclosure under a chat answer */
+.message-trace{margin-top:6px}
+.message-trace-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px 6px;border:0;border-radius:6px;background:none;color:var(--sub);font-size:12.5px}
+.message-trace-toggle:hover{background:var(--band);color:var(--ink)}
+.message-trace-toggle svg{transition:rotate .15s}
+.message-trace-toggle[aria-expanded="true"] svg{rotate:90deg}
+.message-trace-sum{font-family:var(--font-mono,monospace);font-size:11.5px;color:var(--mut)}
+.message-trace .agent-trace{margin-top:6px}
+@media (prefers-reduced-motion:reduce){.message-trace-toggle svg{transition:none}}

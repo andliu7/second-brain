@@ -1,0 +1,5 @@
+/* PageSweep (page-sweep.tsx). The wrapper adds no box, so the page lays out exactly as it did without it.
+   The overlay is fixed over the visible part of the page's container and never takes input. */
+.page-sweep{display:contents}
+.page-sweep-layer{position:fixed;z-index:15;pointer-events:none;overflow:hidden}
+.page-sweep-copy{position:relative;width:100%;height:100%;overflow:hidden}

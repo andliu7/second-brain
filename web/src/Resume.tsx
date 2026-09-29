@@ -10,17 +10,25 @@
 // makes the file, so no PDF library ships. The layout (form beside a letter-size preview, and the
 // sections) is an idea taken from OpenResume; none of its code is used here, because it is AGPL-3.0.
 //
-// The page has four looks, picked in the Template menu and saved as workspace.resume.template: Classic
-// (the original), and Onyx, Ditto and Azurill, whose layout and typography are adapted from the
-// templates of the same names in Reactive Resume (https://github.com/amruthpillai/reactive-resume, at
-// d9fdf7a30a3eb132986b3f82dea01c21738540eb), MIT License, Copyright (c) 2026 Amruth Pillai. Only the
+// The page has nine looks, picked in the Template menu and saved as workspace.resume.template: Classic
+// (the original), and eight whose layout and typography are adapted from the templates of the same names
+// in Reactive Resume (https://github.com/amruthpillai/reactive-resume, at
+// d9fdf7a30a3eb132986b3f82dea01c21738540eb), MIT License, Copyright (c) 2026 Amruth Pillai: Onyx, Ditto
+// and Azurill first, then Ditgar and Leafish (a sidebar, left and right), Kakuna (centred and compact),
+// Meowth (each entry's heading on one line) and Scizor (a rule across the top, ruled sections). Only the
 // look is adapted, written again here as CSS (resume.css); its code and its data schema are not used.
-// All four draw the same markup, so a template is a data-template attribute and nothing else.
+// All of them draw the same markup, so a template is a data-template attribute and nothing else. The
+// sections sit in a main column and the skills in a side column; the one-column looks let both columns
+// fall away (display: contents), and the sidebar looks lay them side by side.
+//
+// Import LaTeX and Export LaTeX (2026-09-28) read and write the resume as a .tex file, in the shape of
+// Jake Gutierrez's template that most student resumes start from; the parsing is lib/latex-resume.ts.
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Copy, Download, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, Download, FileCode2, FileUp, Plus, Trash2, X } from 'lucide-react';
 import type { Resume as ResumeData, ResumeEntry, ResumeTemplate, Workspace } from './types';
-import { uid } from './lib/storage';
+import { download, uid } from './lib/storage';
 import { copyText } from './lib/clipboard';
+import { parseLatexResume, resumeToLatex, type LatexImport } from './lib/latex-resume';
 import './resume.css';
 
 type Commit = (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>;
@@ -38,6 +46,11 @@ export const TEMPLATES: { id: ResumeTemplate; name: string; hint: string }[] = [
   { id: 'onyx', name: 'Onyx', hint: 'Name on the left over a coloured rule' },
   { id: 'ditto', name: 'Ditto', hint: 'A coloured band across the top' },
   { id: 'azurill', name: 'Azurill', hint: 'Centred header, entries on a timeline' },
+  { id: 'ditgar', name: 'Ditgar', hint: 'A tinted sidebar on the left, the name in a dark block at its top' },
+  { id: 'leafish', name: 'Leafish', hint: 'A two-tone header band, skills in a column on the right' },
+  { id: 'kakuna', name: 'Kakuna', hint: 'Centred and compact, headings ruled and centred' },
+  { id: 'meowth', name: 'Meowth', hint: 'Each entry on one line: title, subtitle, dates' },
+  { id: 'scizor', name: 'Scizor', hint: 'A coloured rule across the top, sections divided by rules' },
 ];
 
 export const emptyResume = (): ResumeData => ({ profile: { name: '', email: '', phone: '', location: '', links: [] }, education: [], experience: [], projects: [], skills: [] });
@@ -94,17 +107,23 @@ export function Resume({ workspace, commit }: { workspace: Workspace; commit: Co
   const setSection = (key: SectionKey, change: (entries: ResumeEntry[]) => ResumeEntry[]) => update(r => ({ ...r, [key]: change(r[key]) }));
 
   async function copy() { setNote(await copyText(resumeText(draft)) ? 'Copied as plain text.' : 'Could not copy. Select the preview and copy it instead.'); }
+  // Export LaTeX: the resume as a Jake-style .tex file, named after the person.
+  const exportLatex = () => download(`${(draft.profile.name.trim() || 'resume').replace(/\s+/g, '-')}.tex`, new Blob([resumeToLatex(draft)], { type: 'application/x-tex' }));
+  const [importing, setImporting] = useState(false);
 
   const { profile } = draft;
   return <section className="panel resume" aria-label="Resume">
     <div className="section-heading"><h2>Resume</h2>
       <div className="resume-actions">
         <label className="resume-template">Template<select value={draft.template ?? 'classic'} onChange={e => update(r => ({ ...r, template: e.target.value as ResumeTemplate }))}>{TEMPLATES.map(t => <option key={t.id} value={t.id} title={t.hint}>{t.name}</option>)}</select></label>
+        <button type="button" className="button small" aria-expanded={importing} onClick={() => setImporting(value => !value)}><FileUp size={14}/>Import LaTeX</button>
+        <button type="button" className="button small" onClick={exportLatex} title="A .tex file in the shape of Jake's resume template"><FileCode2 size={14}/>Export LaTeX</button>
         <button type="button" className="button small" onClick={copy}><Copy size={14}/>Copy as plain text</button>
         <button type="button" className="button small primary" onClick={() => window.print()} title="Opens the print dialog; choose Save as PDF"><Download size={14}/>Download PDF</button>
       </div>
     </div>
     {note && <p className="resume-note" role="status">{note}</p>}
+    {importing && <LatexImporter close={() => setImporting(false)} apply={imported => update(r => ({ ...imported, template: r.template }))}/>}
     <div className="resume-body">
       <form className="resume-form" onSubmit={event => event.preventDefault()}>
         <fieldset className="resume-group">
@@ -134,6 +153,49 @@ export function Resume({ workspace, commit }: { workspace: Workspace; commit: Co
     </div>
   </section>;
 }
+
+// Import LaTeX: paste the .tex or open the file, Read it to see what was found and what was not, then
+// Replace the resume with it. Nothing changes until Replace, and the template is kept.
+function LatexImporter({ close, apply }: { close: () => void; apply: (resume: ResumeData) => void }) {
+  const [source, setSource] = useState('');
+  const [read, setRead] = useState<LatexImport | null>(null);
+  const [done, setDone] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
+  const parse = (text: string) => { setRead(text.trim() ? parseLatexResume(text) : null); setDone(false); };
+  // FileReader rather than file.text(): the same text, and it also works in the jsdom the tests run in.
+  function open(file: File | undefined) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { const text = String(reader.result); setSource(text); parse(text); };
+    reader.readAsText(file);
+  }
+  const found = read && [
+    read.resume.profile.name && 'the name',
+    plural(read.resume.education.length, 'education entry', 'education entries'),
+    plural(read.resume.experience.length, 'experience entry', 'experience entries'),
+    plural(read.resume.projects.length, 'project'),
+    plural(read.resume.skills.length, 'skills line'),
+  ].filter(Boolean).join(', ');
+  return <section className="resume-import" aria-label="Import a LaTeX resume">
+    <div className="resume-import-bar">
+      <strong>Import a LaTeX resume</strong>
+      <span>Jake's template and most others built from \section and lists.</span>
+      <button type="button" className="icon-button" aria-label="Close import" onClick={close}><X size={15}/></button>
+    </div>
+    <textarea aria-label="LaTeX source" rows={7} spellCheck={false} value={source} placeholder={'Paste the .tex here, from \\documentclass to \\end{document}'} onChange={event => { setSource(event.target.value); setRead(null); setDone(false); }}/>
+    <input ref={picker} className="sr-only" type="file" accept=".tex,text/x-tex,application/x-tex,text/plain" aria-label="Choose a .tex file" onChange={event => { open(event.target.files?.[0]); event.target.value = ''; }}/>
+    <div className="resume-import-actions">
+      <button type="button" className="button small" onClick={() => picker.current?.click()}><FileUp size={14}/>Open a .tex file</button>
+      <button type="button" className="button small" disabled={!source.trim()} onClick={() => parse(source)}>Read it</button>
+      {read && !done && <button type="button" className="button small primary" onClick={() => { apply(read.resume); setDone(true); }}>Replace my resume with this</button>}
+    </div>
+    {read && <div className="resume-import-result" role="status">
+      <p>{done ? 'Imported. ' : ''}Found {found || 'nothing that looks like a resume'}.</p>
+      {read.unread.length > 0 && <><p>Could not be read:</p><ul>{read.unread.map((line, i) => <li key={i}>{line}</li>)}</ul></>}
+    </div>}
+  </section>;
+}
+const plural = (n: number, one: string, many = one + 's') => n ? `${n} ${n === 1 ? one : many}` : '';
 
 function EntryEditor({ section, entry, index, count, onChange, onMove, onRemove }: { section: typeof SECTIONS[number]; entry: ResumeEntry; index: number; count: number; onChange: (entry: ResumeEntry) => void; onMove: (by: number) => void; onRemove: () => void }) {
   const name = `${section.heading} ${index + 1}`;
@@ -168,7 +230,9 @@ function ResumeSheet({ resume }: { resume: ResumeData }) {
       {profile.name.trim() && <h2 className="resume-name">{profile.name.trim()}</h2>}
       {contact.length > 0 && <p className="resume-contact">{contact.map((item, i) => <span key={i}>{item}</span>)}</p>}
     </header>}
-    {SECTIONS.map(section => {
+    {/* The main column and the side column: the side holds the skills. One-column templates let both
+        wrappers fall away in CSS; the sidebar templates lay them out side by side. */}
+    <div className="resume-main">{SECTIONS.map(section => {
       const entries = resume[section.key].filter(hasContent);
       if (!entries.length) return null;
       return <section key={section.key} className="resume-section">
@@ -179,7 +243,7 @@ function ResumeSheet({ resume }: { resume: ResumeData }) {
           {filled(entry.bullets).length > 0 && <ul>{filled(entry.bullets).map((bullet, i) => <li key={i}>{bullet}</li>)}</ul>}
         </div>)}
       </section>;
-    })}
-    {skills.length > 0 && <section className="resume-section"><h3>Skills</h3>{skills.map((line, i) => <p key={i} className="resume-skill">{line}</p>)}</section>}
+    })}</div>
+    <div className="resume-side">{skills.length > 0 && <section className="resume-section"><h3>Skills</h3>{skills.map((line, i) => <p key={i} className="resume-skill">{line}</p>)}</section>}</div>
   </article>;
 }

@@ -1,9 +1,13 @@
 /// <reference types="vite/client" />
 // PdfTools: organise, mark up and impose PDFs, all inside the browser. Props, like Kanban:
 //   workspace: the Workspace, read only for PDF docs to open
-//   commit: App's commit, used by Save to workspace to add the result as a file doc
-// Mount lazily from App.tsx, so pdf-lib (and pdf.js, which this file loads on demand) stay out of the
-// cold start:
+//   commit: App's commit, used by the save buttons to write the result as a file doc
+//   doc: a PDF document to work on (optional). Given one, the tools open its pages, Save writes the
+//     result back into that same doc, and Save as new PDF adds a copy. This is how Docs shows a PDF
+//     (Docs.tsx, and Write.tsx full screen). Without one it is the old #pdf page, which starts empty
+//     and whose Save to workspace adds a new doc; that page stays for bookmarks.
+//   opened: called with a new doc's id after Save as new PDF, so Docs can open the copy (optional)
+// Mount lazily, so pdf-lib (and pdf.js, which this file loads on demand) stay out of the cold start:
 //   const PdfTools = lazy(() => import('./PdfTools').then(m => ({ default: m.PdfTools })));
 //   {page === 'pdf' && <Suspense fallback={...}><PdfTools workspace={workspace} commit={commit}/></Suspense>}
 //
@@ -15,9 +19,10 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { ArrowLeftRight, BookOpen, ChevronLeft, ChevronRight, Copy, Download, FileOutput, FilePlus2, FolderInput, LayoutGrid, Loader2, PenLine, Redo2, RotateCcw, RotateCw, Save, Signature, Trash2, Type, Undo2, Upload, X } from 'lucide-react';
 import { LineCapStyle, PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
-import type { Workspace } from './types';
+import type { Doc, Workspace } from './types';
 import type { Commit } from './Kanban';
-import { activity, download, makeDoc, readData, uid } from './lib/storage';
+import { activity, download, makeDoc, now, readData, uid } from './lib/storage';
+import { MAX_PDF_BYTES } from './lib/docs-kinds';
 import { BLANK, duplicate, fromShown, history, insertBlank, moveBy, moveTo, record, redo, remove, rotate, select, setMarks, swap, toShown, undo, type History, type InkMark, type Mark, type PageItem, type Rotation, type Selection, type TextMark } from './lib/pdf-pages';
 import { PAPER, imposition, padPages, placeInHalf, rotatedOffset, shownSize, type PadAt, type Paper } from './lib/pamphlet';
 import './pdftools.css';
@@ -26,8 +31,6 @@ import './pdftools.css';
 export type Source = { name: string; bytes: Uint8Array };
 export type PamphletOptions = { paper: Paper; gutter: number; creep: number; padAt: PadAt };
 
-// shared/validate.mjs refuses a doc's data over 25 MiB, so Save to workspace checks first and says so.
-const MAX_DOC_BYTES = 25 * 1024 * 1024;
 const PAGE_DRAG_TYPE = 'text/pdf-page';
 // Ink and text colours: content colours printed on paper, not theme colours, so they are fixed hex values.
 const COLORS = [{ name: 'Black', hex: '#1a1b22' }, { name: 'Blue', hex: '#1f4fd1' }, { name: 'Red', hex: '#c62828' }, { name: 'Green', hex: '#2e7d32' }];
@@ -208,7 +211,7 @@ const pdfBlob = (bytes: Uint8Array) => new Blob([new Uint8Array(bytes)], { type:
 const readBytes = (file: Blob) => new Promise<Uint8Array>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer)); reader.onerror = () => reject(reader.error); reader.readAsArrayBuffer(file); });
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
-export function PdfTools({ workspace, commit }: { workspace: Workspace; commit: Commit }) {
+export function PdfTools({ workspace, commit, doc, opened }: { workspace: Workspace; commit: Commit; doc?: Doc; opened?: (id: string) => void }) {
   // Sources only ever grow, and a page is added to the list only after its source is in, so a ref is
   // enough: the history update that adds the pages is the render that shows them.
   const sources = useRef<Source[]>([]);
@@ -227,7 +230,34 @@ export function PdfTools({ workspace, commit }: { workspace: Workspace; commit: 
   const pages = hist.present;
   const selected = pages.filter(page => selection.ids.includes(page.id));
   const change = (update: (pages: PageItem[]) => PageItem[], key?: string) => setHist(h => record(h, update(h.present), key));
-  const pdfDocs = workspace.docs.filter(doc => doc.data && (doc.mime ?? '').startsWith('application/pdf'));
+  const pdfDocs = workspace.docs.filter(d => d.data && (d.mime ?? '').startsWith('application/pdf'));
+  // A document's file name follows its title in Docs; the page without one has its own name field.
+  const fileName = doc ? base(doc.name) : name;
+  // The page list as it was last saved into the doc. The list is immutable and undo hands back the same
+  // arrays, so "unsaved" is a plain comparison, and undoing to the saved state reads as saved again.
+  const [savedPages, setSavedPages] = useState<PageItem[] | null>(null);
+  const unsaved = !!doc && savedPages !== null && pages !== savedPages;
+
+  // Opening a doc reads its pages once. The ref, not a dependency, guards it: React's development mode
+  // runs a mount effect twice, and the doc prop changes after every Save, which must not reload it.
+  const loaded = useRef(false);
+  useEffect(() => {
+    if (!doc?.data || loaded.current) return;
+    loaded.current = true;
+    setBusy(true);
+    void (async () => {
+      try {
+        const bytes = toBytes(doc.data!);
+        const sizes = await readPages(bytes);
+        const source = sources.current.push({ name: doc.name, bytes }) - 1;
+        const list = sizes.map((size, index) => ({ id: uid(), source, index, ...size, marks: [] }));
+        // A fresh history, so the first Undo does not take the document's own pages away.
+        setHist(history(list)); setSavedPages(list);
+      } catch (error) {
+        setStatus({ kind: 'error', text: `${doc.name} could not be opened${error instanceof Error && /encrypt/i.test(error.message) ? ': it is encrypted' : ''}.` });
+      } finally { setBusy(false); }
+    })();
+  }, [doc?.id]);
 
   // Undo and redo from anywhere on the page, except while typing, where Ctrl+Z belongs to the text field.
   useEffect(() => {
@@ -279,13 +309,31 @@ export function PdfTools({ workspace, commit }: { workspace: Workspace; commit: 
     try { await task(); } catch (error) { setStatus({ kind: 'error', text: error instanceof Error ? error.message : 'Could not build the PDF.' }); } finally { setBusy(false); }
   }
   const saveAs = (list: PageItem[], file: string) => run(async () => download(file, pdfBlob(await buildPdf(sources.current, list))));
-  const savePamphlet = () => run(async () => download(`${name}-pamphlet.pdf`, pdfBlob(await buildPamphlet(await buildPdf(sources.current, pages), options))));
-  const saveToWorkspace = () => run(async () => {
+  const savePamphlet = () => run(async () => download(`${fileName}-pamphlet.pdf`, pdfBlob(await buildPamphlet(await buildPdf(sources.current, pages), options))));
+  // The finished PDF as a doc's data, or null (with the reason on screen) when it is over the limit.
+  async function built() {
     const bytes = await buildPdf(sources.current, pages);
-    if (bytes.length > MAX_DOC_BYTES) { setStatus({ kind: 'error', text: `This PDF is ${(bytes.length / 1048576).toFixed(1)} MiB; the workspace holds files up to 25 MiB. Download it instead.` }); return; }
-    const doc = { ...makeDoc(`${name}.pdf`, '', 'file'), mime: 'application/pdf', data: await readData(pdfBlob(bytes)), size: bytes.length };
+    if (bytes.length > MAX_PDF_BYTES) { setStatus({ kind: 'error', text: `This PDF is ${(bytes.length / 1048576).toFixed(1)} MiB; the workspace holds files up to 25 MiB. Download it instead.` }); return null; }
+    return { mime: 'application/pdf', data: await readData(pdfBlob(bytes)), size: bytes.length };
+  }
+  // A new PDF doc: Save to workspace on the page, Save as new PDF on a document. It carries the PDF tag
+  // (lib/docs-kinds.ts), so Docs lists it under PDFs.
+  const saveNew = (where: string) => run(async () => {
+    const file = await built();
+    if (!file) return;
+    const made = { ...makeDoc(`${fileName}${doc ? ' copy' : ''}.pdf`, '', 'file', ['PDF']), ...file };
     // The activity entry names 'files': shared/validate.mjs accepts a fixed list of pages there, and 'docs' is not on it.
-    if (await commit(w => ({ ...w, docs: [doc, ...w.docs], activity: [activity(`Saved ${doc.name}`, 'files'), ...w.activity].slice(0, 100) }), `Saved ${doc.name} to your workspace`)) setStatus({ kind: 'info', text: `Saved ${doc.name} to your workspace.` });
+    if (await commit(w => ({ ...w, docs: [made, ...w.docs], activity: [activity(`Saved ${made.name}`, 'files'), ...w.activity].slice(0, 100) }), `Saved ${made.name} ${where}`)) {
+      setStatus({ kind: 'info', text: `Saved ${made.name} ${where}.` });
+      opened?.(made.id);
+    }
+  });
+  // Save on a document: the same doc, its bytes replaced by the list as it stands, marks flattened in.
+  const saveBack = () => run(async () => {
+    const file = await built();
+    if (!file || !doc) return;
+    const at = pages;
+    if (await commit(w => ({ ...w, docs: w.docs.map(d => d.id === doc.id ? { ...d, ...file, updated: now() } : d) }))) { setSavedPages(at); setStatus({ kind: 'info', text: `Saved ${doc.name}.` }); }
   });
 
   const ids = selection.ids;
@@ -330,15 +378,17 @@ export function PdfTools({ workspace, commit }: { workspace: Workspace; commit: 
 
   const empty = !pages.length;
   return <div className="pdf-tools" data-file-over={fileOver || undefined} onDragOver={onFileOver} onDragLeave={event => { if (event.currentTarget === event.target) setFileOver(false); }} onDrop={onFileDrop}>
-    <div className="page-heading"><div><h1>PDF tools</h1></div><div className="heading-actions">
-      {!empty && <label className="pdf-name">File name<input value={name} onChange={event => setName(event.target.value.replace(/[<>:"/\\|?*]/g, '') || 'document')}/></label>}
+    {/* On a document, Docs draws the title above this, so the page heading and the name field go. */}
+    <div className={doc ? 'pdf-doc-actions' : 'page-heading'}>{!doc && <div><h1>PDF tools</h1></div>}<div className="heading-actions">
+      {!empty && !doc && <label className="pdf-name">File name<input value={name} onChange={event => setName(event.target.value.replace(/[<>:"/\\|?*]/g, '') || 'document')}/></label>}
       <button className="button" onClick={() => picker.current?.click()} disabled={busy}><Upload size={15}/>Add files</button>
-      {!empty && <button className="button primary" onClick={() => void saveAs(pages, `${name}.pdf`)} disabled={busy}><Download size={15}/>Download PDF</button>}
+      {!empty && <button className="button primary" onClick={() => void saveAs(pages, `${fileName}.pdf`)} disabled={busy}><Download size={15}/>Download PDF</button>}
     </div></div>
     <input ref={picker} className="sr-only" type="file" multiple accept="application/pdf,.pdf,image/png,image/jpeg" aria-label="Choose PDF or image files" onChange={event => { void addFiles([...(event.target.files ?? [])]); event.target.value = ''; }}/>
     {status && <p className={status.kind === 'error' ? 'error-banner pdf-status' : 'pdf-status'} role={status.kind === 'error' ? 'alert' : 'status'}>{status.text}</p>}
 
-    {empty ? <section className="panel pdf-drop" data-over={fileOver || undefined}>
+    {empty && doc && busy ? <p className="pdf-status"><Loader2 size={15} className="spin"/> Opening {doc.name}</p>
+    : empty ? <section className="panel pdf-drop" data-over={fileOver || undefined}>
       <FilePlus2 size={30} strokeWidth={1.4}/>
       <h2>Drop PDFs or images here</h2>
       <p>Several at once are joined in the order they arrive. PNG and JPEG images become pages. Everything stays in this browser.</p>
@@ -357,7 +407,7 @@ export function PdfTools({ workspace, commit }: { workspace: Workspace; commit: 
           <button className="button small" onClick={act.swap} disabled={ids.length !== 2} title="Select exactly two pages to swap them"><ArrowLeftRight size={14}/>Swap</button>
           <button className="button small" onClick={act.duplicate} disabled={!ids.length}><Copy size={14}/>Duplicate</button>
           <button className="button small" onClick={act.blank}><FilePlus2 size={14}/>Blank page</button>
-          <button className="button small" onClick={() => void saveAs(selected, `${name}-extract.pdf`)} disabled={!ids.length || busy}><FileOutput size={14}/>Extract</button>
+          <button className="button small" onClick={() => void saveAs(selected, `${fileName}-extract.pdf`)} disabled={!ids.length || busy}><FileOutput size={14}/>Extract</button>
           <button className="button small pdf-danger" onClick={act.remove} disabled={!ids.length}><Trash2 size={14}/>Delete</button>
           <span className="pdf-toolbar-gap"/>
           <button className="icon-button" aria-label="Undo" title="Undo (Ctrl+Z)" onClick={() => setHist(undo)} disabled={!hist.past.length}><Undo2 size={16}/></button>
@@ -388,7 +438,11 @@ export function PdfTools({ workspace, commit }: { workspace: Workspace; commit: 
       {view === 'pamphlet' && <Pamphlet pages={pages} sources={sources.current} options={options} setOptions={setOptions} busy={busy} save={savePamphlet}/>}
 
       <div className="pdf-save">
-        <button className="button" onClick={() => void saveToWorkspace()} disabled={busy}><Save size={15}/>Save to workspace</button>
+        {doc ? <>
+          <button className="button primary" onClick={() => void saveBack()} disabled={busy || !unsaved} title={`Write the pages as they stand into ${doc.name}`}><Save size={15}/>Save</button>
+          <button className="button" onClick={() => void saveNew('as a new PDF')} disabled={busy}><FilePlus2 size={15}/>Save as new PDF</button>
+          <span className="pdf-count">{unsaved ? 'Unsaved changes' : 'Saved'}</span>
+        </> : <button className="button" onClick={() => void saveNew('to your workspace')} disabled={busy}><Save size={15}/>Save to workspace</button>}
         <button className="button" onClick={() => picker.current?.click()} disabled={busy}><FolderInput size={15}/>Add more files</button>
         {pdfDocs.length > 0 && <select aria-label="Add a PDF from your workspace" value="" onChange={event => void openDoc(event.target.value)}><option value="">Add from workspace…</option>{pdfDocs.map(doc => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select>}
         {busy && <Loader2 size={16} className="spin" aria-label="Working"/>}

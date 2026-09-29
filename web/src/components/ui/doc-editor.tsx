@@ -9,15 +9,18 @@
 // bullet list, "1. " a numbered one, "[] " a checklist item, "# " to "### " a heading. Tab and
 // Shift+Tab indent and outdent a list item. Selecting text shows a small toolbar; its Checklist
 // button and Ctrl+Shift+9 convert whole lists, nesting kept (lib/docs-lists.ts).
+// LaTeX math: "$x^2$" becomes an inline formula and a paragraph of "$$x$$" a display one, drawn by KaTeX;
+// a click shows the source to edit (lib/docs-math-editor.ts). KaTeX and its stylesheet load with this chunk.
 import { useEffect, useRef } from 'react';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
-import { Markdown } from '@tiptap/markdown';
 import { Bold, Heading2, Italic, List, ListChecks } from 'lucide-react';
 import { allChecklists, convertLists, selectedLists } from '@/lib/docs-lists';
+import { DocBlockMath, DocInlineMath, DocMarkdown } from '@/lib/docs-math-editor';
+import 'katex/dist/katex.min.css';
 import './doc-editor.css';
 
 declare module '@tiptap/core' {
@@ -58,7 +61,9 @@ export const docExtensions = () => [
   StarterKit.configure({ link: { openOnClick: false } }),
   Checklist,
   TaskItem.configure({ nested: true }),
-  Markdown.configure({ indentation: { style: 'space', size: 4 } }),
+  DocInlineMath,
+  DocBlockMath,
+  DocMarkdown.configure({ indentation: { style: 'space', size: 4 } }),
 ];
 
 // The saved markdown. StarterKit keeps an empty paragraph after a list at the end of the document so

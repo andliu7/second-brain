@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { chat, generate, generationStatus, providerKey, defaultModels } from './providers.mjs';
+import { createTrace } from './trace.mjs';
 const limits = new Map();
 export function tokenMatches(actual, expected) { if (typeof actual !== 'string' || typeof expected !== 'string') return false; const a=Buffer.from(actual); const b=Buffer.from(expected); return a.length === b.length && timingSafeEqual(a,b); }
 function send(res, status, value) { res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}); res.end(JSON.stringify(value)); }
@@ -61,6 +62,7 @@ export async function handleApi(req,res,{local=false}={}) {
     // Google Calendar uses secrets from this computer's env file and a token under its user profile, so it is local only too.
     if (route.startsWith('calendar') && req.method === 'GET') { if (!local) return send(res,404,{error:'Google Calendar is available only when running the app on your computer.'}); const {handleCalendar} = await import('./calendar.mjs'); return await handleCalendar(route, url, req, res); }
     if (route === 'link-preview' && req.method === 'GET') { if (!local) return send(res,404,{error:'Link previews are available only when running the app on your computer.'}); const {linkPreview} = await import('./link-preview.mjs'); return send(res,200,await linkPreview(url.searchParams.get('url') || '')); }
+    if (route === 'pipelines' || route.startsWith('pipelines/')) { if (!local) return send(res,404,{error:'Pipelines are available only when running the app on your computer.'}); const {handlePipelines} = await import('./pipelines.mjs'); return await handlePipelines(route, req, res); }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
     // Open on device runs explorer.exe on this computer, only ever after a click in the panel.
@@ -74,7 +76,9 @@ export async function handleApi(req,res,{local=false}={}) {
       if (record && time-record.start<60000 && record.count>=12) return send(res,429,{error:'Please wait a minute before starting another request.'});
       limits.set(key, record && time-record.start<60000 ? {start:record.start,count:record.count+1} : {start:time,count:1});
     }
-    const result = route === 'chat' ? await chat(body) : route === 'generate' ? await generate(body) : await generationStatus(body);
+    // A chat reply carries its trace (server/trace.mjs) as one extra field; text, model and provider are unchanged.
+    const trace = route === 'chat' ? createTrace({ model: String(body?.model || '') }) : null;
+    const result = route === 'chat' ? { ...await chat(body, trace), trace: trace.finish() } : route === 'generate' ? await generate(body) : await generationStatus(body);
     if (!local && Buffer.byteLength(JSON.stringify(result)) > 4000000) return send(res,413,{error:'The generated image is larger than this hosted API can return. Download the completed image from your provider dashboard. Your prompt and job ticket remain in the workspace; do not pay for a second run.'});
     return send(res,200,result);
   } catch (error) { const message = error?.name === 'TimeoutError' ? 'The provider timed out. Check its dashboard before retrying a paid generation.' : error instanceof SyntaxError ? 'Invalid JSON request or provider response.' : String(error?.message || 'Request failed.'); return send(res,400,{error:message}); }

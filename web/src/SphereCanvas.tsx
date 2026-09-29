@@ -3,18 +3,19 @@
 // larger and brighter, far ones smaller and dimmer, so it reads as depth without WebGL.
 //
 // No cached bitmap here, unlike NetworkCanvas: the sphere turns on its own, so every frame is a
-// fresh projection of about 1,200 dots and 1,500 lines, batched into one path per colour and
+// fresh projection of about 1,200 dots and 1,500 curved links (each a quadratic through its
+// projected arc midpoint, so one segment per link as before), batched into one path per colour and
 // alpha step, which is a few milliseconds. The spatial grid and the greedy label placement are
 // the flat map's, rebuilt over the projected coordinates. A drag orbits the whole sphere and
 // never moves a node; scroll zooms; a click selects; a pick from the tree turns the node to the
 // front. The turntable, the load-in and the messages are all off under prefers-reduced-motion.
 import { useEffect, useRef } from 'react';
 import { COLORS, colorOf, isFolder, type Model } from './lib/network';
-import { apply, axisAngle, buildGrid, ease, hitGrid, identity, intro, Messages, multiply, nodeProgress, spin, toFront, turn, type Mat, type SphereLayout } from './lib/sphere';
+import { apply, arcMid, axisAngle, buildGrid, curveAt, ease, hitGrid, identity, intro, Messages, multiply, nodeProgress, spin, toFront, turn, type Mat, type SphereLayout } from './lib/sphere';
 import { ellipsis, INSET, type LabelBox } from './NetworkCanvas';
 
 type Props = { model: Model; layout: SphereLayout; selected: number; hovered: number; onSelect: (index: number) => void; onHover: (index: number, x: number, y: number) => void; focus: { index: number; seq: number }; paused: boolean };
-const BG = '#0c1222'; // dark navy, never pure black
+const BG = '#0c1222'; // dark navy, never pure black: the ground the glow starts from (home.css), and what labels are read against
 export const INK = { bg: BG, label: '#e6e7ee', dept: '#f2f1ef', near: '#ececf2', focus: '#f2f1ef', halo: 'rgba(12,18,34,0.92)', dim: 0.62 };
 export const PERSPECTIVE = 3.2; // eye distance in sphere radii: the near face reads a little larger than the far one
 export const RADIUS = 0.34; // the sphere's radius at zoom 1, as a share of the shorter side of the panel
@@ -41,7 +42,7 @@ declare global { interface Window { __sphere?: { ready: boolean; count: number; 
 
 export function SphereCanvas({ model, layout, selected, hovered, onSelect, onHover, focus, paused }: Props) {
   const host = useRef<HTMLDivElement>(null); const canvasRef = useRef<HTMLCanvasElement>(null);
-  const state = useRef({ rot: identity() as Mat, k: 1, w: 0, h: 0, dpr: 1, px: new Float32Array(0), py: new Float32Array(0), pz: new Float32Array(0), order: [] as number[], grid: new Map<number, number[]>(), raf: 0, last: 0, started: 0, renders: 0, drag: null as null | { x: number; y: number; node: number; moved: boolean }, hover: -1, labels: [] as LabelBox[], messages: new Messages(40, 5), reduced: false, intro: { node: 0, edge: 0 }, timing: {} as Record<string, number>, turning: null as null | { axis: [number, number, number]; angle: number; from: Mat; start: number } });
+  const state = useRef({ rot: identity() as Mat, k: 1, w: 0, h: 0, dpr: 1, px: new Float32Array(0), py: new Float32Array(0), pz: new Float32Array(0), mx: new Float32Array(0), my: new Float32Array(0), order: [] as number[], grid: new Map<number, number[]>(), raf: 0, last: 0, started: 0, renders: 0, drag: null as null | { x: number; y: number; node: number; moved: boolean }, hover: -1, labels: [] as LabelBox[], messages: new Messages(40, 5), reduced: false, intro: { node: 0, edge: 0 }, timing: {} as Record<string, number>, turning: null as null | { axis: [number, number, number]; angle: number; from: Mat; start: number } });
   const props = useRef({ model, layout, selected, hovered, onSelect, onHover, paused }); props.current = { model, layout, selected, hovered, onSelect, onHover, paused };
 
   // A node's drawn radius: departments biggest, then applications, skills and layer nodes, a group
@@ -51,18 +52,28 @@ export function SphereCanvas({ model, layout, selected, hovered, onSelect, onHov
   const radius = (i: number) => base(i) * Math.min(1.8, Math.max(0.85, Math.sqrt(state.current.k))) * (0.55 + 0.45 * depth(i));
   const alpha = (i: number) => 0.3 + 0.7 * depth(i);
 
-  // Rotate and project every node for this frame, then rebuild the grid and the draw order.
+  // One point of the sphere to the screen under this frame's rotation. R is the same share of the
+  // shorter side for both axes, so the ball stays round on any panel shape; dpr is applied once, as
+  // the context's transform, so this works in CSS pixels.
+  const screen = (x: number, y: number, z: number): [number, number, number] => {
+    const s = state.current; const R = Math.min(s.w, s.h) * RADIUS * s.k;
+    const [vx, vy, vz] = apply(s.rot, x, y, z); const persp = PERSPECTIVE / (PERSPECTIVE - Math.min(vz, PERSPECTIVE - 0.5));
+    return [s.w / 2 + vx * R * persp, s.h / 2 - vy * R * persp, vz];
+  };
+  // Rotate and project every node for this frame, then rebuild the grid and the draw order. Each
+  // edge's arc midpoint (lib/sphere.ts arcMid, computed once per layout) is projected too: one
+  // more point per edge, which is what the curve is drawn through.
   function project(now: number) {
-    const s = state.current; const { model, layout } = props.current; const n = model.nodes.length;
+    const s = state.current; const { model, layout } = props.current; const n = model.nodes.length; const m = model.edges.length;
     if (s.px.length !== n) { s.px = new Float32Array(n); s.py = new Float32Array(n); s.pz = new Float32Array(n); s.order = Array.from({ length: n }, (_, i) => i); }
+    if (s.mx.length !== m) { s.mx = new Float32Array(m); s.my = new Float32Array(m); }
     const elapsed = now - s.started; s.intro = intro(elapsed, s.reduced);
-    const R = Math.min(s.w, s.h) * RADIUS * s.k; const cx = s.w / 2, cy = s.h / 2;
     for (let i = 0; i < n; i++) {
       const e = nodeProgress(elapsed, i, s.reduced); const o = i * 3;
       const x = layout.scatter[o] + (layout.pos[o] - layout.scatter[o]) * e, y = layout.scatter[o + 1] + (layout.pos[o + 1] - layout.scatter[o + 1]) * e, z = layout.scatter[o + 2] + (layout.pos[o + 2] - layout.scatter[o + 2]) * e;
-      const [vx, vy, vz] = apply(s.rot, x, y, z); const persp = PERSPECTIVE / (PERSPECTIVE - Math.min(vz, PERSPECTIVE - 0.5));
-      s.px[i] = cx + vx * R * persp; s.py[i] = cy - vy * R * persp; s.pz[i] = Math.max(-1, Math.min(1, vz));
+      const [sx, sy, vz] = screen(x, y, z); s.px[i] = sx; s.py[i] = sy; s.pz[i] = Math.max(-1, Math.min(1, vz));
     }
+    if (s.intro.edge > 0 && layout.mid.length === m * 3) for (let e = 0; e < m; e++) { const [sx, sy] = screen(layout.mid[e * 3], layout.mid[e * 3 + 1], layout.mid[e * 3 + 2]); s.mx[e] = sx; s.my[e] = sy; }
     s.order.sort((a, b) => s.pz[a] - s.pz[b]); s.grid = buildGrid(s.px, s.py, n);
   }
   const hit = (sx: number, sy: number) => { const s = state.current; return s.px.length ? hitGrid(s.grid, s.px, s.py, s.pz, radius, sx, sy, 7) : -1; };
@@ -71,23 +82,28 @@ export function SphereCanvas({ model, layout, selected, hovered, onSelect, onHov
     const s = state.current; const canvas = canvasRef.current; const ctx = canvas?.getContext('2d'); if (!canvas || !ctx || !s.w || !s.h) return;
     const t0 = performance.now(); project(now); const t1 = performance.now();
     const { model, selected, hovered } = props.current; const { px, py, pz, w, h, dpr } = s; const n = model.nodes.length; const nodes = model.nodes;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = BG; ctx.fillRect(0, 0, w, h);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); // clear, not filled: the sky behind is .home's glow (home.css)
     const focusNode = hovered >= 0 ? hovered : selected; const node = focusNode >= 0 ? nodes[focusNode] : null;
     const near = new Set<number>(); if (node) { for (const q of model.linksOut[focusNode]) near.add(q); for (const q of model.linksIn[focusNode]) near.add(q); if (node.parent >= 0) near.add(node.parent); for (const q of model.children[focusNode].slice(0, 400)) near.add(q); }
     const isLink = (q: number) => focusNode >= 0 && (model.linksOut[focusNode].includes(q) || model.linksIn[focusNode].includes(q));
+    // A curve from a to b along the sphere: a quadratic whose control point puts the projected arc
+    // midpoint (mx, my) at its middle. curve() finds the midpoint on the spot, for the few focus lines.
+    const bend = (a: number, b: number, mx: number, my: number) => { ctx.moveTo(px[a], py[a]); ctx.quadraticCurveTo(2 * mx - (px[a] + px[b]) / 2, 2 * my - (py[a] + py[b]) / 2, px[b], py[b]); };
+    const pos = props.current.layout.pos;
+    const curve = (a: number, b: number) => { const [x, y, z] = arcMid(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2], pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]); const [mx, my] = screen(x, y, z); bend(a, b, mx, my); };
     // The links, one path per alpha step, dimmed to a trace when a node is focused: its own are drawn bright below.
     if (s.intro.edge > 0) {
-      const buckets: [number, number][][] = [[], [], [], []];
+      const buckets: number[][] = [[], [], [], []]; // edge indexes, by depth step
       // Zoomed in, most of the sphere is off the panel: a line with both ends well outside it is skipped.
       const far = (i: number) => px[i] < -w / 2 || px[i] > w * 1.5 || py[i] < -h / 2 || py[i] > h * 1.5;
-      for (let e = 0; e < model.edges.length; e++) { const [a, b] = model.edges[e]; if (focusNode >= 0 && (a === focusNode || b === focusNode)) continue; if (far(a) && far(b)) continue; buckets[Math.round(Math.min(depth(a), depth(b)) * 3)].push([a, b]); }
+      for (let e = 0; e < model.edges.length; e++) { const [a, b] = model.edges[e]; if (focusNode >= 0 && (a === focusNode || b === focusNode)) continue; if (far(a) && far(b)) continue; buckets[Math.round(Math.min(depth(a), depth(b)) * 3)].push(e); }
       // The faintest step, both ends on the far side, is left out: at 7% alpha it is not seen, and it is a third of the lines.
       ctx.lineWidth = 1;
-      buckets.forEach((list, step) => { if (!list.length || step === 0) return; ctx.strokeStyle = `rgba(178,190,228,${((0.07 + 0.2 * step / 3) * s.intro.edge * (focusNode >= 0 ? 0.3 : 1)).toFixed(3)})`; ctx.beginPath(); for (const [a, b] of list) { ctx.moveTo(px[a], py[a]); ctx.lineTo(px[b], py[b]); } ctx.stroke(); });
+      buckets.forEach((list, step) => { if (!list.length || step === 0) return; ctx.strokeStyle = `rgba(178,190,228,${((0.07 + 0.2 * step / 3) * s.intro.edge * (focusNode >= 0 ? 0.3 : 1)).toFixed(3)})`; ctx.beginPath(); for (const e of list) { const [a, b] = model.edges[e]; bend(a, b, s.mx[e], s.my[e]); } ctx.stroke(); });
     }
     const t2 = performance.now();
-    // The messages: a few dim dots moving along edges, in the colour of the node they left.
-    for (const p of s.messages.live) { if (!model.edges[p.edge]) continue; const [a, b] = model.edges[p.edge]; const x = px[a] + (px[b] - px[a]) * p.t, y = py[a] + (py[b] - py[a]) * p.t; ctx.globalAlpha = 0.55 * Math.min(depth(a), depth(b)); ctx.fillStyle = colorOf(nodes[a]); ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 6.2832); ctx.fill(); }
+    // The messages: a few dim dots moving along edges, on the same curve, in the colour of the node they left.
+    for (const p of s.messages.live) { if (!model.edges[p.edge]) continue; const [a, b] = model.edges[p.edge]; const x = curveAt(px[a], s.mx[p.edge], px[b], p.t), y = curveAt(py[a], s.my[p.edge], py[b], p.t); ctx.globalAlpha = 0.55 * Math.min(depth(a), depth(b)); ctx.fillStyle = colorOf(nodes[a]); ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 6.2832); ctx.fill(); }
     ctx.globalAlpha = 1;
     // The dots, far to near, one path per colour and alpha step: the whole sphere is a few dozen
     // fills, and one path of 300 arcs rasterises in a single pass where 300 separate draws do not.
@@ -136,8 +152,8 @@ export function SphereCanvas({ model, layout, selected, hovered, onSelect, onHov
     // The focused neighbourhood on top: its lines, its dots at full strength, its names.
     if (node && focusNode >= 0) {
       const sx = px[focusNode], sy = py[focusNode];
-      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); for (const q of near) if (!isLink(q)) { ctx.moveTo(sx, sy); ctx.lineTo(px[q], py[q]); } ctx.stroke();
-      ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(233,174,142,0.9)'; ctx.beginPath(); for (const q of near) if (isLink(q)) { ctx.moveTo(sx, sy); ctx.lineTo(px[q], py[q]); } ctx.stroke();
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); for (const q of near) if (!isLink(q)) curve(focusNode, q); ctx.stroke();
+      ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(233,174,142,0.9)'; ctx.beginPath(); for (const q of near) if (isLink(q)) curve(focusNode, q); ctx.stroke();
       ctx.lineWidth = 3; let count = 0;
       for (const q of near) { const rq = Math.max(2.5, radius(q)); ctx.fillStyle = colorOf(nodes[q]); ctx.beginPath(); ctx.arc(px[q], py[q], rq, 0, 6.2832); ctx.fill(); if (count < 70 && label(q, 11, '', INK.near, false, 1)) count++; }
       const r = Math.max(4, radius(focusNode)) + 1.5; ctx.fillStyle = colorOf(node); ctx.beginPath(); ctx.arc(sx, sy, r, 0, 6.2832); ctx.fill();

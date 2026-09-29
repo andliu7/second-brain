@@ -1,26 +1,37 @@
-// ClaudeChatInput: the composer andliu.ai shows when Claude is the provider, from the component Andrew
-// pasted (2026-09-27), rebuilt on the app's tokens with plain buttons (no radix or cva). Files can be
+// ClaudeChatInput: andliu.ai's one composer, in the side panel and full screen alike, from the component
+// Andrew pasted (2026-09-27), rebuilt on the app's tokens with plain buttons (no radix or cva). Files can be
 // dropped, picked or pasted; a paste longer than PASTE_THRESHOLD becomes a card instead of flooding the
 // box; textual files are read so their text can go to the model. Props:
 //   onSendMessage(message, files, pasted): Send, or Enter (Shift+Enter for a new line)
 //   disabled, submitDisabled: the caller's busy state and provider readiness
 //   placeholder, maxFiles (10), maxFileSize (50 MB), acceptedFileTypes
-//   models, selectedModel, onModelChange: the model menu; the caller owns the choice
-// Left out of the paste on purpose: the simulated upload progress (nothing is uploaded here; a file is
-// complete once read) and window.alert, which became inline notes.
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react';
+//   models, selectedModel, onModelChange: the model menu; the caller owns the choice. A model with a group
+//     (the provider's name) is listed under that heading, so one menu picks provider and model together
+//   value, onValueChange: optional control of the text, so a prompt starter can fill the box
+//   tools: the caller's own buttons, placed in the bottom row after the pickers (Add context, a skill)
+//   efforts, effort, onEffortChange: the reasoning effort button, which steps through efforts on each click
+//     like the /prompt-demo one; an empty list hides it, for a provider or model that has no effort setting
+// Its look is PromptInput's (ai-chat-input.tsx, the /prompt-demo page, 2026-09-28): a rounded gradient box
+// with the model and effort pickers inside it, whose two icons it borrows. Left out of the paste on purpose:
+// the simulated upload progress (nothing is uploaded here; a file is complete once read) and window.alert,
+// which became inline notes.
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { AlertCircle, ArrowUp, Archive, Check, ChevronDown, Copy, FileText, ImageIcon, Music, Plus, Video, X } from 'lucide-react';
 import { uid } from '../../lib/storage';
+import { DynamicBarsIcon, ModelIcon } from './ai-chat-input';
 import './claude-chat-input.css';
 
 export type FileWithPreview = { id: string; file: File; preview?: string; type: string; textContent?: string; error?: string };
 export type PastedContent = { id: string; content: string; timestamp: Date; wordCount: number };
-export type ModelOption = { id: string; name: string; description: string; badge?: string };
+export type ModelOption = { id: string; name: string; description: string; badge?: string; group?: string };
 type Props = {
   onSendMessage?: (message: string, files: FileWithPreview[], pasted: PastedContent[]) => void;
   disabled?: boolean; submitDisabled?: boolean; placeholder?: string; maxFiles?: number; maxFileSize?: number; acceptedFileTypes?: string[];
   models?: ModelOption[]; selectedModel?: string; onModelChange?: (modelId: string) => void; 'aria-label'?: string;
+  value?: string; onValueChange?: (value: string) => void; tools?: ReactNode;
+  efforts?: EffortOption[]; effort?: string; onEffortChange?: (effortId: string) => void;
 };
+export type EffortOption = { id: string; name: string };
 const MAX_FILES = 10; const MAX_FILE_SIZE = 50 * 1024 * 1024; const PASTE_THRESHOLD = 200;
 const TEXT_TYPES = ['text/', 'application/json', 'application/xml', 'application/javascript', 'application/typescript'];
 const TEXT_EXT = new Set(['txt', 'md', 'py', 'js', 'ts', 'jsx', 'tsx', 'html', 'htm', 'css', 'scss', 'sass', 'json', 'xml', 'yaml', 'yml', 'csv', 'sql', 'sh', 'bash', 'php', 'rb', 'go', 'java', 'c', 'cpp', 'h', 'hpp', 'cs', 'rs', 'swift', 'kt', 'scala', 'r', 'vue', 'svelte', 'astro', 'config', 'conf', 'ini', 'toml', 'log', 'gitignore', 'dockerfile', 'makefile', 'readme', 'mjs', 'cjs']);
@@ -45,17 +56,22 @@ function Card({ badge, text, image, name, size, onCopy, onRemove, error }: { bad
 function ModelMenu({ models, selected, onChange, disabled }: { models: ModelOption[]; selected: string; onChange: (id: string) => void; disabled: boolean }) {
   const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null);
   const current = models.find(m => m.id === selected) || models[0];
+  // Headings in first-seen order; models without a group share one unnamed list, which is the old flat menu.
+  const groups = [...new Set(models.map(m => m.group || ''))];
+  const option = (m: ModelOption) => <li key={m.id} role="option" aria-selected={m.id === selected}><button type="button" onClick={() => { onChange(m.id); setOpen(false); }}><span className="cci-model-name">{m.name}{m.badge && <small className="cci-model-badge">{m.badge}</small>}</span><span className="cci-model-desc">{m.description}</span>{m.id === selected && <Check size={14} className="cci-model-check"/>}</button></li>;
   useEffect(() => { const away = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }; document.addEventListener('mousedown', away); return () => document.removeEventListener('mousedown', away); }, []);
   return <div className="cci-model" ref={ref} onKeyDown={e => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); } }}>
-    <button type="button" className="cci-model-button" aria-haspopup="listbox" aria-expanded={open} aria-label={`Model: ${current?.name || selected}`} disabled={disabled} onClick={() => setOpen(v => !v)}><span>{current?.name || selected}</span><ChevronDown size={14} className={open ? 'cci-flip' : ''}/></button>
+    <button type="button" className="cci-model-button" aria-haspopup="listbox" aria-expanded={open} aria-label={`Chat model: ${current?.name || selected}`} disabled={disabled} onClick={() => setOpen(v => !v)}><ModelIcon model={current?.name || selected}/><span>{current?.name || selected}</span><ChevronDown size={11} className={open ? 'cci-flip' : ''}/></button>
     {open && <ul className="cci-model-menu panel" role="listbox" aria-label="Models">
-      {models.map(m => <li key={m.id} role="option" aria-selected={m.id === selected}><button type="button" onClick={() => { onChange(m.id); setOpen(false); }}><span className="cci-model-name">{m.name}{m.badge && <small className="cci-model-badge">{m.badge}</small>}</span><span className="cci-model-desc">{m.description}</span>{m.id === selected && <Check size={14} className="cci-model-check"/>}</button></li>)}
+      {groups.length === 1 && !groups[0] ? models.map(option) : groups.map(group => <li key={group} role="group" aria-label={group || 'Other'}><span className="cci-model-group" aria-hidden="true">{group || 'Other'}</span><ul role="none">{models.filter(m => (m.group || '') === group).map(option)}</ul></li>)}
     </ul>}
   </div>;
 }
 
-export function ClaudeChatInput({ onSendMessage, disabled = false, submitDisabled = false, placeholder = 'How can I help you today?', maxFiles = MAX_FILES, maxFileSize = MAX_FILE_SIZE, acceptedFileTypes, models = [], selectedModel = '', onModelChange, 'aria-label': ariaLabel = 'Message' }: Props) {
-  const [message, setMessage] = useState(''); const [files, setFiles] = useState<FileWithPreview[]>([]); const [pasted, setPasted] = useState<PastedContent[]>([]);
+export function ClaudeChatInput({ onSendMessage, disabled = false, submitDisabled = false, placeholder = 'How can I help you today?', maxFiles = MAX_FILES, maxFileSize = MAX_FILE_SIZE, acceptedFileTypes, models = [], selectedModel = '', onModelChange, 'aria-label': ariaLabel = 'Message', value, onValueChange, tools, efforts = [], effort = '', onEffortChange }: Props) {
+  // Controlled when the caller passes value and onValueChange, uncontrolled otherwise, like a plain <textarea>.
+  const [local, setLocal] = useState(''); const message = value ?? local;
+  const setMessage = (next: string) => { if (onValueChange) onValueChange(next); else setLocal(next); }; const [files, setFiles] = useState<FileWithPreview[]>([]); const [pasted, setPasted] = useState<PastedContent[]>([]);
   const [dragging, setDragging] = useState(false); const [note, setNote] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null); const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { const ta = textareaRef.current; if (!ta) return; ta.style.height = 'auto'; ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`; }, [message]);
@@ -82,6 +98,7 @@ export function ClaudeChatInput({ onSendMessage, disabled = false, submitDisable
   };
   const hasContent = Boolean(message.trim()) || files.length > 0 || pasted.length > 0;
   const canSend = hasContent && !disabled && !submitDisabled;
+  const effortIndex = Math.max(0, efforts.findIndex(e => e.id === effort)); const effortName = efforts[effortIndex]?.name || '';
   const send = () => {
     if (!canSend) return;
     onSendMessage?.(message, files, pasted);
@@ -96,12 +113,14 @@ export function ClaudeChatInput({ onSendMessage, disabled = false, submitDisable
       <textarea ref={textareaRef} value={message} onChange={e => setMessage(e.target.value)} onPaste={onPaste} onKeyDown={onKeyDown} placeholder={placeholder} disabled={disabled} aria-label={ariaLabel} rows={1} className="cci-textarea"/>
       <div className="cci-bar">
         <div className="cci-bar-left">
-          <button type="button" className="icon-button cci-tool" aria-label={files.length >= maxFiles ? `Up to ${maxFiles} files` : 'Attach files'} title="Attach files" disabled={disabled || files.length >= maxFiles} onClick={() => fileInputRef.current?.click()}><Plus size={18}/></button>
+          {models.length > 0 && <ModelMenu models={models} selected={selectedModel} onChange={id => onModelChange?.(id)} disabled={disabled}/>}
+          {efforts.length > 0 && <button type="button" className="cci-pill" disabled={disabled} aria-label={`Reasoning effort: ${effortName}. Click to change.`} title="Reasoning effort" onClick={() => onEffortChange?.(efforts[(effortIndex + 1) % efforts.length].id)}><DynamicBarsIcon level={effortIndex} count={efforts.length}/><span>{effortName}</span></button>}
+          {tools}
           {note && <span className="cci-note" role="status">{note}</span>}
         </div>
         <div className="cci-bar-right">
-          {models.length > 0 && <ModelMenu models={models} selected={selectedModel} onChange={id => onModelChange?.(id)} disabled={disabled}/>}
-          <button type="button" className="cci-send" aria-label="Send message" title="Send message" onClick={send} disabled={!canSend}><ArrowUp size={18}/></button>
+          <button type="button" className="icon-button cci-tool" aria-label={files.length >= maxFiles ? `Up to ${maxFiles} files` : 'Attach files'} title="Attach files" disabled={disabled || files.length >= maxFiles} onClick={() => fileInputRef.current?.click()}><Plus size={16}/></button>
+          <button type="button" className="cci-send" aria-label="Send message" title="Send message" onClick={send} disabled={!canSend}><ArrowUp size={16}/></button>
         </div>
       </div>
       {(files.length > 0 || pasted.length > 0) && <div className="cci-tray"><div className="cci-tray-row">

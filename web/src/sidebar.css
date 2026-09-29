@@ -1,0 +1,21 @@
+/* The sidebar's three modes (lib/useSidebarMode.ts), from the classes on .app-shell. Desktop only: under
+   701px the sidebar is the drawer the menu button opens (styles.css), and the home globe (.app-home) has
+   its own drawer (home.css), so neither is touched here.
+   sidebar-open    the full sidebar, the page beside it (styles.css as it was)
+   sidebar-hidden  gone: slid off and out of the tab order; the page takes the full width
+   sidebar-auto    the page always takes the full width and the sidebar floats over it while it is out,
+                   so the page never jumps when it comes and goes
+   sidebar-away    slid off; shows the burger, and in auto the thin edge strip that calls it back */
+.topbar .sidebar-burger,.sidebar-edge{display:none}
+@media (min-width:701px){
+  .app-shell:not(.app-home) .sidebar{transition:transform .22s ease,box-shadow .22s ease,visibility 0s}
+  .sidebar-away:not(.app-home) .sidebar{transform:translateX(-100%);box-shadow:none}
+  /* Hidden also leaves the tab order, once the slide is over. Auto stays focusable, so Tab can call it back. */
+  .sidebar-hidden:not(.app-home) .sidebar{visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}
+  .sidebar-hidden:not(.app-home) .main-shell,.sidebar-auto:not(.app-home) .main-shell{margin-left:0;width:100%}
+  .sidebar-auto:not(.app-home):not(.sidebar-away) .sidebar{box-shadow:var(--shadow-2)}
+  .sidebar-away:not(.app-home) .topbar .sidebar-burger{display:inline-flex;margin-left:-6px}
+  .sidebar-auto.sidebar-away:not(.app-home) .sidebar-edge{display:block;position:fixed;inset:0 auto 0 0;width:10px;z-index:36}
+}
+/* No slide: it is simply there or not. */
+@media (prefers-reduced-motion:reduce){.app-shell .sidebar{transition:none!important}}

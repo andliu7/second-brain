@@ -26,6 +26,7 @@ const pairs = [
   ['on-acc', 'acc-fill', BODY], ['on-acc', 'acc-fill-hover', BODY],
   ['link', 'sheet', BODY], ['green-dk', 'sheet', BODY], ['green-dk', 'tip-bg', BODY],
   ['red', 'sheet', BODY], ['red', 'red-bg', BODY], ['amber', 'amber-bg', BODY],
+  ['ink', 'glow-edge', BODY], ['sub', 'glow-edge', BODY], // the page ground's glow reaches this at its edge (2026-09-28)
   ['mut', 'sheet', UI], ['mut', 'soft', UI], ['field-line', 'sheet', UI], ['field-line', 'btn-bg', UI], ['acc-fill', 'sheet', UI],
 ];
 

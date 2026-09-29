@@ -9,25 +9,32 @@
 // reset clears them, so there is no per-day record to chart.
 //
 // The order and sizes persist as workspace.todayLayout, so they travel with backups. Widgets added in
-// later versions are appended to a saved layout, and ids the code no longer knows are dropped.
+// later versions are appended to a saved layout, and ids the code no longer knows are dropped: that is how
+// a layout saved with the Activity widget still loads, since the heat map moved into Today's "Calendar
+// and activity" card (MiniCalendar in MonthCalendar.tsx) on 2026-09-28.
+//
+// The grid spans the page's full width (Andrew: "make the progress boxes span the horizontal space"), so
+// it may use up to MAX_COLUMNS columns; WidgetGrid fits as many cells of at least MIN_CELL px as the
+// width allows and sizes them to fill it.
 import { useState, type ReactNode } from 'react';
 import { Activity, CalendarCheck, CheckCircle2, Columns3, Flag, FolderGit2, Lightbulb, Target, type LucideIcon } from 'lucide-react';
 import type { Workspace } from './types';
 import type { Commit } from './Kanban';
 import { WidgetGrid, type GridItem, type WidgetSize } from '@/components/ui/widget-grid';
-import { HeatCalendar } from '@/components/ui/heat-calendar';
 import { boardSnapshot, goalProgress, miscByKind, projectProgress, stagesPerWeek, streakYesterday, todoSeries, todoStreak, trend, weekCounts, lastDays, doneByDay, type Trend } from './lib/progress';
 import './today-widgets.css';
 
-type WidgetId = 'todos' | 'streak' | 'stages' | 'projects' | 'board' | 'goals' | 'misc' | 'activity';
-const TITLES: Record<WidgetId, string> = { todos: 'Todos done', streak: 'Streak', stages: 'Stages finished', projects: 'Projects', board: 'Board progress', goals: 'Goals', misc: 'Brainstorm', activity: 'Activity' };
+type WidgetId = 'todos' | 'streak' | 'stages' | 'projects' | 'board' | 'goals' | 'misc';
+const TITLES: Record<WidgetId, string> = { todos: 'Todos done', streak: 'Streak', stages: 'Stages finished', projects: 'Projects', board: 'Board progress', goals: 'Goals', misc: 'Brainstorm' };
 export const DEFAULT_LAYOUT: GridItem[] = [
   { id: 'todos', size: 'wide' }, { id: 'streak', size: 'sm' }, { id: 'stages', size: 'sm' },
   { id: 'projects', size: 'tall' }, { id: 'board', size: 'wide' }, { id: 'goals', size: 'sm' },
-  { id: 'misc', size: 'sm' }, { id: 'activity', size: 'wide' },
+  { id: 'misc', size: 'sm' },
 ];
+const MAX_COLUMNS = 8;
+const MIN_CELL = 180;
 // The small muted mark an empty widget shows above its line, so a blank card reads as meant.
-const ICONS: Record<WidgetId, LucideIcon> = { todos: CheckCircle2, streak: CalendarCheck, stages: Flag, projects: FolderGit2, board: Columns3, goals: Target, misc: Lightbulb, activity: Activity };
+const ICONS: Record<WidgetId, LucideIcon> = { todos: CheckCircle2, streak: CalendarCheck, stages: Flag, projects: FolderGit2, board: Columns3, goals: Target, misc: Lightbulb };
 const known = (id: string): id is WidgetId => id in TITLES;
 
 export function normalizeLayout(saved: Workspace['todayLayout']): GridItem[] {
@@ -45,7 +52,7 @@ export function TodayWidgets({ workspace, commit }: { workspace: Workspace; comm
       <h2 id="tw-heading">Progress</h2>
       <button type="button" className="button small" aria-pressed={editing} onClick={() => setEditing(e => !e)}>Edit layout</button>
     </div>
-    <WidgetGrid items={layout} editing={editing} onChange={save} ariaLabel="Progress widgets" label={id => TITLES[id as WidgetId] ?? id}
+    <WidgetGrid items={layout} editing={editing} onChange={save} ariaLabel="Progress widgets" maxColumns={MAX_COLUMNS} minCell={MIN_CELL} label={id => TITLES[id as WidgetId] ?? id}
       render={item => <Widget id={item.id as WidgetId} size={item.size} workspace={workspace}/>}/>
   </section>;
 }
@@ -139,19 +146,12 @@ function Widget({ id, size, workspace }: { id: WidgetId; size: WidgetSize; works
       <ul className="tw-meters">{g.goals.map(goal => <Meter key={goal.id} name={goal.title} done={goal.done} total={goal.total} unit="milestones"/>)}</ul>
     </Card>;
   }
-  if (id === 'misc') {
-    const misc = workspace.misc ?? [];
-    if (!misc.length) return <Card title={title} icon={ICONS[id]} empty="No brainstorm lines yet; add one and they are counted here."/>;
-    const w = weekCounts(misc);
-    const kinds = miscByKind(misc);
-    return <Card title={title} big={misc.length} caption={misc.length === 1 ? 'line' : 'lines'} change={{ ...trend(w.thisWeek, w.lastWeek, 'last week'), text: `${w.thisWeek} added this week; ${trend(w.thisWeek, w.lastWeek, 'last week').text.toLowerCase()}` }}>
-      <ul className="tw-meters">{kinds.map(k => <Meter key={k.kind} name={k.label} done={k.count} total={misc.length} unit="lines"/>)}</ul>
-    </Card>;
-  }
-  // activity
-  const w = weekCounts(workspace.activity);
-  if (!workspace.activity.length) return <Card title={title} icon={ICONS[id]} empty="No activity yet; everything you add or change is logged here."/>;
-  return <Card title={title} big={w.thisWeek} caption="this week" change={trend(w.thisWeek, w.lastWeek, 'last week')}>
-    <HeatCalendar activity={workspace.activity} weeks={wideish(size) ? 16 : 8}/>
+  // misc
+  const misc = workspace.misc ?? [];
+  if (!misc.length) return <Card title={title} icon={ICONS[id]} empty="No brainstorm lines yet; add one and they are counted here."/>;
+  const w = weekCounts(misc);
+  const kinds = miscByKind(misc);
+  return <Card title={title} big={misc.length} caption={misc.length === 1 ? 'line' : 'lines'} change={{ ...trend(w.thisWeek, w.lastWeek, 'last week'), text: `${w.thisWeek} added this week; ${trend(w.thisWeek, w.lastWeek, 'last week').text.toLowerCase()}` }}>
+    <ul className="tw-meters">{kinds.map(k => <Meter key={k.kind} name={k.label} done={k.count} total={misc.length} unit="lines"/>)}</ul>
   </Card>;
 }

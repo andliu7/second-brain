@@ -1,7 +1,11 @@
 // Today (#agenda): the day on one screen. The heading carries the title, the quote board as a small
 // box, and a plus for capturing a thought. Below it two columns: quick capture on the left, today's
-// todos top-right as a tall column (the mini kanban left on 2026-09-28: the board is Kanban's alone); then a small calendar card (its "Open calendar"
-// and every day go to #calendar, the full month) beside it the progress widgets (TodayWidgets.tsx, draggable once Edit layout is on; the activity heat map is one of them, so the folded copy that sat here left on 2026-09-28). Last, the Projects row, the only way to #projects since it left the nav. Gone on
+// todos top-right as a tall column (the mini kanban left on 2026-09-28: the board is Kanban's alone). Under
+// quick capture, the "Calendar and activity" card (MiniCalendar: the month shaded by activity, expanding to
+// the heat calendar and a day's detail; its "Open calendar" and every day go to #calendar, the full month).
+// Then the progress widgets across the full width (TodayWidgets.tsx, draggable once Edit layout is on;
+// Andrew, 2026-09-28: "make the progress boxes span the horizontal space"). Last, the Projects row, the
+// only way to #projects since it left the nav. Gone on
 // 2026-09-28 at Andrew's word: uncommitted work, courses, Blueberry's status, pinned files and skill
 // runs ("I don't see their use"); Projects and Skills carry them. No hero, no slogan, no stat cards
 // and no parallax (his decision of 2026-09-14).
@@ -47,13 +51,11 @@ export function Today({ data, error, workspace, commit, newDoc, capture }: Props
           <textarea id="quick-capture" ref={box} value={text} onChange={event => setText(event.target.value)} placeholder="An idea, a link, something to remember…" onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') void save(); }}/>
           <div className="capture-footer"><span>Saved as a note <kbd>Ctrl ↵</kbd></span><button className="button small primary" disabled={!text.trim() || busy} onClick={() => void save()}>{busy ? <Loader2 className="spin" size={14}/> : <Plus size={14}/>}Save note</button></div>
         </section>
+        <MiniCalendar todos={workspace.todos} activity={workspace.activity}/>
       </div>
       <aside className="today-side"><TodoCard workspace={workspace} commit={commit}/></aside>
     </div>
-    <div className="today-layout today-lower">
-      <MiniCalendar todos={workspace.todos}/>
-      <TodayWidgets workspace={workspace} commit={commit}/>
-    </div>
+    <TodayWidgets workspace={workspace} commit={commit}/>
     <section className="panel today-projects">
       <a className="today-run" href="#projects"><strong><FolderGit2 size={16}/>Projects</strong><span className="today-run-state"><span className="muted">{data ? `${repos.length} ${repos.length === 1 ? 'repo' : 'repos'}` : error ? 'unavailable' : 'reading…'}</span><ArrowUpRight size={16}/></span></a>
     </section>

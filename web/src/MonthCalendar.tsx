@@ -9,15 +9,22 @@
 //   todos: workspace.todos, drawn as chips in their category colour
 // Mount from App.tsx as the #calendar page (#calendar/<day> sets focus):
 //   <MonthCalendar focus={day} todos={workspace.todos}/>
-// MiniCalendar is the same month as a small card for Today (Andrew, 2026-09-28): arrows, today marked,
-// a dot under days with events or todos, each day a link to #calendar/<day>. Props:
+// MiniCalendar is Today's "Calendar and activity" card (Andrew, 2026-09-28: "calendar combine it with
+// activity just make them expand when you click/hover"). Collapsed it is the month: arrows, today marked,
+// each day shaded by how much was logged that day (the heat calendar's levels) with a dot under days with
+// events or todos, each day a link to #calendar/<day>. Show more (remembered in this browser), or a hover
+// on a device with a pointer (a preview, not remembered), expands it: this week's activity count and the
+// heat calendar, and the detail of one day (today, or the day under the pointer or focus). Props:
 //   todos: workspace.todos, whose days (today's list and history) get a dot
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type SyntheticEvent } from 'react';
+//   activity: workspace.activity, the log the shading and the heat calendar count
+import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type SyntheticEvent } from 'react';
 import { ArrowUpRight, CalendarDays, ChevronLeft, ChevronRight, KeyRound, Loader2, Search, X } from 'lucide-react';
 import { api } from './lib/api';
 import { CATEGORIES, categoryOf, type CategoryId } from './lib/categories';
+import { weekCounts, trend } from './lib/progress';
+import { HeatCalendar, activityCounts, levelOf } from '@/components/ui/heat-calendar';
 import type { CalendarEvent } from './Kanban';
-import type { Todo, Todos } from './types';
+import type { Activity, Todo, Todos } from './types';
 import './month.css';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -207,29 +214,88 @@ function KeyDialog({ close }: { close: () => void }) {
   </dialog>;
 }
 
-export function MiniCalendar({ todos }: { todos?: Todos }) {
+// Expanded by Show more, kept in this browser; a hover preview is not kept.
+const OPEN_KEY = 'brain-calendar-expanded';
+const readOpen = () => { try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; } };
+// A hover only previews where there is a real pointer that can hover; a tap on a phone never expands it.
+const canHover = (event: ReactPointerEvent) => event.pointerType !== 'touch' && typeof matchMedia === 'function' && matchMedia('(hover: hover)').matches;
+const PEEK_MS = 200;  // a pointer passing over on its way elsewhere does not open it
+const ARROWS = { up: '↑', down: '↓', flat: '→' };
+
+export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity?: Activity[] }) {
   const [month, setMonth] = useState(() => firstOf(new Date()));
   const { status, error, byDay } = useCalendar();
-  const todoDays = new Set(todos ? [...Object.keys(todos.history).filter(day => todos.history[day].length), ...(todos.items.length ? [todos.day] : [])] : []);
   const today = key(new Date());
+  const [pinned, setPinned] = useState(readOpen);
+  const [peek, setPeek] = useState(false);
+  const [day, setDay] = useState(today);
+  const peekTimer = useRef(0);
+  const more = useId();
+  useEffect(() => { try { localStorage.setItem(OPEN_KEY, pinned ? '1' : '0'); } catch { /* this visit only */ } }, [pinned]);
+  useEffect(() => () => window.clearTimeout(peekTimer.current), []);
+  const expanded = pinned || peek;
+
+  const todosOn = (k: string): Todo[] => todos ? (k === todos.day ? todos.items : todos.history[k] || []) : [];
+  const counts = activityCounts(activity);
+  const cells = monthCells(month);
+  // Levels are relative to the busiest day in the month on screen, so a quiet month still shows its shape.
+  const max = Math.max(1, ...cells.map(date => counts.get(key(date)) || 0));
   const step = (by: number) => setMonth(m => new Date(m.getFullYear(), m.getMonth() + by, 1));
-  return <section className="panel mini-cal" aria-label="Calendar">
+  const week = weekCounts(activity);
+  const change = trend(week.thisWeek, week.lastWeek, 'last week');
+  const logged = activity.filter(entry => key(new Date(entry.created)) === day);
+  const planned = [
+    ...(byDay.get(day) || []).map(event => ({ id: 'e:' + event.id, text: event.title, time: timeOf(event), done: false })),
+    ...todosOn(day).map(todo => ({ id: 't:' + todo.id, text: todo.text, time: '', done: todo.done })),
+  ];
+
+  return <section className="panel mini-cal" aria-label="Calendar and activity" data-expanded={expanded || undefined}
+    onPointerEnter={event => { if (!canHover(event)) return; window.clearTimeout(peekTimer.current); peekTimer.current = window.setTimeout(() => setPeek(true), PEEK_MS); }}
+    onPointerLeave={() => { window.clearTimeout(peekTimer.current); setPeek(false); setDay(today); }}>
     <div className="section-heading">
-      <h2><CalendarDays size={16}/>Calendar</h2>
-      <a className="text-button" href="#calendar">Open calendar<ArrowUpRight size={14}/></a>
+      <h2><CalendarDays size={16}/>Calendar and activity</h2>
+      <span className="mini-cal-actions">
+        <button type="button" className="text-button" aria-expanded={pinned} aria-controls={more} onClick={() => setPinned(v => !v)}>{pinned ? 'Show less' : 'Show more'}</button>
+        <a className="text-button" href="#calendar">Open calendar<ArrowUpRight size={14}/></a>
+      </span>
     </div>
     <div className="mini-cal-body">
-      <div className="mini-cal-nav">
-        <button type="button" className="icon-button" aria-label="Previous month" onClick={() => step(-1)}><ChevronLeft size={15}/></button>
-        <strong aria-live="polite">{monthTitle(month)}</strong>
-        <button type="button" className="icon-button" aria-label="Next month" onClick={() => step(1)}><ChevronRight size={15}/></button>
+      <div className="mini-cal-month">
+        <div className="mini-cal-nav">
+          <button type="button" className="icon-button" aria-label="Previous month" onClick={() => step(-1)}><ChevronLeft size={15}/></button>
+          <strong aria-live="polite">{monthTitle(month)}</strong>
+          <button type="button" className="icon-button" aria-label="Next month" onClick={() => step(1)}><ChevronRight size={15}/></button>
+        </div>
+        <div className="mini-cal-grid">
+          {WEEKDAYS.map(name => <span key={name} className="mini-cal-weekday" aria-hidden="true">{name.slice(0, 2)}</span>)}
+          {cells.map(date => {
+            const k = key(date);
+            const marked = byDay.has(k) || todosOn(k).length > 0;
+            const count = counts.get(k) || 0;
+            const label = date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) + (marked ? ', has events or todos' : '') + (count ? `, ${count} ${count === 1 ? 'activity' : 'activities'}` : '');
+            return <a key={k} href={'#calendar/' + k} className="mini-cal-day" aria-label={label} onPointerEnter={() => setDay(k)} onFocus={() => setDay(k)}
+              data-today={k === today || undefined} data-outside={date.getMonth() !== month.getMonth() || undefined} data-marked={marked || undefined} data-level={levelOf(count, max)} data-shown={(expanded && k === day) || undefined}>{date.getDate()}</a>;
+          })}
+        </div>
+        {status && !status.connected && <p className="today-note">No calendar is connected. <a href="/api/calendar/connect">Connect</a></p>}
+        {error && <p className="today-note error-text" role="alert">{error}</p>}
       </div>
-      <div className="mini-cal-grid">
-        {WEEKDAYS.map(day => <span key={day} className="mini-cal-weekday" aria-hidden="true">{day.slice(0, 2)}</span>)}
-        {monthCells(month).map(date => { const k = key(date); const marked = byDay.has(k) || todoDays.has(k); return <a key={k} href={'#calendar/' + k} className="mini-cal-day" data-today={k === today || undefined} data-outside={date.getMonth() !== month.getMonth() || undefined} data-marked={marked || undefined} aria-label={date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) + (marked ? ', has events or todos' : '')}>{date.getDate()}</a>; })}
-      </div>
-      {status && !status.connected && <p className="today-note">No calendar is connected. <a href="/api/calendar/connect">Connect</a></p>}
-      {error && <p className="today-note error-text" role="alert">{error}</p>}
+      {/* Rendered only when expanded, so the collapsed card carries no second calendar for a screen reader to wade through. */}
+      {expanded && <div className="mini-cal-more" id={more}>
+        <div className="mini-cal-activity">
+          <h3>Activity</h3>
+          {activity.length ? <>
+            <p className="mini-cal-big"><strong>{week.thisWeek}</strong> this week <span className="mini-cal-change" data-dir={change.dir}><span aria-hidden="true">{ARROWS[change.dir]}</span> {change.text}</span></p>
+            <HeatCalendar activity={activity} weeks={16}/>
+          </> : <p className="mini-cal-empty">No activity yet; everything you add or change is logged here.</p>}
+        </div>
+        <div className="mini-cal-detail" aria-live="polite">
+          <h3>{day === today ? 'Today, ' : ''}{longDay(day)}</h3>
+          {planned.length ? <ul>{planned.map(item => <li key={item.id} data-done={item.done || undefined}>{item.time && <small>{item.time}</small>}{item.text}</li>)}</ul> : <p className="mini-cal-empty">No events or todos.</p>}
+          <p className="mini-cal-logged">{logged.length ? `${logged.length} ${logged.length === 1 ? 'thing' : 'things'} logged: ${logged.slice(0, 3).map(entry => entry.text).join('; ')}${logged.length > 3 ? '; and more' : ''}` : 'Nothing logged.'}</p>
+          <a className="text-button" href={'#calendar/' + day}>Open this day<ArrowUpRight size={14}/></a>
+        </div>
+      </div>}
     </div>
   </section>;
 }

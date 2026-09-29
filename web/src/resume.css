@@ -63,6 +63,75 @@
 .resume-page[data-template="azurill"] .resume-item+.resume-item{margin-top:0;padding-top:7px}
 .resume-page[data-template="azurill"] .resume-item+.resume-item::before{top:10px}
 
+/* The main and side columns (Resume.tsx): a one-column template lets both wrappers fall away, so the
+   sections and the skills read straight down the page as before. The sidebar templates below set them. */
+.resume-main,.resume-side{display:contents}
+
+/* Five more, adapted from Reactive Resume the same way (MIT, credited in Resume.tsx): the layout and type
+   only, redrawn here. Each sets its own accent; the tints are that accent mixed into white, written out
+   because the sheet is paper and keeps fixed colours in both themes. */
+/* Ditgar: a tinted sidebar down the left, the name and contact in a block of the accent at its top, and
+   each main entry's heading hung on an accent bar. The page's padding moves into the columns so the
+   sidebar's colour reaches the paper's edges. */
+.resume-page[data-template="ditgar"]{--resume-accent:#1e5f5b;padding:0;display:grid;grid-template-columns:2.45in minmax(0,1fr);grid-template-rows:auto 1fr;align-items:start}
+.resume-page[data-template="ditgar"] .resume-hint{grid-column:1/-1}
+.resume-page[data-template="ditgar"] .resume-head{grid-column:1;grid-row:1;padding:.45in .3in .28in;background:var(--resume-accent)}
+.resume-page[data-template="ditgar"] .resume-name{text-align:left;color:#fff;font-size:19pt}
+.resume-page[data-template="ditgar"] .resume-contact{text-align:left;color:#e3eeed;margin-top:8px}
+.resume-page[data-template="ditgar"] .resume-contact span{display:block;margin-top:2px}
+.resume-page[data-template="ditgar"] .resume-contact span+span::before{content:none}
+.resume-page[data-template="ditgar"] .resume-side{display:block;grid-column:1;grid-row:2;align-self:stretch;background:#d2dfde;padding:.05in .3in .45in}
+.resume-page[data-template="ditgar"] .resume-main{display:block;grid-column:2;grid-row:1/3;padding:.33in .45in .45in .35in}
+.resume-page[data-template="ditgar"] .resume-section h3{color:var(--resume-accent);border-bottom-color:var(--resume-accent)}
+.resume-page[data-template="ditgar"] .resume-main .resume-row{border-left:2px solid var(--resume-accent);padding-left:6px;margin-left:-8px}
+/* Leafish: a header in two bands, the name on a light tint and the contact line on a deeper one, then the
+   sections with the skills in a column on the right. */
+.resume-page[data-template="leafish"]{--resume-accent:#4f6f52;padding:0;display:grid;grid-template-columns:minmax(0,1fr) 2.1in;column-gap:.3in;grid-template-rows:auto 1fr;align-items:start}
+.resume-page[data-template="leafish"] .resume-hint{grid-column:1/-1}
+.resume-page[data-template="leafish"] .resume-head{grid-column:1/-1;grid-row:1;background:#e9efe9}
+.resume-page[data-template="leafish"] .resume-name{text-align:left;font-size:22pt;padding:.4in .6in .14in}
+.resume-page[data-template="leafish"] .resume-contact{text-align:left;margin:0;padding:.11in .6in;background:#cbd8cc}
+.resume-page[data-template="leafish"] .resume-main{display:block;grid-column:1;grid-row:2;padding:.08in 0 .5in .6in}
+.resume-page[data-template="leafish"] .resume-side{display:block;grid-column:2;grid-row:2;padding:.08in .6in .5in 0}
+.resume-page[data-template="leafish"] .resume-section h3{color:var(--resume-accent);border-bottom-color:var(--resume-accent)}
+/* Kakuna: one column, centred and compact, for fitting an internship resume on a page: smaller type,
+   tighter gaps, centred ruled headings and an accent bar down the left of each entry. */
+.resume-page[data-template="kakuna"]{--resume-accent:#a3195b;padding:.45in .55in;font-size:9.5pt;line-height:1.3}
+.resume-page[data-template="kakuna"] .resume-name{font-size:21pt}
+.resume-page[data-template="kakuna"] .resume-section{margin-top:9px}
+.resume-page[data-template="kakuna"] .resume-section h3{color:var(--resume-accent);border-bottom-color:var(--resume-accent);text-align:center}
+.resume-page[data-template="kakuna"] .resume-item{border-left:2px solid var(--resume-accent);padding-left:8px}
+.resume-page[data-template="kakuna"] .resume-item+.resume-item{margin-top:5px}
+/* Meowth: each entry's heading on one line in three columns, title, subtitle and dates, with the place
+   under the dates. The two rows' wrappers fall away (display: contents) so their parts join one grid. */
+.resume-page[data-template="meowth"]{--resume-accent:#9c2f2f}
+.resume-page[data-template="meowth"] .resume-name,.resume-page[data-template="meowth"] .resume-contact{text-align:left}
+.resume-page[data-template="meowth"] .resume-section h3{color:var(--resume-accent);border-bottom-color:var(--resume-accent);letter-spacing:0}
+.resume-page[data-template="meowth"] .resume-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;column-gap:.15in}
+.resume-page[data-template="meowth"] .resume-row{display:contents}
+.resume-page[data-template="meowth"] .resume-row>strong{grid-column:1;grid-row:1}
+.resume-page[data-template="meowth"] .resume-row:not(.resume-sub)>span{grid-column:3;grid-row:1;text-align:right}
+.resume-page[data-template="meowth"] .resume-sub>em{grid-column:2;grid-row:1}
+.resume-page[data-template="meowth"] .resume-sub>span{grid-column:3;grid-row:2;text-align:right;font-size:8.5pt}
+.resume-page[data-template="meowth"] .resume-item ul{grid-column:1/-1}
+/* Scizor: a thick accent rule across the top of the page, a large name over a short grey rule, and
+   sections divided by thin rules, their headings in bold capitals in the text colour. */
+.resume-page[data-template="scizor"]{--resume-accent:#1f4e79;border-top:.14in solid var(--resume-accent);padding-top:.38in}
+.resume-page[data-template="scizor"] .resume-name{text-align:left;font-size:26pt;font-weight:800;width:72%;padding-bottom:.07in;border-bottom:2px solid #d0d0d0}
+.resume-page[data-template="scizor"] .resume-contact{text-align:left;margin-top:.08in}
+.resume-page[data-template="scizor"] .resume-section{border-top:1px solid #d0d0d0;padding-top:.1in;margin-top:.14in}
+.resume-page[data-template="scizor"] .resume-section h3{border-bottom:0;font-size:9pt;letter-spacing:1.2px}
+
+/* Import LaTeX (Resume.tsx LatexImporter): a panel over the form, in the app's theme. */
+.resume-import{margin:12px 14px 0;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);display:flex;flex-direction:column;gap:8px}
+.resume-import-bar{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink)}
+.resume-import-bar span{flex:1;min-width:0;font-size:12px;color:var(--mut)}
+.resume-import textarea{width:100%;font-family:var(--font-mono);font-size:12px;padding:8px 10px;resize:vertical}
+.resume-import-actions{display:flex;flex-wrap:wrap;gap:8px}
+.resume-import-result{font-size:13px;color:var(--sub)}
+.resume-import-result p{margin:0 0 4px}
+.resume-import-result ul{margin:0;padding-left:18px;color:var(--mut)}
+
 /* Download PDF is window.print(). While this page is mounted, printing shows the sheet alone: everything
    that neither is the sheet, holds it, nor sits inside it is hidden, and the elements that hold it lose
    their app styling so the sheet starts at the top left of the paper. :has() scopes all of this to when

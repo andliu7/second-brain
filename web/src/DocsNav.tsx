@@ -1,4 +1,4 @@
-// The Docs page's left pane: the fixed views (All notes, Journal, Ideas, Pinned), then the notebooks with
+// The Docs page's left pane: the fixed views (All notes, Journal, Ideas, PDFs, Pinned), then the notebooks with
 // their counts and the controls to make, rename and delete one, then every typed tag. Props:
 //   view, setView: the view the middle list shows (lib/docs-kinds.ts View)
 //   notebooks, counts: workspace.notebooks and how many notes each holds
@@ -7,7 +7,7 @@
 // Buttons, not a list of <li>: the middle pane's list items are the notes, and keeping the two apart
 // keeps "every list item is a note" true for the page and its tests.
 import { useState } from 'react';
-import { BookOpen, Check, Hash, Lightbulb, NotebookPen, Pencil, Pin, Plus, StickyNote, Trash2, X } from 'lucide-react';
+import { BookOpen, Check, FileType2, Hash, Lightbulb, NotebookPen, Pencil, Pin, Plus, StickyNote, Trash2, X } from 'lucide-react';
 import type { Notebook } from './types';
 import type { View } from './lib/docs-kinds';
 
@@ -16,6 +16,7 @@ const FIXED: { view: View; label: string; icon: typeof Pin }[] = [
   { view: 'all', label: 'All notes', icon: StickyNote },
   { view: 'journal', label: 'Journal', icon: NotebookPen },
   { view: 'ideas', label: 'Ideas', icon: Lightbulb },
+  { view: 'pdfs', label: 'PDFs', icon: FileType2 },
   { view: 'pinned', label: 'Pinned', icon: Pin },
 ];
 

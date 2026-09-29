@@ -24,6 +24,10 @@
 /* Board projects: the Kanban list (its rows are styled in kanban.css) in a panel above the repos */
 .board-projects{margin-bottom:16px}
 .board-projects>.project-group{border-top:0}
+/* Pipeline view (PipelineView.tsx): one row per board project with its switch, its pipeline under it when on */
+.project-pipeline{padding:10px 16px;border-top:1px solid var(--line)}
+.project-pipeline-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;color:var(--ink)}
+.project-pipeline .pipeline-view{margin-top:12px}
 .project-empty{display:flex;align-items:center;gap:10px;margin:0;padding:14px 16px;font-size:14px;color:var(--sub)}
 .project-lede{font-size:15px;color:var(--sub);margin:-8px 0 20px;max-width:720px}
 .project-facts{margin:0;max-width:720px}

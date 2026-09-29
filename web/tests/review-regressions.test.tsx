@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
+// The first test opens on the bare address, which renders the lazy Home chunk; loading it here, as ui.test.tsx
+// does, keeps that cold transform out of the first findByRole's one-second wait.
+import '../src/Home';
 import * as storage from '../src/lib/storage';
 
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBZkAAAAASUVORK5CYII=';

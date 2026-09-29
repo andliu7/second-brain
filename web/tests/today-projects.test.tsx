@@ -43,9 +43,15 @@ describe('Today and Projects, live from disk', () => {
     expect(document.querySelector('.kanban-board, .sticky-canvas')).toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Read for 15 minutes' })).toBeInTheDocument();
     expect(within(section(/Quick capture/)).getByLabelText('Your quick thought')).toBeInTheDocument();
-    // 2026-09-28: the activity heat map is a progress widget now, not a folded panel, and there is one copy.
-    expect(screen.getByRole('heading', { level: 3, name: 'Activity' }).closest('li')?.querySelector('.heat-grid')).not.toBeNull();
+    // 2026-09-28: the activity heat map lives in the calendar and activity card, not as a progress widget, and
+    // there is one copy: the collapsed card shades its days, and Show more opens the heat calendar there.
+    const calendar = screen.getByRole('region', { name: 'Calendar and activity' });
+    expect(within(screen.getByRole('list', { name: 'Progress widgets' })).queryByRole('heading', { name: 'Activity' })).toBeNull();
+    expect(document.querySelectorAll('.heat-grid')).toHaveLength(0);
+    await userEvent.setup().click(within(calendar).getByRole('button', { name: 'Show more' }));
+    expect(within(calendar).getByRole('heading', { level: 3, name: 'Activity' })).toBeInTheDocument();
     expect(document.querySelectorAll('.heat-grid')).toHaveLength(1);
+    expect(calendar.querySelector('.heat-grid')).not.toBeNull();
     // No hero, no slogan, no stat cards: the header is the title, the quote and one action.
     expect(document.querySelector('.page-heading h1')?.textContent).toBe('Today');
     expect(document.querySelectorAll('main .eyebrow, main .stat-card, main .welcome')).toHaveLength(0);
@@ -54,7 +60,7 @@ describe('Today and Projects, live from disk', () => {
     expect(screen.queryByText('Personal workspace')).not.toBeInTheDocument();
     expect(screen.queryByText('YOUR PERSONAL WORKSPACE')).not.toBeInTheDocument();
     const nav = within(screen.getByRole('navigation'));
-    expect(nav.getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI$/g, ''))).toEqual(['Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard', 'PDF tools']); // 2026-09-25: one Kanban page; Network, Goals, Buy are not tabs. 2026-09-28: Docs, Whiteboard and Resume joined, and Resume then moved under Docs (a note of kind Resume); PDF tools joined after them
+    expect(nav.getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI$/g, ''))).toEqual(['Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard']); // 2026-09-25: one Kanban page; Network, Goals, Buy are not tabs. 2026-09-28: Docs, Whiteboard and Resume joined, and Resume then moved under Docs (a note of kind Resume); PDF tools joined after them, then folded into Docs (#pdf still opens)
     expect(screen.getByRole('link', { name: /^Projects/ })).toHaveAttribute('href', '#projects');
     expect(screen.getByRole('link', { name: /^Projects/ })).toHaveTextContent('4 repos');
   });

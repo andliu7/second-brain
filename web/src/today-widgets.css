@@ -31,4 +31,3 @@
 .tw-meter-count{color:var(--mut,#8B8798);font-variant-numeric:tabular-nums}
 .tw-track{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--band,#F3F2F7);overflow:hidden}
 .tw-track span{display:block;height:100%;background:var(--acc-fill,var(--acc,#6B4EA8))}
-.tw-chart .heat{flex:1;min-height:0}

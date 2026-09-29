@@ -4,10 +4,13 @@
 // list; #projects/<path> is one project's page, where <path> is its folder under Projects/.
 // Above the repos, Board projects lists the Kanban cards promoted to projects. They live in the workspace,
 // not on disk, so they show while git state is still loading, and open the board's own drawer (ProjectPanel).
+// Under them, each board project has its Pipeline view switch; a project with it on shows its pipeline right
+// here (PipelineView.tsx), which is also what keeps it in step with Claude Code while this page is open.
 import { useState } from 'react';
 import { ArrowLeft, Check, Copy, GitBranch, Loader2, RefreshCw } from 'lucide-react';
-import type { Workspace } from './types';
+import type { Card, Workspace } from './types';
 import { boardOf, boardPatch, ProjectList, ProjectPanel, type Commit } from './Kanban';
+import { PipelineSwitch, PipelineView } from './PipelineView';
 import { copyText } from './lib/clipboard';
 import './projects.css';
 
@@ -38,11 +41,21 @@ export function ProjectRow({ repo }: { repo: Repo }) {
 function BoardProjects({ workspace, commit }: { workspace: Workspace; commit: Commit }) {
   const [open, setOpen] = useState<string | null>(null);
   const board = boardOf(workspace);
-  const count = board.cards.filter(card => card.project).length;
+  const projects = board.cards.filter(card => card.project), count = projects.length;
   const openCard = board.cards.find(card => card.project && card.id === open);
+  const patch = boardPatch(commit);
+  // One card's change, saved through the board's patch like the drawer's.
+  const changeOf = (id: string) => (update: (card: Card) => Card, message?: string) => void patch(b => ({ ...b, cards: b.cards.map(card => card.id === id ? update(card) : card) }), message);
   return <section className="panel project-list board-projects">
     <h2 className="project-group">Board projects {count > 0 && <span>{count}</span>}</h2>
     <ProjectList board={board} open={setOpen}/>
+    {count > 0 && <div className="project-pipelines">
+      <h3 className="project-group">Pipeline view</h3>
+      {projects.map(card => <div key={card.id} className="project-pipeline">
+        <div className="project-pipeline-head"><span>{card.title}</span><PipelineSwitch card={card} change={changeOf(card.id)} name={`Pipeline view for ${card.title}`}/></div>
+        {card.pipeline?.enabled && open !== card.id && <PipelineView card={card} change={changeOf(card.id)}/>}
+      </div>)}
+    </div>}
     {openCard && <ProjectPanel card={openCard} patch={boardPatch(commit)} close={() => setOpen(null)}/>}
   </section>;
 }
