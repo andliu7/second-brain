@@ -1,0 +1,76 @@
+{
+ "built": "2026-09-29T12:33:05",
+ "questions": 12,
+ "warm_repeats": 5,
+ "index_last_full_reindex": "2026-09-13 21:20:45",
+ "index_note": "The index is stale: files created after the last full reindex are unknown to the brain, so gold files missing from it are expected misses, counted separately as gold_not_in_index. The same way, gold files hidden by .gitignore are unreachable for GREP and GLOB, counted as gold_gitignored.",
+ "method": {
+  "latency": "sequential, one throwaway pass (cold_median_ms), then median of warm repeats per question; median_ms and p90_ms are across questions",
+  "BRAIN": "python q.py <question> as a subprocess, as a session runs it; rank from --trace runners-up by distinct file; tokens = bundle chars / 3.6",
+  "BRAIN_inprocess_median_ms": 297.6,
+  "GREP": "ripgrep over Projects respecting .gitignore, skipping node_modules/dist/.git, for the 3 rarest content words that match anything; rarity comes from an untimed oracle pass over every word (generous to grep, a real agent guesses); timed = the 3-word search; files ranked by words matched then match count; cold_median_ms is the first all-words pass",
+  "GREP-ALL": "one all-words pass with .gitignore off (brain index and bench files still excluded), run once per question after every other arm; it reads ~3 GB of cloned reference repos and build output, so it is disk-bound on this machine",
+  "GLOB": "one file listing, paths ranked by question words in the last 3 path parts",
+  "tokens_to_read": "file listing (up to 250 paths) plus hits opened in rank order until the gold file, at most 5 files, each capped at 2000 lines, chars / 3.6"
+ },
+ "arms": {
+  "BRAIN": {
+   "n": 12,
+   "median_ms": 649.9,
+   "p90_ms": 772.6,
+   "hit_at_1": 5,
+   "hit_at_5": 6,
+   "median_chars_to_read": 2713,
+   "median_tokens_to_read": 754,
+   "p90_tokens_to_read": 1228,
+   "cold_median_ms": 868.7,
+   "gold_not_in_index": 3,
+   "misses_at_1_gold_not_in_index": 3,
+   "gold_gitignored": 7,
+   "misses_at_1_gold_gitignored": 4
+  },
+  "GREP": {
+   "n": 12,
+   "median_ms": 531.1,
+   "p90_ms": 607.7,
+   "hit_at_1": 0,
+   "hit_at_5": 3,
+   "median_chars_to_read": 174005,
+   "median_tokens_to_read": 48335,
+   "p90_tokens_to_read": 565885,
+   "cold_median_ms": 760.7,
+   "gold_not_in_index": 3,
+   "misses_at_1_gold_not_in_index": 3,
+   "gold_gitignored": 7,
+   "misses_at_1_gold_gitignored": 7
+  },
+  "GLOB": {
+   "n": 12,
+   "median_ms": 193.3,
+   "p90_ms": 280.8,
+   "hit_at_1": 0,
+   "hit_at_5": 0,
+   "median_chars_to_read": 233466,
+   "median_tokens_to_read": 64852,
+   "p90_tokens_to_read": 87682,
+   "gold_not_in_index": 3,
+   "misses_at_1_gold_not_in_index": 3,
+   "gold_gitignored": 7,
+   "misses_at_1_gold_gitignored": 7
+  },
+  "GREP-ALL": {
+   "n": 12,
+   "median_ms": 3057.3,
+   "p90_ms": 129614.9,
+   "hit_at_1": 0,
+   "hit_at_5": 1,
+   "median_chars_to_read": 855221,
+   "median_tokens_to_read": 237562,
+   "p90_tokens_to_read": 723479,
+   "gold_not_in_index": 3,
+   "misses_at_1_gold_not_in_index": 3,
+   "gold_gitignored": 7,
+   "misses_at_1_gold_gitignored": 7
+  }
+ }
+}

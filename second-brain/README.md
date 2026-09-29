@@ -149,7 +149,7 @@ install.py    one-time setup for this machine
 index.tsv     the index (fingerprint in the header line)
 log.md        append-only audit of reindexes, repairs and writes
 memories/     what you asked it to remember
-bench/        two-arm retrieval gauntlet: questions.json, run.mjs, results.json; hits.py is the free deterministic half (does q.py put the gold file first)
+bench/        two-arm retrieval gauntlet: questions.json, run.mjs, results.json; hits.py is the free deterministic half (does q.py put the gold file first); speed.py times q.py against ripgrep and filename search on the same questions (test_speed.py tests its scoring)
 TESTPROMPTS.md  how to verify the claims yourself with /context
 QMD-NOTES.md    what was taken from the four reference projects, and what was not
 ```

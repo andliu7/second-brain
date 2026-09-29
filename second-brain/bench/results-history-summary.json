@@ -1,0 +1,99 @@
+{
+ "built": "2026-09-29",
+ "studies": [
+  {
+   "study": "bench.py hard suite",
+   "source": "RESULTS.md",
+   "kind": "simulated sessions, token estimate chars/3.6",
+   "arms": {
+    "BRAIN": {
+     "tokens": 12145,
+     "correct": 26,
+     "n": 27,
+     "tool_calls": 29
+    },
+    "fresh default session": {
+     "tokens": 44634,
+     "correct": 20,
+     "n": 27,
+     "tool_calls": 105
+    },
+    "Claude Code auto memory": {
+     "tokens": 170118,
+     "correct": 22,
+     "n": 27,
+     "tool_calls": 119
+    },
+    "qmd (BM25)": {
+     "tokens": 12550,
+     "correct": 17,
+     "n": 27,
+     "tool_calls": 27
+    }
+   }
+  },
+  {
+   "study": "bench.py easy suite",
+   "source": "RESULTS.md",
+   "kind": "simulated sessions, token estimate chars/3.6",
+   "arms": {
+    "BRAIN": {
+     "tokens": 4023,
+     "correct": 13,
+     "n": 13,
+     "tool_calls": 13
+    },
+    "fresh default session": {
+     "tokens": 8579,
+     "correct": 12,
+     "n": 13,
+     "tool_calls": 41
+    },
+    "Claude Code auto memory": {
+     "tokens": 75902,
+     "correct": 12,
+     "n": 13,
+     "tool_calls": 50
+    },
+    "qmd (BM25)": {
+     "tokens": 1751,
+     "correct": 12,
+     "n": 13,
+     "tool_calls": 13
+    }
+   }
+  },
+  {
+   "study": "real-agent gauntlet (run.mjs)",
+   "source": "bench/results-full.md",
+   "date": "2026-09-24",
+   "model": "claude-sonnet-5",
+   "repeats": 3,
+   "questions": 12,
+   "kind": "real Claude Code sessions, billed tokens and dollars",
+   "correct_headline_note": "ARM A counts only answers the brain produced (fallbacks to reading files excluded); ARM B is plain correct",
+   "arms": {
+    "brain (ARM A)": {
+     "correct_headline": 10,
+     "runs": 36,
+     "correct_any_means": 25,
+     "median_cost_usd": 0.0965,
+     "median_wall_clock_s": 29.87,
+     "cited_gold_file": 21,
+     "tokens_all_four_sum": 6543758,
+     "tokens_median_per_run": 173102
+    },
+    "repo map, no brain (ARM B)": {
+     "correct_headline": 24,
+     "runs": 33,
+     "correct_any_means": 24,
+     "median_cost_usd": 0.1125,
+     "median_wall_clock_s": 34.55,
+     "cited_gold_file": 14,
+     "tokens_all_four_sum": 10382772,
+     "tokens_median_per_run": 169727
+    }
+   }
+  }
+ ]
+}

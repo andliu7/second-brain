@@ -5,3 +5,6 @@ questions.json
 results*.json
 results*.md
 archive-*/
+# aggregates only, no question text and no paths: safe to push
+!results-speed-summary.json
+!results-history-summary.json
