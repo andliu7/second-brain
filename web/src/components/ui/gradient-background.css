@@ -1,0 +1,45 @@
+/* The light theme's moving background (2026-09-29), after the 21st.dev "soft gradient background animation"
+   Andrew pasted: two linear gradients, across and down, each interpolated in oklch the long way round the hue
+   wheel between two pale stops, with both hues turning a full circle. Light only, at his request; the dark
+   theme keeps its still violet glow and never matches these rules.
+
+   It is one fixed, full-viewport pseudo-element under everything (z-index -1 in the root stacking context),
+   painted over the page ground and its --glow from styles.css. Each stop is 60% opaque and the two layers
+   stack, so about 16% of the ground and glow still shows through: the lavender edge survives as a faint
+   tint and the white sheets still read as sheets on a coloured page.
+
+   Cost: animating a registered custom property that feeds a gradient repaints this layer every frame. That
+   is why it is one layer, pointer-events:none, never behind the globe (which paints its own night sky over
+   it, so it is switched off there), and paused while the tab is hidden (data-bg-paused, lib/background.ts). */
+
+/* @property registers the two hues as angles, which is what lets the browser interpolate them in keyframes.
+   An unregistered custom property would flip halfway instead of turning. */
+@property --hue1{syntax:'<angle>';inherits:false;initial-value:30deg}
+@property --hue2{syntax:'<angle>';inherits:false;initial-value:180deg}
+@keyframes ground-hue{from{--hue1:30deg;--hue2:180deg}to{--hue1:390deg;--hue2:540deg}}
+
+/* A browser that cannot interpolate gradients in oklch drops the whole block and keeps the plain glow.
+   One that can but lacks @property is held to Still by the pre-paint script (no CSS.registerProperty). */
+@supports (background:linear-gradient(in oklch longer hue,red,blue)){
+  /* The hues are declared on the layer as well, so Still is the first frame even where they are unregistered. */
+  :root[data-theme="light"] body::before{
+    content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;--hue1:30deg;--hue2:180deg;
+    background:
+      linear-gradient(in oklch longer hue to right,oklch(0.95 0.07 var(--hue1) / 60%),oklch(0.92 0.08 var(--hue2) / 60%)),
+      linear-gradient(in oklch longer hue to bottom,oklch(0.95 0.07 var(--hue1) / 60%),oklch(0.92 0.08 var(--hue2) / 60%));
+  }
+  /* Calm is the default: 24s a cycle still visibly moves without pulling the eye off the work. */
+  :root[data-theme="light"][data-bg="animated"] body::before{animation:ground-hue 24s linear infinite}
+  :root[data-theme="light"][data-bg="animated"][data-bg-speed="lively"] body::before{animation-duration:5s}
+  :root[data-bg-paused] body::before{animation-play-state:paused}
+  body:has(.app-home)::before{display:none}
+  /* The pre-paint script already writes Still here; this also covers the setting changing mid-visit. */
+  @media (prefers-reduced-motion:reduce){body::before{animation:none!important}}
+}
+
+/* The Background and Speed rows under the theme choice in Settings > Appearance (theme-controls.tsx). They
+   reuse the theme choice's segmented look; these rules only stack the rows and label them. */
+.background-choice{display:grid;gap:10px;margin-top:16px}
+.background-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.background-row-label{min-width:84px;font-size:13px;font-weight:600;color:var(--sub)}
+.background-hint{margin:0;font-size:12px;line-height:1.7;color:var(--sub)}

@@ -5,6 +5,7 @@ import '@fontsource-variable/jetbrains-mono';
 import '@fontsource/libre-baskerville';
 import './index.css';
 import './accessibility.css';
+import './components/ui/gradient-background.css';
 import App from './App';
 import Demo from './components/ui/demo';
 createRoot(document.getElementById('root')!).render(<React.StrictMode>{location.pathname === '/prompt-demo' ? <Demo /> : <App />}</React.StrictMode>);

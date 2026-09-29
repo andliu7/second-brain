@@ -5,6 +5,7 @@
 //     Claude Code through the server mirror (lib/pipeline-sync.ts); off again, it takes it back out.
 //   PipelineView: the timeline, its job and stage actions (retry, skip, cancel, restart), an "Edit pipeline"
 //     mode to build the stages out, and a line saying whether Claude Code can see it.
+//   AddStage: the edit mode's "Add a stage" field, exported for the project plans' editor (ProjectPlan.tsx).
 // Every change is a function of the card handed to `change`, which the caller routes through the board's
 // own patch path (boardPatch), so the pipeline is saved, validated and backed up like any card edit.
 import { useState, type KeyboardEvent } from 'react';
@@ -64,7 +65,7 @@ export function PipelineView({ card, change, titleId }: { card: Card; change: Ch
   </div>;
 }
 
-function AddStage({ add }: { add: (title: string) => void }) {
+export function AddStage({ add }: { add: (title: string) => void }) {
   const [draft, setDraft] = useState('');
   // Not a <form>: the drawer is a <dialog>, and a form inside it is how the card dialog's Enter bug started.
   function submit() { const title = draft.trim(); if (!title) return; add(title); setDraft(''); }

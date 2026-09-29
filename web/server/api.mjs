@@ -62,7 +62,14 @@ export async function handleApi(req,res,{local=false}={}) {
     // Google Calendar uses secrets from this computer's env file and a token under its user profile, so it is local only too.
     if (route.startsWith('calendar') && req.method === 'GET') { if (!local) return send(res,404,{error:'Google Calendar is available only when running the app on your computer.'}); const {handleCalendar} = await import('./calendar.mjs'); return await handleCalendar(route, url, req, res); }
     if (route === 'link-preview' && req.method === 'GET') { if (!local) return send(res,404,{error:'Link previews are available only when running the app on your computer.'}); const {linkPreview} = await import('./link-preview.mjs'); return send(res,200,await linkPreview(url.searchParams.get('url') || '')); }
+    if (route === 'links' && req.method === 'GET') { if (!local) return send(res,404,{error:'Your links are available only when running the app on your computer.'}); const {readLinks} = await import('./links.mjs'); return send(res,200,await readLinks()); }
     if (route === 'pipelines' || route.startsWith('pipelines/')) { if (!local) return send(res,404,{error:'Pipelines are available only when running the app on your computer.'}); const {handlePipelines} = await import('./pipelines.mjs'); return await handlePipelines(route, req, res); }
+    if (route === 'project-plans' || route.startsWith('project-plans/')) { if (!local) return send(res,404,{error:'Project plans are available only when running the app on your computer.'}); const {handleProjectPlans} = await import('./project-plans.mjs'); return await handleProjectPlans(route, req, res); }
+    // API keys (server/keys.mjs): stored encrypted on this computer, so local only; keys.mjs adds its own this-PC rule
+    // on top of the origin check, since a tailnet device passes the Host allow-list but must not change a key.
+    if (route === 'keys' || route.startsWith('keys/')) { if (!local) return send(res,404,{error:'API keys are managed only when running the app on your computer.'}); const {handleKeys} = await import('./keys.mjs'); return await handleKeys(route, req, res, readBody); }
+    // The brain's benchmark and index age for Settings: aggregate numbers read from files on this computer.
+    if (route === 'brain/summary' && req.method === 'GET') { if (!local) return send(res,404,{error:'Live data from this computer is available only when running the app on your computer.'}); const {brainSummary} = await import('./live.mjs'); return send(res,200,await brainSummary()); }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
     // Health: the brain-dump parse, the nutrition lookup ladder and the regime review (server/health.mjs). Local only:

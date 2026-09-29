@@ -1,0 +1,10 @@
+/* ProjectPlan.tsx: the plan summary under a project row, and the Walkthrough and Pipeline tabs on a
+   project's page. The tabs are the app's own .tabs (styles.css); the timeline and its edit controls are
+   styled by processing-timeline.css and pipeline-view.css. */
+.plan-summary{font-size:12px;line-height:1.5;color:var(--acc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-block{margin-top:20px;max-width:960px}
+.plan-block code{font-size:13px;overflow-wrap:anywhere}
+.plan-panel{margin-top:12px;min-width:0}
+.plan-walkthrough{padding:18px 22px;min-width:0;overflow-wrap:anywhere}
+.plan-walkthrough .project-empty{padding:0}
+@media (max-width:640px){.plan-walkthrough{padding:14px 16px}}

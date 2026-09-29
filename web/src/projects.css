@@ -35,6 +35,32 @@
 .project-facts>div:first-child{border-top:0}
 .project-facts dt{color:var(--sub)}
 .project-facts dd{margin:0;text-align:left;overflow-wrap:anywhere}
+/* Links (LinksSection): one small card per group from ~/.brain/links.json, each link a full-width button with
+   its host and note under the label, its copy button beside it. A PC-only link opened from another device is dimmed. */
+.project-links-panel{margin-bottom:16px}
+.project-links-panel>.project-group{border-top:0}
+.links-error{margin:0;padding:10px 16px 0;font-size:13px;color:var(--amber)}
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding:12px 16px}
+.links-card{min-width:0;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--sheet)}
+.links-card h3{margin:0;padding:10px 12px 4px;font:600 12.5px/1.5 var(--font-ui);color:var(--deep)}
+.links-card ul{list-style:none;margin:0;padding:0 6px 6px}
+.links-item{display:flex;align-items:center;gap:4px}
+.links-item.dim{opacity:.55}
+.links-open{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;padding:7px 8px;border-radius:var(--radius-control);color:var(--ink);text-decoration:none}
+.links-open:hover{background:var(--btn-hover)}
+.links-open:hover .links-label{color:var(--acc)}
+.links-open>svg{grid-column:2;grid-row:1;color:var(--sub)}
+.links-label{display:flex;align-items:center;gap:6px;min-width:0;font-size:14px;font-weight:500}
+.links-host,.links-note{grid-column:1;font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.links-copy{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.links-foot{margin:0;padding:0 16px 12px;font-size:12.5px;color:var(--sub)}
+/* A repo row with links of its own: the row, then its GitHub and live-site icons, sharing one border and hover */
+.project-line{display:flex;align-items:center;border-top:1px solid var(--line)}
+.project-line:hover{background:var(--btn-hover)}
+.project-line>.project-row{flex:1;min-width:0;border-top:0}
+.project-line>.project-row:hover{background:none}
+.project-links{display:flex;gap:2px;padding-right:10px}
+.project-links>a{display:inline-flex;align-items:center;justify-content:center}
 
 .today-heat{padding:16px 20px 18px}
 .today-projects{margin-top:20px}

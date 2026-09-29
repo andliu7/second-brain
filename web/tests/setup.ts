@@ -2,6 +2,12 @@ import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { IDBFactory } from 'fake-indexeddb';
+import { chunks } from '../src/lib/preload';
+// The bare address renders the home globe through lazyPage (lib/preload), which renders at once only when the
+// chunk has already loaded; otherwise React holds its Suspense fallback first. Loading it here the way the app's
+// idle preload does makes a test's first render match the app's, instead of paying a cold import inside the
+// one-second wait of the file's first test.
+await chunks.home();
 beforeEach(()=>{
   vi.stubGlobal('indexedDB',new IDBFactory());
   window.location.hash='';

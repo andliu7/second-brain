@@ -1,0 +1,38 @@
+/* Settings: the Keys and Brain sections (src/KeysSettings.tsx). Theme tokens only, so both themes follow. */
+.key-list{list-style:none;margin:0;padding:0}
+.key-row{padding:14px 0;border-bottom:1px solid var(--line)}
+.key-row:last-child{border-bottom:0}
+.key-head{display:flex;align-items:flex-start;gap:12px}
+.key-name strong{font-size:13px;font-weight:600;color:var(--deep);display:block}
+.key-name small{font-size:12px;color:var(--sub);display:block;margin-top:3px}
+.key-status{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);white-space:nowrap;border:1px solid var(--line);border-radius:4px;padding:3px 7px}
+.key-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1px solid var(--field-line);background:transparent}
+.key-green .key-dot{background:var(--green);border-color:var(--green)}
+.key-yellow .key-dot{background:var(--amber-rule);border-color:var(--amber-rule)}
+.key-red .key-dot{background:var(--red);border-color:var(--red)}
+.key-green{border-color:var(--green)}
+.key-yellow{border-color:var(--amber-rule);background:var(--amber-bg);color:var(--amber)}
+.key-red{border-color:var(--red-rule);background:var(--red-bg);color:var(--red)}
+.key-detail{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 0;font-size:12px;color:var(--sub)}
+.key-detail:empty{display:none}
+.key-mask{font-family:var(--font-mono);color:var(--deep)}
+.key-hint{display:flex;flex-wrap:wrap;gap:4px 10px;margin:8px 0 0;font-size:12px;color:var(--sub);line-height:1.6}
+.key-hint a{display:inline-flex;align-items:center;gap:3px;color:var(--link);font-weight:600}
+.key-form{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.key-form input{flex:1 1 220px;min-width:0;min-height:30px;padding:5px 10px;border:1px solid var(--field-line);border-radius:var(--radius-control);background:var(--sheet);color:var(--ink);font-family:var(--font-mono);font-size:12.5px}
+.key-form input:focus-visible{outline:2px solid var(--acc-fill);outline-offset:1px}
+.key-error{margin:8px 0 0;font-size:12px;color:var(--red)}
+.key-note{margin:0 0 12px;padding:8px 12px;font-size:12px;color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-rule);border-radius:var(--radius-control)}
+.brain-command{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:16px}
+.brain-command code{font-family:var(--font-mono);font-size:12.5px;color:var(--acc);background:var(--code-bg);padding:5px 9px;border-radius:6px;user-select:all}
+.brain-command small{font-size:12px;color:var(--sub);flex-basis:100%}
+.brain-table{width:100%;border-collapse:collapse;font-size:12.5px;color:var(--ink)}
+.brain-table caption{text-align:left;font-size:12px;color:var(--sub);padding-bottom:8px}
+.brain-table th,.brain-table td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+.brain-table thead th{color:var(--sub);font-weight:600}
+.brain-table tbody th{font-weight:500;color:var(--deep)}
+.brain-table td{font-variant-numeric:tabular-nums}
+.brain-study{padding:0 14px 12px;font-size:12px;color:var(--sub)}
+.brain-study strong{display:block;color:var(--deep);font-weight:600}
+.brain-study ul{list-style:none;margin:6px 0 0;padding:0}
+.brain-study li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;padding:3px 0;font-variant-numeric:tabular-nums}

@@ -51,7 +51,8 @@
 /* Hover and pressed washes: ink at low strength, which works in both themes because ink flips with them.
    Declared again on .home so they are computed from its night ink, not inherited from the page's. The glow
    is the same: dark ground through the top 40%, then out to --glow-edge, from a centre near the top edge
-   (after the 21st.dev background Andrew pasted, radial-gradient(125% 125% at 50% 10%, #000 40%, #63e 100%)). */
+   (after the 21st.dev background Andrew pasted, radial-gradient(125% 125% at 50% 10%, #000 40%, #63e 100%)).
+   In the light theme a moving oklch wash is laid over this glow: components/ui/gradient-background.css. */
 :root,.home{
   --glow:radial-gradient(125% 125% at 50% 10%,var(--ground) 40%,var(--glow-edge) 100%);
   --tint-1:color-mix(in srgb,var(--ink) 3%,transparent); --tint-2:color-mix(in srgb,var(--ink) 5%,transparent);

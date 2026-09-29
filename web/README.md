@@ -80,7 +80,11 @@ The server binds to 127.0.0.1 unless HOST says otherwise, and never to 0.0.0.0: 
 
 ## Provider keys
 
-Copy .env.example to .env and add only the providers you use. Server-only keys:
+**On this PC, the easy way is Settings > Keys.** Each provider has a Get a key link to its key page and a one-line setup hint; paste the key and Save. The field clears and only the last four characters are shown from then on. Save runs a free check (a models list, KIE's credit balance, one USDA search; never a call that spends tokens) and the dot says how it went, in words as well as colour: green Verified, yellow Not verified (saved but unchecked, checking, rate limited or unreachable; fal has no free check so it stays yellow), red Rejected (the provider refused the key), none Not set. Verify re-runs the check and Remove forgets a saved key. No restart is needed.
+
+Saved keys live in `~/.brain/keys.dpapi`, under the user profile and outside every repository, and are read by server/keys.mjs. On Windows the file is one DPAPI blob in current-user scope, made by a child PowerShell that gets the data on stdin, never on its command line: it opens only for this Windows account on this machine, and there is no key file to steal. On other systems it is AES-256-GCM with a random key in `~/.brain/keys.aes.key` (mode 600) beside it, which only protects against casual reading, since anything running as you can read both files. Under either scheme, any program running as you can decrypt the store, as it could read .env, and the keys sit decrypted in the server's memory while it runs. The browser never receives a key back: the API returns only whether one is set, its last four characters, where it came from and the check's result, and nothing about keys is kept in localStorage, the workspace or a backup. Keys can be changed only from the PC itself: a request through the Tailscale name, from a tailnet address, or carrying proxy headers is refused, and a phone sees the list read-only without the last four characters. A saved key wins over the same provider's environment variable; remove it and the environment key is used again.
+
+The environment still works, and is the only way on a hosted deploy. Copy .env.example to .env and add only the providers you use. Server-only keys:
 
 | Provider | Environment variable |
 | --- | --- |
@@ -91,11 +95,13 @@ Copy .env.example to .env and add only the providers you use. Server-only keys:
 | Kie | KIE_API_KEY |
 | USDA FoodData Central (Health nutrition lookups) | FDC_API_KEY, free at https://api.data.gov/signup; without it the shared DEMO_KEY allows only a few lookups an hour |
 
-The local .env supplied on this machine only points GENERATE_ENV_FILE at your existing ~/.claude/.env. It contains no copied API secrets and is ignored by Git. The server loads those keys when it starts. Restart after changing environment values. Settings shows which keys are available; that is not a live account check. Consumer chat subscriptions do not provide the API keys used by this website.
+The local .env supplied on this machine only points GENERATE_ENV_FILE at your existing ~/.claude/.env. It contains no copied API secrets and is ignored by Git. The server loads those keys when it starts. Restart after changing environment values. Settings > AI connections shows which keys are available; Settings > Keys can check them live. Consumer chat subscriptions do not provide the API keys used by this website.
 
 SECOND_BRAIN_ROOT changes the folder the Files library reads. CLAUDE_SKILLS_DIR only changes where the Run control (server/runner.mjs) checks that a skill is installed; it does not move the Skills list. The development server binds only to 127.0.0.1 and rejects foreign origins and Host headers.
 
 Skills, projects and brain search are read live from disk on every request (server/live.mjs, /api/skills, /api/projects, /api/brain?q=). They run OS/build_home.py --json and second-brain/q.py --json, so python must be on PATH. The skills list always reads ~/.claude/skills, because build_home.py does.
+
+Settings > Brain shows the date of the brain's last full reindex (from second-brain/log.md) and the latest benchmark's headline numbers, brain against grep, from second-brain/bench/results-speed-summary.json and results-history-summary.json, through GET /api/brain/summary (server/live.mjs brainSummary, aggregate numbers only). It never runs the index or a benchmark; it shows `python idx.py` to copy and run yourself. Files changed since the reindex are not counted, because that means walking every root.
 
 ## Make models and CLI tools more efficient
 

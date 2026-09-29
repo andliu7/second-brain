@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 const root = fileURLToPath(new URL('../', import.meta.url));
 dotenv.config({path:path.join(root,'.env'),quiet:true});
 if (process.env.GENERATE_ENV_FILE) dotenv.config({path:process.env.GENERATE_ENV_FILE,override:false,quiet:true});
+// Keys saved in Settings are decrypted into memory once here, before the first request can need one.
+await (await import('./keys.mjs')).loadKeys();
 const {handleApi,validateOrigin,allowedHost} = await import('./api.mjs');
 const production = process.argv.includes('--production');
 // Vite runs its own DNS-rebinding host check, so a name we allow above still has to be

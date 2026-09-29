@@ -2,11 +2,14 @@ import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { tokenUsage, untraced } from './trace.mjs';
+import { storedKey } from './keys.mjs';
 const fallbackSecret = randomBytes(32).toString('hex');
 // Claude Opus 5.5 is the default (Andrew, 2026-09-28); the client's menu in src/App.tsx lists the same id first.
 export const defaultModels = { claude: 'claude-opus-5-5', openai: 'gpt-5.4', gemini: 'gemini-3.5-flash', fal: 'fal-ai/flux/schnell', kie: 'nano-banana-pro', geminiImage: 'gemini-3.1-flash-image' };
+// A key saved in Settings (server/keys.mjs, encrypted under the user profile) wins; the environment is the fallback,
+// so keys that only live in .env or GENERATE_ENV_FILE keep working unchanged.
 export function providerKey(provider) {
-  return ({ claude: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY, gemini: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY, fal: process.env.FAL_KEY, kie: process.env.KIE_API_KEY })[provider];
+  return storedKey(provider) || ({ claude: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY, gemini: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY, fal: process.env.FAL_KEY, kie: process.env.KIE_API_KEY })[provider];
 }
 function requireKey(provider) { const key = providerKey(provider); if (!key) throw new Error('Connect ' + provider + ' in your server environment first. See Settings for setup.'); return key; }
 async function readLimited(response, maximum = 32 * 1024 * 1024) {

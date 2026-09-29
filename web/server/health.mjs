@@ -20,12 +20,14 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { chat, providerKey, defaultModels } from './providers.mjs';
+import { storedKey } from './keys.mjs';
 
 // The chat call and fetch are looked up through this object on every request, so a test can swap in a fake
 // provider or a recorded USDA response without a network call.
 export const deps = { chat, fetch: (...args) => fetch(...args) };
 export const usdaCacheFile = () => path.join(os.homedir(), '.brain', 'usda-cache.json');
-export const usdaKey = () => process.env.FDC_API_KEY || 'DEMO_KEY';
+// A key saved in Settings first (server/keys.mjs), then FDC_API_KEY from the environment.
+export const usdaKey = () => storedKey('usda') || process.env.FDC_API_KEY || 'DEMO_KEY';
 
 class HttpError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 const fail = (message, status) => { throw new HttpError(message, status); };
@@ -257,7 +259,7 @@ function checkItems(body) {
 // Each item goes down the ladder until a rung knows it. Returns rows ready for the day's table, plus a note
 // when USDA was skipped (rate limit, network), so the page can say why rows are guessed.
 export async function resolveItems(items, known) {
-  const usda = { key: process.env.FDC_API_KEY ? 'own' : 'demo', note: '' };
+  const usda = { key: usdaKey() === 'DEMO_KEY' ? 'demo' : 'own', note: '' };
   const rows = [];
   for (const item of items) {
     const said = drop({ name: item.name.trim(), quantity: item.quantity, unit: item.unit });

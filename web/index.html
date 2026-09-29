@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#EDEBF2" media="(prefers-color-scheme: light)"/><meta name="theme-color" content="#140B28" media="(prefers-color-scheme: dark)"/><meta name="description" content="Your personal workspace for knowledge, skills, goals, and AI."/><link rel="icon" type="image/svg+xml" href="/favicon.svg"/><title>Second Brain, your personal workspace</title>
 <!-- The theme is set here, before the stylesheet paints anything, so a dark reload never flashes light.
-     It mirrors resolve() in src/lib/theme.ts: a saved light or dark wins, otherwise the system decides. -->
-<script>(function(){var p;try{p=localStorage.getItem('brain-theme')}catch(e){}var d=p==='dark'||(p!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.setAttribute('data-theme',d?'dark':'light');if(d)r.classList.add('dark')})()</script>
+     It mirrors resolve() in src/lib/theme.ts: a saved light or dark wins, otherwise the system decides.
+     The light theme's moving background is settled here too, for the same reason: data-bg and data-bg-speed
+     mirror backgroundAttrs() in src/lib/background.ts (reduced motion, or no CSS.registerProperty, means still). -->
+<script>(function(){var p;try{p=localStorage.getItem('brain-theme')}catch(e){}var d=p==='dark'||(p!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.setAttribute('data-theme',d?'dark':'light');if(d)r.classList.add('dark');var m,s;try{m=localStorage.getItem('brain-bg-motion');s=localStorage.getItem('brain-bg-speed')}catch(e){}var still=m==='still'||!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)||!(window.CSS&&CSS.registerProperty);r.setAttribute('data-bg',still?'still':'animated');r.setAttribute('data-bg-speed',s==='lively'?'lively':'calm')})()</script>
 </head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
