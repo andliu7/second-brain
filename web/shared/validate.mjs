@@ -180,6 +180,86 @@ function answerTrace(trace, path) {
   });
 }
 
+// The Health page's data (src/types.ts, Health). The bounds are generous ceilings that only catch a slip or a
+// corrupt backup (a 10 kg portion, a 2,000 lb set), never a real day: numbers are finite and non-negative,
+// and each list is capped far above years of daily logging.
+function range(value, path, min, max, integer = false) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) invalid(path, `must be ${integer ? 'a whole number' : 'a number'} from ${min} to ${max}`);
+}
+function optionalRange(value, path, min, max, integer = false) { if (value !== undefined) range(value, path, min, max, integer); }
+function macros(value, path, kcalMax, gramsMax) {
+  range(value.kcal, `${path}.kcal`, 0, kcalMax);
+  for (const key of ['protein', 'carbs', 'fat']) range(value[key], `${path}.${key}`, 0, gramsMax);
+}
+const day = (value, path) => { string(value, path, 10, true); dateOnly(value, path); };
+function healthData(health) {
+  object(health, 'health');
+  records(health.meals, 'health.meals', 20000, (meal, path) => {
+    day(meal.day, `${path}.day`);
+    oneOf(meal.meal, `${path}.meal`, ['breakfast', 'lunch', 'dinner', 'snack']);
+    records(meal.items, `${path}.items`, 100, (item, itemPath) => {
+      string(item.name, `${itemPath}.name`, 256, true);
+      range(item.grams, `${itemPath}.grams`, 0, 10000);
+      macros(item, itemPath, 20000, 2000);
+      optionalRange(item.quantity, `${itemPath}.quantity`, 0, 10000);
+      optionalString(item.unit, `${itemPath}.unit`, 32);
+      oneOf(item.source, `${itemPath}.source`, ['known', 'usda', 'guessed', 'manual']);
+      optionalRange(item.fdcId, `${itemPath}.fdcId`, 1, 1e10, true);
+    });
+  });
+  records(health.workouts, 'health.workouts', 20000, (workout, path) => {
+    day(workout.day, `${path}.day`);
+    string(workout.exercise, `${path}.exercise`, 128, true);
+    oneOf(workout.kind, `${path}.kind`, ['strength', 'cardio']);
+    if (workout.sets !== undefined) {
+      array(workout.sets, `${path}.sets`, 50);
+      workout.sets.forEach((set, i) => {
+        object(set, `${path}.sets[${i}]`);
+        range(set.reps, `${path}.sets[${i}].reps`, 0, 1000, true);
+        range(set.weight, `${path}.sets[${i}].weight`, 0, 2000);
+        oneOf(set.unit, `${path}.sets[${i}].unit`, ['lb', 'kg']);
+      });
+    }
+    optionalRange(workout.distance, `${path}.distance`, 0, 1000);
+    if (workout.distanceUnit !== undefined) oneOf(workout.distanceUnit, `${path}.distanceUnit`, ['mi', 'km']);
+    optionalRange(workout.minutes, `${path}.minutes`, 0, 2000);
+    if (workout.effort !== undefined) oneOf(workout.effort, `${path}.effort`, ['easy', 'moderate', 'hard']);
+  });
+  records(health.weights, 'health.weights', 10000, (entry, path) => {
+    day(entry.day, `${path}.day`);
+    range(entry.weight, `${path}.weight`, 1, 1500);
+    oneOf(entry.unit, `${path}.unit`, ['lb', 'kg']);
+  });
+  records(health.foods, 'health.foods', 5000, (food, path) => {
+    string(food.name, `${path}.name`, 256, true);
+    object(food.per100g, `${path}.per100g`);
+    macros(food.per100g, `${path}.per100g`, 1000, 100);
+    optionalString(food.unit, `${path}.unit`, 32);
+    optionalRange(food.unitGrams, `${path}.unitGrams`, 0, 10000);
+  });
+  records(health.regimes, 'health.regimes', 200, (regime, path) => {
+    string(regime.name, `${path}.name`, 128, true);
+    string(regime.notes, `${path}.notes`, 8192);
+    records(regime.days, `${path}.days`, 14, (dayItem, dayPath) => {
+      string(dayItem.name, `${dayPath}.name`, 128, true);
+      records(dayItem.exercises, `${dayPath}.exercises`, 50, (exercise, exercisePath) => {
+        string(exercise.name, `${exercisePath}.name`, 128, true);
+        range(exercise.sets, `${exercisePath}.sets`, 1, 20, true);
+        string(exercise.reps, `${exercisePath}.reps`, 16);
+        if (!/^\d{1,3}(-\d{1,3})?$/.test(exercise.reps)) invalid(`${exercisePath}.reps`, 'must be a count or a range like 8-12');
+        optionalRange(exercise.rest, `${exercisePath}.rest`, 0, 3600, true);
+      });
+    });
+  });
+  if (health.targets !== undefined) {
+    object(health.targets, 'health.targets');
+    macros(health.targets, 'health.targets', 10000, 1000);
+    oneOf(health.targets.goal, 'health.targets.goal', ['cut', 'maintain', 'bulk']);
+    optionalRange(health.targets.targetWeight, 'health.targets.targetWeight', 1, 1500);
+    oneOf(health.targets.unit, 'health.targets.unit', ['lb', 'kg']);
+  }
+}
+
 /** Validate a version-1 workspace without modifying or pruning any fields. */
 export function validateWorkspace(value) {
   object(value, 'workspace');
@@ -306,6 +386,8 @@ export function validateWorkspace(value) {
       optionalString(item.goal, `${path}.goal`, 1024);
       if (item.time !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.time)) invalid(`${path}.time`, 'must be HH:MM');
       optionalString(item.defaultKey, `${path}.defaultKey`, 64);
+      // Urgency and importance (TodoCard's priority chip) came later, so both are optional; each is 1 to 5.
+      for (const field of ['urgency', 'importance']) if (item[field] !== undefined && (!Number.isSafeInteger(item[field]) || item[field] < 1 || item[field] > 5)) invalid(`${path}.${field}`, 'must be an integer from 1 to 5');
     };
     records(value.todos.items, 'todos.items', 1000, todo);
     object(value.todos.history, 'todos.history');
@@ -414,6 +496,8 @@ export function validateWorkspace(value) {
     oneOf(value.profile.color, 'profile.color', ['accent', 'green', 'amber', 'red', 'ink']);
     optionalString(value.profile.status, 'profile.status', 140);
   }
+  // The Health page came later too (src/types.ts, Health); its rules are healthData below.
+  if (value.health !== undefined) healthData(value.health);
   boundedData(value, 'workspace', 0, { nodes: 0, chars: 0 }, new Set());
   return value;
 }

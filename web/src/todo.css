@@ -37,4 +37,22 @@
 .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit}
 .confetti-piece{position:absolute;top:50%;left:50%;width:8px;height:12px;border-radius:2px;opacity:0;animation:confetti-burst 1.4s cubic-bezier(.2,.7,.3,1) var(--delay) forwards}
 @keyframes confetti-burst{0%{opacity:1;transform:translate(-50%,-50%) rotate(0)}70%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + cos(var(--angle)) * var(--dist)),calc(-50% + sin(var(--angle)) * var(--dist) + 40px)) rotate(var(--spin))}}
+/* Show more under the card's three rows, and the full list it opens: the shared .modal look, made large. */
+.todo-more{display:flex;margin:8px 0 0 auto;font-size:12.5px}
+.todo-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 64px)}
+.todo-dialog .todo-body{padding:14px 18px 18px}
+.todo-dialog-tools{display:flex;justify-content:flex-end;margin-bottom:8px}
+/* The priority chip: urgency then importance, one pill. Urgency 4 and 5 read red, 3 amber; the rest neutral. */
+.todo-prio{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;font-size:11.5px;font-weight:700;line-height:1.2;border:1px solid var(--line);border-radius:999px;background:var(--band);color:var(--ink);font-variant-numeric:tabular-nums;cursor:pointer}
+.todo-prio:hover{background:var(--btn-hover)}
+.todo-prio span[aria-hidden]{color:var(--mut)}
+.todo-prio[data-urgency="3"]{background:var(--amber-bg);border-color:var(--amber-rule);color:var(--amber)}
+.todo-prio[data-urgency="4"],.todo-prio[data-urgency="5"]{background:var(--red-bg);border-color:var(--red-rule);color:var(--red)}
+.todo-priority{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;cursor:default}
+.todo-options .todo-priority{grid-column:1/-1}
+.todo-scale{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--sub)}
+.todo-scale>span{min-width:72px}
+.todo-scale button{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);color:var(--ink);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.todo-scale button:hover{background:var(--btn-hover)}
+.todo-scale button[aria-pressed="true"]{background:var(--acc-fill);border-color:var(--acc-fill);color:var(--on-acc)}
 @media (max-width:480px){.todo-add{grid-template-columns:1fr auto}.todo-add select{grid-column:1/-1;max-width:none}}

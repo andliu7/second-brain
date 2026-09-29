@@ -31,3 +31,12 @@ export function removeTodo(todos: Todos, id: string): Todos {
   const gone = todos.items.find(t => t.id === id);
   return { ...todos, items: todos.items.filter(t => t.id !== id), removedDefaults: gone?.defaultKey && !todos.removedDefaults.includes(gone.defaultKey) ? [...todos.removedDefaults, gone.defaultKey] : todos.removedDefaults };
 }
+
+// The order the card and its full list show todos in (Andrew, 2026-09-29): rated todos first, by urgency
+// then importance, highest first; a rating left unset counts below 1. Unrated todos (neither set) go last
+// in the order they were added. Done is ignored, as it always was: ticking a todo never moves it. Returns
+// a new array; the stored order is untouched, so clearing a rating puts a todo back where it was added.
+// Array.prototype.sort is stable, which is what keeps ties and the unrated tail in their stored order.
+const rated = (todo: Todo) => todo.urgency !== undefined || todo.importance !== undefined;
+export const byPriority = (items: Todo[]): Todo[] => [...items].sort((a, b) =>
+  Number(rated(b)) - Number(rated(a)) || (b.urgency ?? 0) - (a.urgency ?? 0) || (b.importance ?? 0) - (a.importance ?? 0));

@@ -179,3 +179,12 @@ test('the resume template is optional, and only a known template is accepted', (
   for (const template of ['classic', 'onyx', 'ditto', 'azurill']) validateWorkspace(withTemplate(template));
   assert.throws(() => validateWorkspace(withTemplate('fancy')), /Invalid workspace: resume.template/);
 });
+
+test('todo urgency and importance are optional: older todos load without them, and a set one is 1 to 5', () => {
+  const withTodo = extra => { const value = fixture(); value.todos = { day: '2026-09-29', items: [{ id: 'todo-1', text: 'Read', done: false, category: 'other', ...extra }], history: {}, removedDefaults: [] }; return value; };
+  const old = withTodo({});
+  assert.strictEqual(validateWorkspace(old), old);
+  const rated = withTodo({ urgency: 5, importance: 1 });
+  assert.strictEqual(validateWorkspace(rated), rated);
+  for (const field of ['urgency', 'importance']) for (const bad of [0, 6, 2.5, '3', null]) assert.throws(() => validateWorkspace(withTodo({ [field]: bad })), { message: `Invalid workspace: todos.items[0].${field} must be an integer from 1 to 5` });
+});

@@ -107,12 +107,10 @@
    day in the same look as the page: today a filled accent circle, a dot under days with events or todos, and
    each day washed with the accent by its activity level (the heat calendar's five steps). Expanded, the month
    keeps its place and the activity and the day's detail open beside it, or under it on a narrow screen. */
-.mini-cal{padding:0;max-width:360px}
-.mini-cal[data-expanded]{max-width:none}
+.mini-cal{padding:0;margin-bottom:14px;font-size:13px}
+.mini-cal .section-heading{min-height:44px;padding:11px 16px}
 .mini-cal .section-heading a{display:inline-flex;align-items:center;gap:4px;text-decoration:none}
-.mini-cal-actions{display:inline-flex;align-items:center;gap:2px}
-.mini-cal-body{padding:8px 14px 14px}
-.mini-cal[data-expanded] .mini-cal-body{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:14px 22px;align-items:start}
+.mini-cal-body{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:14px 22px;align-items:start;padding:8px 14px 14px}
 .mini-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .mini-cal-nav strong{font-family:var(--font-serif);font-size:14px;font-weight:700;color:var(--deep)}
 .mini-cal-nav .icon-button{width:30px;height:30px;min-width:30px;min-height:30px}
@@ -144,4 +142,4 @@
 .mini-cal-empty,.mini-cal-logged{margin:0 0 8px;font-size:12px;color:var(--mut)}
 .mini-cal-detail .text-button{padding-left:0}
 @media (max-width:1100px){.mini-cal-more{grid-template-columns:1fr}}
-@media (max-width:700px){.mini-cal{max-width:none}.mini-cal[data-expanded] .mini-cal-body{grid-template-columns:1fr}}
+@media (max-width:700px){.mini-cal-body{grid-template-columns:1fr}}

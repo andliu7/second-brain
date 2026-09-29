@@ -9,17 +9,21 @@
 // The page is Drawnix's canvas plus one slim bar of our own at the top left: the board menu, Undo, Redo and
 // the board's title. The bar replaces Drawnix's own top-left toolbar (hidden in whiteboard.css), which had
 // the same undo and redo behind a hamburger menu of file and language items this app does not use.
-import { lazy, Suspense, useEffect, useRef, useState, type Ref } from 'react';
+import { Suspense, useEffect, useRef, useState, type Ref } from 'react';
 import { Check, Copy, Download, LayoutGrid, Loader2, Maximize2, Minimize2, Pencil, Plus, Redo2, Trash2, Undo2 } from 'lucide-react';
 import type { Drawing, Whiteboard as Board, Workspace } from './types';
 import type { CanvasApi, History } from './WhiteboardCanvas';
 import { uid } from './lib/storage';
+import { chunks, lazyPage } from './lib/preload';
+import { SweepWait } from '@/components/ui/page-sweep';
 import './whiteboard.css';
 
 type Commit = (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>;
 
 // The heavy part loads on first visit to this page, not with the app (React.lazy splits it into its own chunk).
-const WhiteboardCanvas = lazy(() => import('./WhiteboardCanvas'));
+// Through lib/preload, so a canvas preloaded on idle or a Whiteboard hover renders with no spinner, and
+// the SweepWait in its fallback holds the page sweep until it has (page-sweep.tsx).
+const WhiteboardCanvas = lazyPage(chunks.whiteboardCanvas, 'default');
 
 // A stroke or a drag reports a change on every pointer move, so saves wait until the board has been
 // still this long. Leaving the page, or switching boards, saves whatever is still waiting.
@@ -128,7 +132,7 @@ export function Whiteboard({ workspace, commit }: { workspace: Workspace; commit
       {/* key: a fresh field per board, so a half-typed name never carries over to the next board */}
       <Title key={current.id} ref={title} name={current.name} rename={rename}/>
     </div>
-    <Suspense fallback={<div className="whiteboard-loading"><Loader2 className="spin" size={18}/>Opening the whiteboard…</div>}>
+    <Suspense fallback={<div className="whiteboard-loading"><SweepWait/><Loader2 className="spin" size={18}/>Opening the whiteboard…</div>}>
       {/* key: switching boards mounts a fresh canvas with that board's drawing, since Drawnix reads its data once */}
       <WhiteboardCanvas key={current.id} initial={current} onReady={ready} onChange={(drawing, next) => change(current.id, drawing, next)}/>
     </Suspense>

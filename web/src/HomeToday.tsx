@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { Workspace } from './types';
 import type { CalendarEvent } from './Kanban';
-import { rollover } from './lib/todos';
+import { byPriority, rollover } from './lib/todos';
 import { today } from './lib/storage';
 import { api } from './lib/api';
 import { AnimatedCheckbox } from '@/components/ui/animated-checkbox';
@@ -67,7 +67,7 @@ export function HomeToday({ workspace, commit, capture, open, setOpen, crowded }
     {open && <aside className="home-today-card" id="home-today" aria-label="Today at a glance">
       <h2>{new Date(todos.day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
       {todos.items.length === 0 ? <p className="muted">Nothing on the list.</p>
-        : <ul className="home-today-todos">{todos.items.map(item => <li key={item.id} data-done={item.done || undefined}>
+        : <ul className="home-today-todos">{byPriority(todos.items).map(item => <li key={item.id} data-done={item.done || undefined}>
           <AnimatedCheckbox checked={item.done} onChange={() => void tick(item.id)} label={item.text}/><span>{item.text}</span>
         </li>)}</ul>}
       {next && <p className="home-today-next"><CalendarDays size={14}/><span>{next.title}</span><small>{whenOf(next)}</small></p>}

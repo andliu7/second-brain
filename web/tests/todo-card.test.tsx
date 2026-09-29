@@ -3,10 +3,14 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { TodoCard } from '../src/TodoCard';
-import { rollover, removeTodo, todoPayload, TODO_DRAG_TYPE } from '../src/lib/todos';
+import { byPriority, rollover, removeTodo, todoPayload, TODO_DRAG_TYPE } from '../src/lib/todos';
 import { initialWorkspace, today } from '../src/lib/storage';
 import { validateWorkspace } from '../shared/validate.mjs';
 import type { Todo, Todos, Workspace } from '../src/types';
+import { playReward } from '../src/lib/sounds';
+
+// The coin sound is mocked: jsdom has no audio, and the test only needs to know when it was asked for.
+vi.mock('../src/lib/sounds', () => ({ playReward: vi.fn() }));
 
 const todo = (text: string, done = false, extra: Partial<Todo> = {}): Todo => ({ id: 'todo-' + text.toLowerCase().replace(/\W+/g, '-'), text, done, category: 'academic', ...extra });
 const stored = (day: string, items: Todo[], extra: Partial<Todos> = {}): Todos => ({ day, items, history: {}, removedDefaults: ['read', 'write'], ...extra });
@@ -150,15 +154,94 @@ describe('the daily todo card', () => {
     expect(requests.filter(r => r.url.endsWith('/api/calendar/todo'))[1].body).toEqual({ title: 'Lab', date: today(), time: '09:00', minutes: 45 });
   });
 
-  it('shows earlier days read only behind Earlier, and Escape closes a row menu', async () => {
+  // 2026-09-29: Earlier moved from the card's header into the full list, so this opens the list first
+  // (Open list, since one todo hides nothing). The Escape half now also checks that closing a row menu
+  // inside the dialog leaves the dialog open.
+  it('shows earlier days read only behind Earlier in the full list, and Escape closes a row menu', async () => {
     const user = userEvent.setup();
     render(<Harness initial={{ ...initialWorkspace(), todos: stored(today(), [todo('Now')], { history: { '2026-09-01': [todo('Then', true)] } }) }}/>);
     expect(screen.queryByText('Then')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Earlier' }));
-    expect(screen.getByRole('checkbox', { name: 'Then' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Options for Now' }));
-    expect(screen.getByRole('group', { name: 'Options for Now' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Earlier' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Open list' }));
+    const list = within(screen.getByRole('dialog', { name: 'All todos' }));
+    await user.click(list.getByRole('button', { name: 'Earlier' }));
+    expect(list.getByRole('checkbox', { name: 'Then' })).toBeDisabled();
+    await user.click(list.getByRole('button', { name: 'Options for Now' }));
+    expect(list.getByRole('group', { name: 'Options for Now' })).toBeInTheDocument();
     await user.keyboard('{Escape}');
-    expect(screen.queryByRole('group', { name: 'Options for Now' })).not.toBeInTheDocument();
+    expect(list.queryByRole('group', { name: 'Options for Now' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'All todos' })).toBeInTheDocument();
+  });
+
+  it('plays the reward sound once when a todo is ticked done, and not when it is unticked', async () => {
+    const user = userEvent.setup();
+    vi.mocked(playReward).mockClear();
+    render(<Harness initial={{ ...initialWorkspace(), todos: stored(today(), [todo('Coin'), todo('Other')]) }}/>);
+    await user.click(screen.getByRole('checkbox', { name: 'Coin' }));
+    expect(playReward).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('checkbox', { name: 'Coin' }));
+    expect(screen.getByRole('checkbox', { name: 'Coin' })).not.toBeChecked();
+    expect(playReward).toHaveBeenCalledTimes(1);
+  });
+
+  it('orders by urgency, then importance, highest first, with unrated todos last in their stored order', () => {
+    const items = [todo('Plain A'), todo('Low', false, { urgency: 1, importance: 5 }), todo('Plain B'), todo('Important', false, { urgency: 3, importance: 5 }),
+      todo('Urgent', false, { urgency: 5, importance: 1 }), todo('Tie first', false, { urgency: 3, importance: 2 }), todo('Tie second', false, { urgency: 3, importance: 2 }),
+      todo('Importance only', false, { importance: 4 }), todo('Done urgent', true, { urgency: 4 })];
+    expect(byPriority(items).map(t => t.text)).toEqual(['Urgent', 'Done urgent', 'Important', 'Tie first', 'Tie second', 'Low', 'Importance only', 'Plain A', 'Plain B']);
+    // A copy: the stored order is untouched.
+    expect(items[0].text).toBe('Plain A');
+    expect(byPriority([todo('x'), todo('y')]).map(t => t.text)).toEqual(['x', 'y']);
+  });
+
+  it('shows the top three on the card, and Show more opens every todo in a dialog that Escape closes, returning focus', async () => {
+    const user = userEvent.setup();
+    const items = [todo('One'), todo('Two'), todo('Three', false, { urgency: 2 }), todo('Four', false, { urgency: 5 }), todo('Five')];
+    render(<Harness initial={{ ...initialWorkspace(), todos: stored(today(), items) }}/>);
+    const card = within(screen.getByRole('region', { name: "Today's todos" }));
+    expect(card.getAllByRole('checkbox').map(box => box.getAttribute('aria-label'))).toEqual(['Four', 'Three', 'One']);
+    const more = card.getByRole('button', { name: 'Show more (2)' });
+    await user.click(more);
+    const dialog = screen.getByRole('dialog', { name: 'All todos' });
+    expect(dialog).toHaveAttribute('open');
+    expect(within(dialog).getAllByRole('checkbox').map(box => box.getAttribute('aria-label'))).toEqual(['Four', 'Three', 'One', 'Two', 'Five']);
+    // Every control is there: add, tick, the options panel.
+    await user.type(within(dialog).getByRole('textbox', { name: 'New todo' }), 'Six{Enter}');
+    expect(within(dialog).getByRole('checkbox', { name: 'Six' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Two' }));
+    expect(within(dialog).getByRole('checkbox', { name: 'Two' })).toBeChecked();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'All todos' })).toBeNull();
+    expect(card.getByRole('button', { name: 'Show more (3)' })).toHaveFocus();
+  });
+
+  it('rates a todo from its options, shows one chip for both, edits it from the chip, and saves each change', async () => {
+    const user = userEvent.setup();
+    const commits: Workspace[] = [];
+    render(<Harness initial={{ ...initialWorkspace(), todos: stored(today(), [todo('Essay'), todo('Laundry')]) }} onCommit={w => commits.push(w)}/>);
+    expect(screen.queryByRole('button', { name: /^Urgency/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Options for Laundry' }));
+    const options = within(screen.getByRole('group', { name: 'Options for Laundry' }));
+    await user.click(options.getByRole('button', { name: 'Urgency 4' }));
+    await user.click(options.getByRole('button', { name: 'Importance 2' }));
+    expect(commits.at(-1)?.todos?.items.find(t => t.text === 'Laundry')).toMatchObject({ urgency: 4, importance: 2 });
+    // One chip, not two, with both numbers in its name; the rated todo now sorts first.
+    const chip = screen.getByRole('button', { name: 'Urgency 4 of 5, importance 2 of 5' });
+    expect(chip).toHaveTextContent('4·2');
+    expect(screen.getAllByRole('checkbox').map(box => box.getAttribute('aria-label'))).toEqual(['Laundry', 'Essay']);
+    await user.keyboard('{Escape}');                      // closes the options panel, so one picker is on screen
+    expect(screen.queryByRole('group', { name: 'Options for Laundry' })).toBeNull();
+    await user.click(chip);
+    const editor = within(screen.getByRole('group', { name: 'Priority for Laundry' }));
+    expect(editor.getByRole('button', { name: 'Urgency 4' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(editor.getByRole('button', { name: 'Importance 5' }));
+    expect(screen.getByRole('button', { name: 'Urgency 4 of 5, importance 5 of 5' })).toBeInTheDocument();
+    expect(commits.at(-1)?.todos?.items.find(t => t.text === 'Laundry')).toMatchObject({ urgency: 4, importance: 5 });
+    await user.click(editor.getByRole('button', { name: 'Clear' }));
+    const cleared = commits.at(-1)?.todos?.items.find(t => t.text === 'Laundry');
+    expect(cleared?.urgency).toBeUndefined();
+    expect(cleared?.importance).toBeUndefined();
+    expect(screen.queryByRole('button', { name: /^Urgency \d of 5/ })).toBeNull();
+    expect(screen.getAllByRole('checkbox').map(box => box.getAttribute('aria-label'))).toEqual(['Essay', 'Laundry']);
   });
 });

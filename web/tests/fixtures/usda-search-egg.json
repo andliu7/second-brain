@@ -1,0 +1,14 @@
+{
+  "_note": "Made-up numbers for the Health tests. Only the shape is FoodData Central's search response (foods[].fdcId, description, foodNutrients[].nutrientId and value); no entry is a real USDA record.",
+  "totalHits": 4,
+  "foods": [
+    { "fdcId": 900001, "description": "Egg, whole, cooked, scrambled", "dataType": "SR Legacy",
+      "foodNutrients": [{ "nutrientId": 1008, "value": 150 }, { "nutrientId": 1003, "value": 10 }, { "nutrientId": 1005, "value": 2 }, { "nutrientId": 1004, "value": 11 }] },
+    { "fdcId": 900002, "description": "Egg, whole, cooked, hard-boiled", "dataType": "SR Legacy",
+      "foodNutrients": [{ "nutrientId": 1008, "value": 140 }, { "nutrientId": 1003, "value": 12 }, { "nutrientId": 1005, "value": 1 }, { "nutrientId": 1004, "value": 9.5 }] },
+    { "fdcId": 900003, "description": "Egg, whole, cooked, dried powder", "dataType": "SR Legacy",
+      "foodNutrients": [{ "nutrientId": 1008, "value": 590 }, { "nutrientId": 1003, "value": 47 }, { "nutrientId": 1005, "value": 3 }, { "nutrientId": 1004, "value": 42 }] },
+    { "fdcId": 900004, "description": "Egg, white, raw", "dataType": "Foundation",
+      "foodNutrients": [{ "nutrientId": 2048, "value": 50 }, { "nutrientId": 1003, "value": 11 }, { "nutrientId": 1005, "value": 0.5 }, { "nutrientId": 1004, "value": 0.2 }] }
+  ]
+}

@@ -1,10 +1,11 @@
 // AsciiSweep and PageSweep. jsdom has no WebGL2, so the shader itself cannot run here: these check the
 // pure helpers the engine leans on, and PageSweep's promises around the effect (the right page shows,
 // nothing runs without WebGL2 or under reduced motion, and the copy of the old page goes once it settles).
+import { Suspense, type ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { ANDREW_SWEEP, ease, easeInverse, resolveGlyphRamp, resolveObjectPosition } from '../src/components/ui/ascii-sweep';
-import { PAGE_SWEEP_S, PageSweep, resolveSweepColor, GREEN } from '../src/components/ui/page-sweep';
+import { PAGE_SWEEP_S, PageSweep, resolveSweepColor, GREEN, SKELETON_AFTER_MS, SweepWait, WAIT_CAP_MS } from '../src/components/ui/page-sweep';
 
 describe('the sweep helpers', () => {
   it('reads object-position keywords and percentages, and centres anything else', () => {
@@ -118,5 +119,101 @@ describe('PageSweep with WebGL2', () => {
     rerender(<Only at="settings"/>);
     expect(document.querySelector('.page-sweep-layer')?.textContent).toContain('board');
     errors.mockRestore();
+  });
+});
+
+// Andrew, 2026-09-29: "once it sweeps over, things should be loaded". The band waits for the new page:
+// for its Suspense boundary (a SweepWait in the fallback) and its first data (a SweepWait with a flag).
+// data-phase on the overlay says whether the band has started.
+describe('PageSweep waits for the new page', () => {
+  afterEach(() => vi.useRealTimers());
+  const withWebGL2 = () => {
+    vi.useFakeTimers();
+    motionAllowed();
+    vi.stubGlobal('WebGL2RenderingContext', class {});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) => kind === 'webgl2' ? ({} as RenderingContext) : null) as HTMLCanvasElement['getContext']);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  };
+  const advance = (ms: number) => act(async () => { vi.advanceTimersByTime(ms); });
+  const layer = () => document.querySelector('.page-sweep-layer');
+  // The destination panel, whose text is what the band sweeps onto.
+  const destination = () => document.querySelector('.page-sweep-dest');
+  // A page that suspends until resolve() is called, as a lazy page does until its chunk arrives.
+  function slowPage() {
+    let loaded = false;
+    let resolve = () => {};
+    const promise = new Promise<void>(done => { resolve = () => { loaded = true; done(); }; });
+    function Slow(): ReactElement { if (!loaded) throw promise; return <p>Page B</p>; }
+    return { Slow, resolve: () => resolve() };
+  }
+  function Lazy({ at, Slow }: { at: 'a' | 'b'; Slow: () => ReactElement }) {
+    return <main><PageSweep index={at}>{at === 'a' ? <p>Page A</p> : <Suspense fallback={<p><SweepWait/>Loading B</p>}><Slow/></Suspense>}</PageSweep></main>;
+  }
+
+  it('does not start the band while the Suspense fallback is up, and never sweeps onto it', async () => {
+    withWebGL2();
+    const { Slow } = slowPage();
+    const { rerender } = render(<Lazy at="a" Slow={Slow}/>);
+    rerender(<Lazy at="b" Slow={Slow}/>);
+    expect(screen.getByText('Loading B')).toBeInTheDocument();  // the live page is on its fallback
+    await advance(SKELETON_AFTER_MS - 10);
+    expect(layer()).toHaveAttribute('data-phase', 'waiting');
+    expect(destination()?.textContent).toBe('');
+  });
+
+  it('starts the band as soon as the page is ready, onto a copy of the finished page', async () => {
+    withWebGL2();
+    const Data = ({ at, loaded }: { at: 'a' | 'b'; loaded: boolean }) => <main><PageSweep index={at}><SweepWait when={at === 'b' && !loaded}/><p>{at === 'a' ? 'Page A' : loaded ? 'Page B, with its data' : 'Page B'}</p></PageSweep></main>;
+    const { rerender } = render(<Data at="a" loaded={false}/>);
+    rerender(<Data at="b" loaded={false}/>);
+    await advance(60);
+    expect(layer()).toHaveAttribute('data-phase', 'waiting');
+    rerender(<Data at="b" loaded/>);
+    await advance(48);
+    expect(layer()).toHaveAttribute('data-phase', 'sweeping');
+    expect(destination()?.textContent).toBe('Page B, with its data');
+    expect(document.querySelector('[data-testid="page-skeleton"]')).toBeNull();  // ready in time: no skeleton
+  });
+
+  it('holds for a piece still loading inside a nested PageSweep (the editor inside Docs)', async () => {
+    withWebGL2();
+    const Nested = ({ at, loaded }: { at: 'a' | 'b'; loaded: boolean }) => <main><PageSweep index={at}>{at === 'a' ? <p>Page A</p> : <PageSweep index="doc"><SweepWait when={!loaded}/><p>Page B</p></PageSweep>}</PageSweep></main>;
+    const { rerender } = render(<Nested at="a" loaded={false}/>);
+    rerender(<Nested at="b" loaded={false}/>);
+    await advance(60);
+    expect(layer()).toHaveAttribute('data-phase', 'waiting');
+    rerender(<Nested at="b" loaded/>);
+    await advance(48);
+    expect(layer()).toHaveAttribute('data-phase', 'sweeping');
+  });
+
+  it('sweeps onto a skeleton after the delay, then fades the finished page in over it', async () => {
+    withWebGL2();
+    const { Slow, resolve } = slowPage();
+    const { rerender } = render(<Lazy at="a" Slow={Slow}/>);
+    rerender(<Lazy at="b" Slow={Slow}/>);
+    await advance(SKELETON_AFTER_MS);
+    expect(layer()).toHaveAttribute('data-phase', 'sweeping');
+    expect(destination()?.querySelector('[data-testid="page-skeleton"]')).not.toBeNull();
+    expect(destination()?.textContent).not.toContain('Loading B');
+    await act(async () => { resolve(); });
+    await advance(400);  // React holds a shown fallback up to 300ms before swapping the page in
+    await advance(16);   // then the copy is taken a frame later
+    expect(document.querySelector('.page-sweep')?.textContent).toBe('Page B');  // the live page
+    expect(destination()?.querySelector('.page-sweep-fade')?.textContent).toBe('Page B');
+  });
+
+  it('never waits beyond the cap: a page still loading is copied as it is, and the overlay still goes', async () => {
+    withWebGL2();
+    const { Slow } = slowPage();
+    const { rerender } = render(<Lazy at="a" Slow={Slow}/>);
+    rerender(<Lazy at="b" Slow={Slow}/>);
+    await advance(WAIT_CAP_MS - 20);
+    expect(destination()?.querySelector('.page-sweep-copy')?.textContent).toBe('');
+    await advance(20);  // the cap: ready, whatever the page shows
+    await advance(16);  // and copied a frame later
+    expect(destination()?.querySelector('.page-sweep-fade')?.textContent).toBe('Loading B');
+    await advance(5000);
+    expect(layer()).toBeNull();
   });
 });

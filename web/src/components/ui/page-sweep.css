@@ -3,3 +3,9 @@
 .page-sweep{display:contents}
 .page-sweep-layer{position:fixed;z-index:15;pointer-events:none;overflow:hidden}
 .page-sweep-copy{position:relative;width:100%;height:100%;overflow:hidden}
+/* The destination panel holds the skeleton and, over it, the copy of the finished page, which fades in
+   when it arrives after the skeleton. 250ms, inside the overlay's 500ms settle (FADE_MS). */
+.page-sweep-dest{position:relative;width:100%;height:100%;overflow:hidden}
+.page-sweep-dest>.page-sweep-copy{position:absolute;inset:0}
+.page-sweep-fade{animation:page-sweep-fade .25s ease-out both}
+@keyframes page-sweep-fade{from{opacity:0}to{opacity:1}}

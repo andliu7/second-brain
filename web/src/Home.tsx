@@ -29,10 +29,10 @@
 // width and whether the tree is open are remembered. The Key button and the view toggle stand left
 // of the panel, and the Today tab steps aside on a narrow screen, so nothing sits under it.
 //
-// Two views of one graph (2026-09-29): the globe, and a flat force-directed graph after the graph
-// view in RoboNuggets' second brain (GraphCanvas2D.tsx). A 3D / 2D toggle at the top right switches
-// them and is remembered; both take the same selection, hover and focus, so either one opens the
-// same detail panel.
+// Two views of one graph (2026-09-29): the globe, and a flat graph of labelled clusters, each
+// area or project a ring round its hub (GraphCanvas2D.tsx over lib/clusters.ts). A 3D / 2D toggle
+// at the top right switches them and is remembered; both take the same selection, hover and
+// focus, so either one opens the same detail panel.
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ChevronDown, ChevronLeft, ExternalLink, Eye, EyeOff, FolderOpen, FolderTree, Loader2, Maximize, Menu, Palette, Pencil, RefreshCw, Search, X } from 'lucide-react';
 import { api } from './lib/api';
@@ -50,14 +50,14 @@ import { TextReveal } from './components/ui/text-reveal';
 import './network.css';
 import './home.css';
 
-type Props = { notify: (text: string, error?: boolean) => void; openMenu: () => void; openSearch: () => void; newDoc: () => void; workspace: Workspace; commit: (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>; capture: (text: string) => Promise<boolean> };
+type Props = { notify: (text: string, error?: boolean) => void; openMenu: () => void; openSearch: () => void; newNote: () => void; workspace: Workspace; commit: (update: (workspace: Workspace) => Workspace, message?: string) => Promise<boolean>; capture: (text: string) => Promise<boolean> };
 const cache = new Map<string, NodeDetail>();
 // A remembered choice, read and written in try/catch: storage can be blocked or full, and then the default holds.
 const recall = (key: string, fallback: string) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
 const keep = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* the choice lasts this visit only */ } };
 const asGraph = (reply: GraphPayload) => { if (!Array.isArray(reply?.nodes) || !Array.isArray(reply?.edges)) throw new Error('The map did not arrive. Is the local server running?'); return reply; };
 
-export default function Home({ notify, openMenu, openSearch, newDoc, workspace, commit, capture }: Props) {
+export default function Home({ notify, openMenu, openSearch, newNote, workspace, commit, capture }: Props) {
   const [full, setFull] = useState<GraphPayload | null>(null); const [grouped, setGrouped] = useState<GraphPayload | null>(null); const [loadError, setLoadError] = useState('');
   const [selectedId, setSelectedId] = useState(''); const [hovered, setHovered] = useState(-1); const [fileOpen, setFileOpen] = useState(false); const [query, setQuery] = useState(''); const [focus, setFocus] = useState({ index: -1, seq: 0 });
   const [detail, setDetail] = useState<NodeDetail | null>(null); const [detailError, setDetailError] = useState(''); const [loading, setLoading] = useState(false); const [opening, setOpening] = useState('');
@@ -179,7 +179,7 @@ export default function Home({ notify, openMenu, openSearch, newDoc, workspace, 
       : <SphereCanvas model={model} layout={layout} selected={sphereIndex} hovered={hovered} onSelect={selectFromMap} onHover={onHover} focus={focus} paused={fileOpen}/>)}
     <div className="home-top">
       <button type="button" className="icon-button home-burger" aria-label="Open navigation" onClick={openMenu}><Menu size={20}/></button>
-      <button type="button" className="button small" onClick={newDoc}><Pencil size={14}/>Capture a thought</button>
+      <button type="button" className="icon-button home-pencil" aria-label="New note" title="New note" aria-haspopup="dialog" onClick={newNote}><Pencil size={17}/></button>
       <button type="button" className="button small" onClick={openSearch} aria-label="Search workspace"><Search size={14}/><kbd>Ctrl K</kbd></button>
     </div>
     <div className="home-head">
@@ -208,7 +208,7 @@ export default function Home({ notify, openMenu, openSearch, newDoc, workspace, 
     <HomeToday workspace={workspace} commit={commit} capture={capture} open={todayOpen} setOpen={openToday} crowded={panelShown}/>
     {loadError ? <div className="home-error"><div className="error-banner" role="alert"><p>{loadError}</p><button className="button small" onClick={() => void load(true)}><RefreshCw size={14}/>Try again</button></div></div>
       : !model ? <div className="home-loading"><Loader2 className="spin" size={18}/><p>Reading every file under the configured roots…</p></div>
-      : <p className="home-foot muted">{sphereIndex < 0 ? (view === '2d' ? 'Drag to pan, scroll to zoom, click a node to open it. ' : 'Drag to turn, scroll to zoom, click a node to open it. ') : ''}{full!.nodes.length.toLocaleString()} files and folders · {model.nodes.length.toLocaleString()} nodes on the {view === '2d' ? 'graph' : 'globe'} · {model.edges.length.toLocaleString()} links from the files</p>}
+      : <p className="home-foot muted">{sphereIndex < 0 ? (view === '2d' ? 'Drag to pan, scroll to zoom, click a name to zoom to it, click a node to open it. ' : 'Drag to turn, scroll to zoom, click a node to open it. ') : ''}{full!.nodes.length.toLocaleString()} files and folders · {model.nodes.length.toLocaleString()} nodes on the {view === '2d' ? 'graph' : 'globe'} · {model.edges.length.toLocaleString()} links from the files</p>}
     {panelShown && <aside className="home-panel" aria-label={fileOpen ? 'Details' : 'Tree'}>
       <SidePanelResize width={panelWidth} onResize={resizePanel}/>
       <header className="home-panel-head">

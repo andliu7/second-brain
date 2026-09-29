@@ -65,6 +65,9 @@ export async function handleApi(req,res,{local=false}={}) {
     if (route === 'pipelines' || route.startsWith('pipelines/')) { if (!local) return send(res,404,{error:'Pipelines are available only when running the app on your computer.'}); const {handlePipelines} = await import('./pipelines.mjs'); return await handlePipelines(route, req, res); }
     if (req.method !== 'POST') return send(res,404,{error:'API route not found.'});
     const body = await readBody(req);
+    // Health: the brain-dump parse, the nutrition lookup ladder and the regime review (server/health.mjs). Local only:
+    // it uses this computer's keys and caches USDA answers under the user profile.
+    if (route.startsWith('health/')) { if (!local) return send(res,404,{error:'Health lookups are available only when running the app on your computer.'}); const {handleHealth} = await import('./health.mjs'); return await handleHealth(route, body, res); }
     // Open on device runs explorer.exe on this computer, only ever after a click in the panel.
     if (route === 'graph/open') { if (!local) return send(res,404,{error:'Open on device works only when running the app on your computer.'}); const {openOnDevice} = await import('./graph.mjs'); return send(res,200,await openOnDevice(String(body?.id || ''), Boolean(body?.reveal))); }
     if (route === 'source') { if (!local) return send(res,404,{error:'Local file access is disabled on hosted deployments.'}); const {readSource} = await import('./library.mjs'); return send(res,200,await readSource(body?.id)); }

@@ -43,7 +43,7 @@ beforeEach(() => {
 async function openSkills() {
   const user = userEvent.setup();
   render(<App />);
-  await screen.findByRole('button', { name: /Capture a thought/ });
+  await screen.findByRole('button', { name: 'New note' });
   await user.click(screen.getByRole('button', { name: /^Skills\s*\d*$/ }));
   await screen.findByRole('link', { name: /^humanizer/ });
   return user;

@@ -11,6 +11,8 @@
 //     inverse property can be unit tested (tests/ascii-sweep.test.tsx)
 //   - the glyph ramp choice is a pure exported function, resolveGlyphRamp, for the same reason
 //   - resolveObjectPosition is exported for the same reason
+// and one that does (2026-09-29): the 2D fallback painter now paints inline <svg>, which it skipped, so
+// every lucide icon was missing from the band until the page sweep's overlay went (svgImage below).
 // ANDREW_SWEEP at the end is his configured props, for callers (page-sweep.tsx) to spread.
 import {
   useEffect,
@@ -483,9 +485,59 @@ function intersectFallbackRects(
   };
 }
 
+// Inline SVG (every lucide icon) is neither text nor an image, so the painter drew nothing for it. Each
+// distinct icon is now drawn once as an <img> of its own markup and kept here. The markup carries the
+// icon's size and resolved colours, so one key is one look, and a theme change is simply a new key.
+const svgImages = new Map<string, HTMLImageElement>();
+const SVG_CACHE_MAX = 400;
+
+function svgImage(
+  svg: SVGSVGElement,
+  style: CSSStyleDeclaration,
+  rect: DOMRect,
+): HTMLImageElement {
+  const copy = svg.cloneNode(true) as SVGSVGElement;
+  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  copy.setAttribute("width", String(rect.width));
+  copy.setAttribute("height", String(rect.height));
+  // Inside an image the page's stylesheets do not apply and currentColor is black, so the values the
+  // page resolved ride along on the root, where the icon's paths inherit them.
+  copy.setAttribute(
+    "style",
+    `color:${style.color};fill:${style.fill};stroke:${style.stroke};stroke-width:${style.strokeWidth}`,
+  );
+  copy.removeAttribute("class");
+  const markup = new XMLSerializer().serializeToString(copy);
+  let image = svgImages.get(markup);
+  if (!image) {
+    if (svgImages.size >= SVG_CACHE_MAX) svgImages.clear();
+    image = new Image();
+    image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(markup);
+    svgImages.set(markup, image);
+  }
+  return image;
+}
+
+const outermostSvg = (element: Element): element is SVGSVGElement =>
+  element instanceof SVGSVGElement && element.ownerSVGElement === null;
+
+/**
+ * Starts turning every icon under root into an image, ahead of the first capture. page-sweep.tsx calls
+ * it as it copies a page, a few frames before the band starts; an icon still loading at the capture is
+ * painted by the capture its load triggers.
+ */
+export function primeSvgImages(root: Element) {
+  root.querySelectorAll("svg").forEach((svg) => {
+    if (!outermostSvg(svg)) return;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) svgImage(svg, getComputedStyle(svg), rect);
+  });
+}
+
 function paintFallbackSnapshot(
   content: HTMLElement,
   canvas: HTMLCanvasElement,
+  onAsset?: () => void,
 ) {
   const rootRect = content.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -576,7 +628,7 @@ function paintFallbackSnapshot(
         ctx.fillRect(x, y, rect.width, rect.height);
       }
 
-      paintFallbackMedia(ctx, element, style, rect, rootRect);
+      paintFallbackMedia(ctx, element, style, rect, rootRect, onAsset);
       paintFallbackText(ctx, element, style, rootRect);
       paintFallbackBorders(ctx, style, rect, rootRect);
       ctx.restore();
@@ -586,15 +638,27 @@ function paintFallbackSnapshot(
   ctx.globalAlpha = 1;
 }
 
+// An image still loading is skipped this time; onLoad asks for another capture once it has arrived.
+function loadedImage(
+  image: HTMLImageElement,
+  onLoad?: () => void,
+): HTMLImageElement | null {
+  if (image.complete) return image.naturalWidth > 0 ? image : null;
+  if (onLoad) image.addEventListener("load", onLoad, { once: true });
+  return null;
+}
+
 function paintFallbackMedia(
   ctx: CanvasRenderingContext2D,
-  element: HTMLElement,
+  element: Element,
   style: CSSStyleDeclaration,
   rect: DOMRect,
   rootRect: DOMRect,
+  onAsset?: () => void,
 ) {
-  const drawable =
-    element instanceof HTMLImageElement
+  const drawable = outermostSvg(element)
+    ? loadedImage(svgImage(element, style, rect), onAsset)
+    : element instanceof HTMLImageElement
       ? element.complete && element.naturalWidth > 0
         ? element
         : null
@@ -1060,7 +1124,9 @@ function initializeAsciiSweep(
     state.captureTimer = 0;
     state.scrollTimer = 0;
     try {
-      paintFallbackSnapshot(state.content, state.source);
+      paintFallbackSnapshot(state.content, state.source, () =>
+        queueCapture(state, true),
+      );
       if (destroyed) return;
       state.fallbackCanvas = state.source;
       state.capturedScrollLeft = state.content.scrollLeft;

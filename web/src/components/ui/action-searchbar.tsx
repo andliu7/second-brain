@@ -4,6 +4,8 @@
 //     and end (a right-aligned tag, such as "Page" or "Run")
 //   onSelect(action): a command was chosen (click, or Enter on the highlighted row)
 //   onSubmit(query): Enter with text that matches no command; the caller searches with it
+//   onHighlight(action): optional; the highlighted row changed (arrows or the pointer). App preloads
+//     the page a "go:" command opens, so it is ready by the time Enter or a click picks it
 //   placeholder, label: the input's placeholder and accessible name
 // The list opens on focus and closes on blur or Escape; arrows move the highlight; Enter picks. Motion
 // is framer-motion's and switches off under prefers-reduced-motion.
@@ -20,7 +22,7 @@ function useDebounce<T>(value: T, delay = 150): T {
   return debounced;
 }
 
-export function ActionSearchbar({ actions, onSelect, onSubmit, placeholder = 'Search or run a command', label = 'Search or run a command', className }: { actions: SearchAction[]; onSelect: (action: SearchAction) => void; onSubmit: (query: string) => void; placeholder?: string; label?: string; className?: string }) {
+export function ActionSearchbar({ actions, onSelect, onSubmit, onHighlight, placeholder = 'Search or run a command', label = 'Search or run a command', className }: { actions: SearchAction[]; onSelect: (action: SearchAction) => void; onSubmit: (query: string) => void; onHighlight?: (action: SearchAction) => void; placeholder?: string; label?: string; className?: string }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -30,6 +32,8 @@ export function ActionSearchbar({ actions, onSelect, onSubmit, placeholder = 'Se
   const needle = debounced.trim().toLowerCase();
   const shown = needle ? actions.filter(action => `${action.label} ${action.description || ''}`.toLowerCase().includes(needle)) : actions;
   useEffect(() => { setActive(0); }, [needle]);
+  const highlighted = open ? shown[active] : undefined;
+  useEffect(() => { if (highlighted) onHighlight?.(highlighted); }, [highlighted?.id]);
   const choose = (action: SearchAction) => { setOpen(false); setQuery(''); onSelect(action); };
   function keys(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') { setOpen(false); event.currentTarget.blur(); return; }

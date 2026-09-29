@@ -11,9 +11,9 @@ import { PERSPECTIVE, RADIUS } from '../src/SphereCanvas';
 import { TextReveal } from '../src/components/ui/text-reveal';
 import { buildModel, colorOf } from '../src/lib/network';
 import type { Workspace } from '../src/types';
-import { today } from '../src/lib/storage';
+import { loadWorkspace, today } from '../src/lib/storage';
 import { ARC_LIFT, arcMid, curveAt, fibonacci, intro, Messages, nodeProgress, sphereLayout, toFront, apply, turn, identity } from '../src/lib/sphere';
-import { createForce, settle, settled } from '../src/lib/force';
+import { clusterLayout, MIN_RING, SPACING } from '../src/lib/clusters';
 
 const node = (id: string, name: string, kind: string, parent: number, extra: Partial<{ layer: string; root: number; size: number; members: string[] }> = {}) => ({ id, name, kind, layer: extra.layer ?? '', parent, root: extra.root ?? 0, size: extra.size ?? 0, mtime: 0, ...(extra.members ? { members: extra.members } : {}) });
 const roots = [{ path: 'C:/Users/andrew/Downloads/Projects', count: 4 }, { path: 'C:/Users/andrew/.claude/skills', count: 0 }];
@@ -31,7 +31,7 @@ const details: Record<string, object> = {
   readme: { id: 'readme', name: 'README.md', kind: 'note', layer: '', path: 'C:/Users/andrew/Downloads/Projects/blueberry_game/README.md', root: roots[0].path, size: 300, mtime: 0, summary: {}, excerpt: '# Blueberry game\n\nThe learning game.\n', next: null, linksIn: [], linksOut: [], children: [], group: null, where: null },
   a: { id: 'a', name: 'a.png', kind: 'image', layer: '', path: 'C:/Users/andrew/Downloads/Projects/blueberry_game/docs/reference/a.png', root: roots[0].path, size: 900, mtime: 0, summary: {}, excerpt: null, next: null, linksIn: [], linksOut: [], children: [], group: null, where: null },
 };
-let requests: { url: string; body: any }[] = []; let arcs: [number, number, number][] = []; let firstFrame: [number, number, number][] = [];
+let requests: { url: string; body: any }[] = []; let arcs: [number, number, number][] = []; let firstFrame: [number, number, number][] = []; let texts: string[] = [];
 const notify = vi.fn();
 // The workspace Home is handed, and App's commit and capture as stand-ins: commit applies the update
 // to `stored`, the way App's saves it, so a test reads what was committed. The calendar is not
@@ -40,14 +40,14 @@ let stored: Workspace; let calendar: { connected: boolean; events: unknown[] };
 const commit = vi.fn(async (update: (w: Workspace) => Workspace) => { stored = update(stored); return true; });
 const capture = vi.fn(async (_text: string) => true);
 // A 2D context that records every dot drawn, whether a stamped disc (drawImage) or an arc: the
-// ones of the first frame are kept apart.
+// ones of the first frame are kept apart. Every name drawn (fillText) is kept too.
 function context() {
   const dot = (x: number, y: number, r: number) => { arcs.push([x, y, r]); if (!window.__sphere || window.__sphere.renders() === 0) firstFrame.push([x, y, r]); };
-  const ctx: any = { canvas: null, measureText: (text: string) => ({ width: text.length * 6 }), arc: dot, drawImage: (_: unknown, x: number, y: number, w: number, h: number) => dot(x + w / 2, y + h / 2, w / 2 - 1) };
+  const ctx: any = { canvas: null, measureText: (text: string) => ({ width: text.length * 6 }), arc: dot, fillText: (text: string) => { texts.push(text); }, drawImage: (_: unknown, x: number, y: number, w: number, h: number) => dot(x + w / 2, y + h / 2, w / 2 - 1) };
   return new Proxy(ctx, { get: (target, key) => key in target ? target[key] : () => {}, set: (target, key, value) => { target[key] = value; return true; } });
 }
 beforeEach(() => {
-  requests = []; arcs = []; firstFrame = []; notify.mockClear(); commit.mockClear(); capture.mockClear();
+  requests = []; arcs = []; firstFrame = []; texts = []; notify.mockClear(); commit.mockClear(); capture.mockClear();
   stored = { version: 1, docs: [], goals: [], conversations: [], generations: [], activity: [], todos: { day: today(), items: [{ id: 't1', text: 'Read chapter 4', done: false, category: 'other' }], history: {}, removedDefaults: ['read', 'write'] } };
   calendar = { connected: false, events: [] };
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => context());
@@ -65,7 +65,7 @@ beforeEach(() => {
 afterEach(() => { delete (HTMLElement.prototype as any).clientWidth; delete (HTMLElement.prototype as any).clientHeight; });
 const frame = () => act(() => new Promise<void>(resolve => requestAnimationFrame(() => setTimeout(resolve, 0))));
 async function ready() {
-  render(<Home notify={notify} openMenu={() => {}} openSearch={() => {}} newDoc={() => {}} workspace={stored} commit={commit} capture={capture}/>);
+  render(<Home notify={notify} openMenu={() => {}} openSearch={() => {}} newNote={() => {}} workspace={stored} commit={commit} capture={capture}/>);
   await screen.findByRole('button', { name: 'Key' }); // the key is a button at the right edge now, its colours in a popover
   await waitFor(() => expect(window.__sphere?.renders()).toBeGreaterThan(0));
   return document.querySelector('canvas') as HTMLCanvasElement;
@@ -476,51 +476,103 @@ describe('the side panel', () => {
   });
 });
 
-// 2026-09-29: the flat view, after the graph view in RoboNuggets' second brain (GraphCanvas2D.tsx over lib/force.ts).
+// 2026-09-29: the flat view, after the graph view in RoboNuggets' second brain (GraphCanvas2D.tsx).
+// Re-pointed the same day to a changed requirement: the force layout (lib/force.ts) became labelled
+// clusters of rings (lib/clusters.ts), so the three force tests (settles in budget, colours clump,
+// same seed same layout) were replaced by the grouping, ring, packing and determinism tests below,
+// and the view test also checks which names are drawn.
 describe('the flat graph', () => {
   beforeEach(() => { localStorage.clear(); });
-  // Three colours of 60 nodes, each linked in chains of six, and a few links across colours.
+  // Skills: 40 skills, one with 24 files inside and one with 3. Applications: 8 apps. Chemistry: project big (three
+  // folders of 49 notes, 150 members, enough for nested rings), project mid (20 files) and project tiny (3
+  // files, folds into Chemistry). Big links to mid and to a few skills.
   const fixture = () => {
-    const group: number[] = []; const edges: [number, number][] = [];
-    for (let c = 0; c < 3; c++) for (let k = 0; k < 60; k++) { const i = group.push(c) - 1; if (k % 6) edges.push([i - 1, i]); if (k % 15 === 0 && c) edges.push([i, i - 60]); }
-    return { group, edges, n: group.length };
+    const nodes: ReturnType<typeof node>[] = []; const edges: [number, number, string][] = [];
+    const add = (id: string, name: string, kind: string, parent: number, layer = '') => nodes.push(node(id, name, kind, parent, { layer })) - 1;
+    const skills = add('sk', 'Skills', 'dept', -1, 'dept'); const skill: number[] = [];
+    for (let k = 0; k < 40; k++) skill.push(add('s' + k, 'skill ' + k, 'skill', skills, 'skill'));
+    for (let k = 0; k < 24; k++) add('s0f' + k, 'ref ' + k + '.md', 'note', skill[0]);
+    for (let k = 0; k < 3; k++) add('s1f' + k, 'ex ' + k + '.md', 'note', skill[1]);
+    const apps = add('ap', 'Applications', 'dept', -1, 'dept'); for (let k = 0; k < 8; k++) add('a' + k, 'app ' + k, 'app', apps, 'app');
+    const chem = add('ch', 'Chemistry', 'dept', -1, 'dept');
+    const big = add('big', 'big', 'folder', chem); const bigFiles: number[] = [];
+    for (let f = 0; f < 3; f++) { const folder = add('bf' + f, 'folder ' + f, 'folder', big); for (let k = 0; k < 49; k++) bigFiles.push(add(`b${f}n${k}`, `n${k}.md`, 'note', folder)); }
+    const mid = add('mid', 'mid', 'folder', chem); const midFiles: number[] = []; for (let k = 0; k < 20; k++) midFiles.push(add('m' + k, `m${k}.ts`, 'code', mid));
+    const tiny = add('tiny', 'tiny', 'folder', chem); for (let k = 0; k < 3; k++) add('t' + k, `t${k}.md`, 'note', tiny);
+    for (let k = 0; k < 20; k++) edges.push([bigFiles[k * 7], midFiles[k], 'mention']);
+    for (let k = 0; k < 10; k++) edges.push([bigFiles[k * 3], skill[k], 'skill'], [bigFiles[k], bigFiles[k + 1], 'mention']);
+    return buildModel({ roots, nodes, edges });
   };
 
-  it('settles within its step budget and comes to rest', () => {
-    const { group, edges, n } = fixture(); const f = settle(createForce(n, edges, group, 3));
-    expect(settled(f)).toBe(true); expect(f.steps).toBeLessThanOrEqual(400);
-    for (let i = 0; i < n; i++) { expect(Number.isFinite(f.x[i]) && Number.isFinite(f.y[i])).toBe(true); expect(Math.hypot(f.vx[i], f.vy[i])).toBeLessThan(0.1); }
+  it('groups by area and project: the skills one circle, each big project its own cluster, the small ones folded', () => {
+    const model = fixture(); const { clusters } = clusterLayout(model);
+    const byName = new Map(clusters.map(c => [c.name, c])); const name = (i: number) => model.nodes[i].name;
+    expect([...byName.keys()].sort()).toEqual(['Applications', 'Chemistry', 'Other skill files', 'Skills', 'big', 'mid', 'skill 0 files'].sort());
+    expect(byName.get('Skills')!.members.map(name).every(m => m.startsWith('skill '))).toBe(true); // only skills on the Skills circle
+    expect(byName.get('Skills')!.members).toHaveLength(40); expect(name(byName.get('Skills')!.hub)).toBe('Skills');
+    expect(byName.get('big')!.members).toHaveLength(150); expect(name(byName.get('big')!.hub)).toBe('big'); // three folders and their 147 notes
+    expect(byName.get('skill 0 files')!.hub).toBe(-1); // a label-only hub: the skill itself stays on the Skills circle
+    expect(byName.get('Other skill files')!.members.map(name).sort()).toEqual(['ex 0.md', 'ex 1.md', 'ex 2.md']); // a skill with few files folds here, not onto the Skills circle
+    expect(byName.get('Chemistry')!.members.map(name).sort()).toEqual(['t0.md', 't1.md', 't2.md', 'tiny']); // tiny folded into its area
+    expect(byName.get('Skills')!.color).toBe(colorOf(model.nodes[1]));
   });
 
-  it('pulls each colour into its own clump, keeps links short, and leaves no two nodes on one spot', () => {
-    const { group, edges, n } = fixture(); const f = settle(createForce(n, edges, group, 3));
-    const d = (i: number, j: number) => Math.hypot(f.x[i] - f.x[j], f.y[i] - f.y[j]);
-    let same = 0, sameCount = 0, other = 0, otherCount = 0, closest = Infinity;
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { closest = Math.min(closest, d(i, j)); if (group[i] === group[j]) { same += d(i, j); sameCount++; } else { other += d(i, j); otherCount++; } }
-    expect(same / sameCount).toBeLessThan(0.6 * other / otherCount);
-    const link = edges.reduce((sum, [a, b]) => sum + d(a, b), 0) / edges.length;
-    expect(link).toBeLessThan(0.5 * same / sameCount);
-    expect(closest).toBeGreaterThan(2);
+  it('puts every member of a ring at one distance from its centre, evenly round the whole circle, nests big clusters inner ring first, and never overlaps two clusters', () => {
+    const model = fixture(); const { clusters, x, y } = clusterLayout(model);
+    for (const c of clusters) {
+      if (c.hub >= 0) { expect(x[c.hub]).toBeCloseTo(c.x, 3); expect(y[c.hub]).toBeCloseTo(c.y, 3); }
+      let at = 0;
+      c.rings.forEach((size, ring) => {
+        const members = c.members.slice(at, at += size);
+        for (const i of members) expect(Math.abs(Math.hypot(x[i] - c.x, y[i] - c.y) - c.radii[ring])).toBeLessThan(1); // within a pixel at zoom 1
+        const angles = members.map(i => Math.atan2(y[i] - c.y, x[i] - c.x)).sort((a, b) => a - b);
+        const gaps = angles.map((a, k) => (k + 1 < angles.length ? angles[k + 1] : angles[0] + 2 * Math.PI) - a);
+        for (const gap of gaps) expect(gap).toBeCloseTo(2 * Math.PI / size, 4);
+        if (size > 1) expect(2 * Math.PI * c.radii[ring] / size).toBeGreaterThanOrEqual(SPACING - 1e-6); // neighbours never closer than the spacing
+      });
+      expect(at).toBe(c.members.length); // every member on some ring
+      for (let r = 1; r < c.radii.length; r++) expect(c.radii[r]).toBeGreaterThan(c.radii[r - 1]);
+      for (let r = 0; r + 1 < c.rings.length; r++) expect(c.rings[r]).toBe(Math.floor(2 * Math.PI * c.radii[r] / SPACING)); // inner rings full before the next begins
+      expect(c.radius).toBeGreaterThanOrEqual(MIN_RING);
+    }
+    expect(clusters.find(c => c.name === 'big')!.rings.length).toBeGreaterThan(1); // 150 members nest
+    expect(clusters.find(c => c.name === 'Skills')!.rings).toEqual([40]); // 40 skills are one circle
+    for (let a = 0; a < clusters.length; a++) for (let b = a + 1; b < clusters.length; b++) {
+      const p = clusters[a], q = clusters[b]; expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeGreaterThan(p.radius + q.radius + 24); // the outer rings plus the largest dots never meet
+    }
+    // Every node belongs to exactly one cluster, as a hub or a member.
+    const seen = new Int32Array(model.nodes.length); for (const c of clusters) { if (c.hub >= 0) seen[c.hub]++; for (const i of c.members) seen[i]++; }
+    expect(Array.from(seen).every(v => v === 1)).toBe(true);
   });
 
-  it('lands the same way for the same seed, and another way for another', () => {
-    const { group, edges, n } = fixture();
-    const a = settle(createForce(n, edges, group, 3)), b = settle(createForce(n, edges, group, 3)), c = settle(createForce(n, edges, group, 4));
+  it('lands the same way every time', () => {
+    const a = clusterLayout(fixture()), b = clusterLayout(fixture());
     expect(Array.from(a.x)).toEqual(Array.from(b.x)); expect(Array.from(a.y)).toEqual(Array.from(b.y));
-    expect(Array.from(a.x)).not.toEqual(Array.from(c.x));
+    expect(a.clusters.map(c => [c.name, c.x, c.y])).toEqual(b.clusters.map(c => [c.name, c.x, c.y]));
   });
 
-  it('switches views from the 3D / 2D toggle, remembers the view, draws the settled graph once, and a click on a node opens the same detail panel', async () => {
+  it('switches views from the 3D / 2D toggle, remembers the view, draws once naming only the categories, names a node on hover, zooms to a category on a click, and a click on a node opens the same detail panel', async () => {
     const user = userEvent.setup(); await ready();
     const views = screen.getByRole('group', { name: 'View' });
     expect(within(views).getByRole('button', { name: '3D' })).toHaveAttribute('aria-pressed', 'true');
-    await user.click(within(views).getByRole('button', { name: '2D' }));
+    texts = []; await user.click(within(views).getByRole('button', { name: '2D' }));
     expect(within(views).getByRole('button', { name: '2D' })).toHaveAttribute('aria-pressed', 'true'); expect(localStorage.getItem('home.view')).toBe('2d');
     await waitFor(() => expect(window.__graph2d?.renders()).toBeGreaterThan(0));
     expect(window.__sphere).toBeUndefined();
-    expect(window.__graph2d!.settled()).toBe(true); expect(window.__graph2d!.renders()).toBe(1); // reduced motion: settled first, drawn once, no loop
+    expect(window.__graph2d!.settled()).toBe(true); expect(window.__graph2d!.renders()).toBe(1); // laid out before the first frame, drawn once, no loop
     await frame(); expect(window.__graph2d!.renders()).toBe(1); // and nothing runs while idle
     const canvas = document.querySelector('canvas')!; expect(canvas).toHaveAccessibleName(/flat graph/);
+    // At rest only the category names: blueberry_game is too small for its own cluster, so it
+    // folds into Chemistry apps, and Skills, down to one skill, folds into Other.
+    expect([...new Set(texts)].sort()).toEqual(['Chemistry apps', 'Other']);
+    texts = []; const on = window.__graph2d!.screenOf('README.md')!; pointer(canvas, 'pointermove', on.x, on.y); await frame(); await frame(); // one frame for the hover to reach Home, one for the redraw
+    expect(texts).toContain('README.md'); expect(texts).toContain('generate'); // the hovered node and its neighbour
+    pointer(canvas, 'pointerleave', 0, 0); await frame();
+    // A click on a category name frames that cluster: every member lands inside the canvas, larger than before, and no panel opens.
+    const k0 = window.__graph2d!.camera().k; const name = window.__graph2d!.labelOf('Chemistry apps')!; expect(name).not.toBeNull();
+    pointer(canvas, 'pointerdown', name.x, name.y); pointer(canvas, 'pointerup', name.x, name.y); await frame();
+    expect(window.__graph2d!.camera().k).toBeGreaterThan(k0); expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
+    for (const member of ['blueberry_game', 'README.md', IMAGES]) { const p = window.__graph2d!.screenOf(member)!; expect(p.x).toBeGreaterThan(0); expect(p.x).toBeLessThan(800); expect(p.y).toBeGreaterThan(0); expect(p.y).toBeLessThan(600); }
     const at = window.__graph2d!.screenOf('README.md')!; pointer(canvas, 'pointerdown', at.x, at.y); pointer(canvas, 'pointerup', at.x, at.y); await frame();
     const panel = await screen.findByRole('complementary', { name: 'Details' });
     expect(await within(panel).findByRole('heading', { level: 2, name: 'README.md' })).toBeInTheDocument();
@@ -530,7 +582,7 @@ describe('the flat graph', () => {
     const after = window.__graph2d!.screenOf('README.md')!;
     expect(window.__graph2d!.camera().k).toBeCloseTo(k * Math.exp(200 * 0.0016), 5); expect(after.x).toBeCloseTo(before.x, 3); expect(after.y).toBeCloseTo(before.y, 3);
     cleanup();
-    render(<Home notify={notify} openMenu={() => {}} openSearch={() => {}} newDoc={() => {}} workspace={stored} commit={commit} capture={capture}/>);
+    render(<Home notify={notify} openMenu={() => {}} openSearch={() => {}} newNote={() => {}} workspace={stored} commit={commit} capture={capture}/>);
     await waitFor(() => expect(window.__graph2d?.renders()).toBeGreaterThan(0)); // remembered
     await user.click(screen.getByRole('button', { name: '3D' }));
     await waitFor(() => expect(window.__sphere?.renders()).toBeGreaterThan(0));
@@ -541,7 +593,7 @@ describe('the flat graph', () => {
 describe('the front door is the globe', () => {
   it('opens on the globe with the navigation behind the burger, and Today lives in the navigation', async () => {
     const user = userEvent.setup(); render(<App/>);
-    await screen.findByRole('button', { name: 'Capture a thought' });
+    await screen.findByRole('button', { name: 'New note' });
     expect(await screen.findByRole('button', { name: 'Key' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1, name: 'Today' })).toBeNull();
     expect(document.querySelector('.app-shell')).toHaveClass('app-home');
@@ -554,5 +606,25 @@ describe('the front door is the globe', () => {
     expect(document.querySelector('.app-shell')).not.toHaveClass('app-home');
     location.hash = '#today';
     expect(await screen.findByRole('button', { name: 'Key' })).toBeInTheDocument();
+  });
+  // Andrew, 2026-09-29: "Capture a thought" became the pencil, "New note", opening the concise box
+  // (NoteComposer.tsx) rather than the full editor. The home globe's pencil and the command palette's
+  // New note both open that box, and each saves a note whose first line is its title.
+  it('opens the concise New note box from the home pencil and from the command palette, and saves each note', async () => {
+    const user = userEvent.setup(); render(<App/>);
+    const pencil = await screen.findByRole('button', { name: 'New note' });
+    expect(pencil).toHaveAttribute('title', 'New note');
+    await user.click(pencil);
+    let composer = within(screen.getByRole('dialog', { name: 'New note' }));
+    expect(composer.queryByLabelText('Title')).toBeNull(); // concise: one box, no title field
+    await user.type(composer.getByRole('textbox', { name: 'Note' }), 'From the globe{Enter}the body');
+    await user.click(composer.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New note' })).toBeNull());
+    await user.type(screen.getByRole('combobox', { name: 'Search or run a command' }), 'New note');
+    await user.click(screen.getByRole('option', { name: /New note/ }));
+    composer = within(screen.getByRole('dialog', { name: 'New note' }));
+    await user.type(composer.getByRole('textbox', { name: 'Note' }), 'From the palette{Control>}{Enter}{/Control}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New note' })).toBeNull());
+    await waitFor(async () => expect((await loadWorkspace()).docs.filter(doc => doc.tags.includes('Quick capture')).map(doc => doc.name).sort()).toEqual(['From the globe', 'From the palette']));
   });
 });

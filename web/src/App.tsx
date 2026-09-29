@@ -1,11 +1,17 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-const Network = lazy(() => import('./Network'));
-const Home = lazy(() => import('./Home'));
-const Docs = lazy(() => import('./Docs').then(m => ({ default: m.Docs })));
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+// The lazy pages load through lib/preload, whose import() calls the idle and hover preloads make too, so
+// a page hovered or preloaded is already there on the click. lazyPage (see there) renders a loaded page
+// at once instead of through a Suspense fallback.
+import { chunks, lazyPage, preloadOn, preloadPage, preloadWhenIdle, takePrefetched } from './lib/preload';
+const Network = lazyPage(chunks.network, 'default');
+const Home = lazyPage(chunks.home, 'default');
+const Docs = lazyPage(chunks.docs, 'Docs');
 // PDF tools carry pdf-lib and pdf.js, so they load when the page is first opened.
-const PdfTools = lazy(() => import('./PdfTools').then(m => ({ default: m.PdfTools })));
-const Write = lazy(() => import('./Write').then(m => ({ default: m.Write })));
-import { ArrowDown, ArrowDownToLine, ArrowLeft, ArrowUpRight, Archive, Bell, Brain, FolderGit2, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Circle, CircleCheck, Clock3, Code2, Columns3, Command, Database, Download, File, FileText, Folder, FolderOpen, HardDrive, ImagePlus, Info, Layers3, Loader2, Maximize2, Menu, MessageSquare, MoreHorizontal, PanelLeftClose, PanelLeftDashed, PanelLeftOpen, Paperclip, Pencil, Pin, Plus, RefreshCw, Search, Send, Settings as Gear, ShieldCheck, ShoppingCart, Sparkles, Sun, Target, Trash2, Upload, WandSparkles, X, Zap } from 'lucide-react';
+const PdfTools = lazyPage(chunks.pdfTools, 'PdfTools');
+const Write = lazyPage(chunks.write, 'Write');
+// Health (added 2026-09-29) loads when first opened; a plain loader works here, and lib/preload can list it later.
+const Health = lazyPage(() => import('./Health'), 'Health');
+import { ArrowDown, ArrowDownToLine, ArrowLeft, ArrowUpRight, Archive, Bell, Brain, FolderGit2, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Circle, CircleCheck, Clock3, Code2, Columns3, Command, Database, Download, File, FileText, Folder, FolderOpen, HardDrive, HeartPulse, ImagePlus, Info, Layers3, Loader2, Maximize2, Menu, MessageSquare, MoreHorizontal, PanelLeftClose, PanelLeftDashed, PanelLeftOpen, Paperclip, Pencil, Pin, Plus, RefreshCw, Search, Send, Settings as Gear, ShieldCheck, ShoppingCart, Sparkles, Sun, Target, Trash2, Upload, WandSparkles, X, Zap } from 'lucide-react';
 import type { AnswerTrace, Connections, Conversation, Doc, Generation, Goal, Page, Source, Workspace } from './types';
 import { activity, download, loadWorkspace, makeDoc, now, parseBackup, readData, saveWorkspace, uid } from './lib/storage';
 import { api, getConnections, getSources, setAccessToken } from './lib/api';
@@ -19,6 +25,7 @@ import './chat.css';
 import { Markdown } from './Markdown';
 import { Skills, type InstalledSkill } from './Skills';
 import { Today } from './Today';
+import { NoteComposer } from './NoteComposer';
 import { Projects, type ProjectsData } from './Projects';
 import { MonthCalendar } from './MonthCalendar';
 import { Kanban } from './Kanban';
@@ -32,7 +39,8 @@ import { FocusTimer } from '@/components/ui/focus-timer';
 import { ThemeButton, ThemeChoice } from '@/components/ui/theme-controls';
 import { MapSearch } from './MapSearch';
 import { SampleWorkspaceCard } from '@/components/ui/sample-workspace';
-import { PageSweep } from '@/components/ui/page-sweep';
+import { DATA_WAIT_MS, PageSweep, SweepWait } from '@/components/ui/page-sweep';
+import { skeletonFor } from '@/components/ui/page-skeleton';
 import { ANDREW_SWEEP } from '@/components/ui/ascii-sweep';
 import { ProfileButton, ProfileSettings } from '@/components/ui/profile';
 import { useSidebarMode } from './lib/useSidebarMode';
@@ -54,12 +62,14 @@ const navigation: { id: Page; label: string; icon: typeof Brain; hint?: string }
   // moved under Docs the same day (Andrew: "combine that as a setting under notes"), a note of kind
   // Resume; #resume still opens it as a page, for bookmarks.
   { id: 'docs', label: 'Docs', icon: FileText }, { id: 'draw', label: 'Whiteboard', icon: Pencil },
+  // Added 2026-09-29: food, training and bodyweight (Health.tsx).
+  { id: 'health', label: 'Health', icon: HeartPulse },
 ];
 // The pages the address can name. 'files' and 'generate' are not here on purpose: #files and #generate
 // fall through to the home page, the same as any unknown hash.
-const labels: Partial<Record<Page, string>> = { today: 'Home', agenda: 'Today', projects: 'Projects', calendar: 'Calendar', board: 'Kanban', buy: 'Buy', network: 'Network', skills: 'Skills', goals: 'Goals', chat: 'andliu.ai', settings: 'Settings', docs: 'Docs', draw: 'Whiteboard', resume: 'Resume', write: 'Writing', pdf: 'PDF tools' };
+const labels: Partial<Record<Page, string>> = { today: 'Home', agenda: 'Today', projects: 'Projects', calendar: 'Calendar', board: 'Kanban', buy: 'Buy', network: 'Network', skills: 'Skills', goals: 'Goals', chat: 'andliu.ai', settings: 'Settings', docs: 'Docs', draw: 'Whiteboard', resume: 'Resume', write: 'Writing', pdf: 'PDF tools', health: 'Health' };
 // The welcome note is a notification, not a file (Andrew, 2026-09-25). Read state lives in this browser.
-const WELCOME = { id: 'welcome', title: 'Welcome to my second brain', body: 'Capture a thought with the plus, keep the day on Today, the work on Kanban, and ask andliu.ai anything about where things are. Everything is saved in this browser; Settings exports a backup.' };
+const WELCOME = { id: 'welcome', title: 'Welcome to my second brain', body: 'Jot a note with the pencil, keep the day on Today, the work on Kanban, and ask andliu.ai anything about where things are. Everything is saved in this browser; Settings exports a backup.' };
 const READ_KEY = 'brain-notifications-read';
 const readNotifications = (): string[] => { try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); } catch { return []; } };
 // Every page change sweeps (Andrew, 2026-09-29: "for every new page") except into or out of the home globe:
@@ -117,6 +127,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false); const sidebar = useSidebarMode(); const [toast, setToast] = useState<{ text: string; error: boolean } | null>(null);
   const [connections, setConnections] = useState<Connections | null>(null); const [connectionError, setConnectionError] = useState(''); const [checking, setChecking] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null); const [preview, setPreview] = useState<Doc | null>(null); const [confirm, setConfirm] = useState<Confirm | null>(null);
+  // The concise New note box (NoteComposer.tsx), opened by the home globe's pencil and the command palette.
+  const [noteOpen, setNoteOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false); const [search, setSearch] = useState(''); const [mapHits, setMapHits] = useState(0);
   const [sourcesOpen, setSourcesOpen] = useState(false); const [attached, setAttached] = useState<string[]>([]); const [activeChat, setActiveChat] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<'chat' | 'generate'>('chat');
@@ -137,10 +149,10 @@ export default function App() {
   async function connect() { setChecking(true); setConnectionError(''); try { setConnections(await getConnections()); } catch (error) { setConnections(null); setConnectionError(error instanceof Error ? error.message : 'Connection unavailable'); } finally { setChecking(false); } }
   async function load() { setLoadError(''); try { const data = await loadWorkspace(); current.current = data; setWorkspace(data); } catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not open browser storage'); } }
   // Installed skills are read from disk on each visit to Skills, so a skill installed a minute ago shows up.
-  async function loadSkills() { try { const reply = await api<{ skills?: InstalledSkill[] }>('skills'); setInstalled(Array.isArray(reply.skills) ? reply.skills : []); setSkillsError(''); } catch (error) { setInstalled(list => list || []); setSkillsError(error instanceof Error ? error.message : 'Could not read installed skills'); } }
+  async function loadSkills() { try { const reply = await (takePrefetched<{ skills?: InstalledSkill[] }>('skills') ?? api<{ skills?: InstalledSkill[] }>('skills')); setInstalled(Array.isArray(reply.skills) ? reply.skills : []); setSkillsError(''); } catch (error) { setInstalled(list => list || []); setSkillsError(error instanceof Error ? error.message : 'Could not read installed skills'); } }
   // Repos, courses and Blueberry's STATUS.md, read fresh on each visit to Today or Projects. A reply without them (an
   // older server, a test) reads as empty lists, never as a crash.
-  async function loadProjects() { try { const reply = await api<Partial<ProjectsData>>('projects'); setProjects({ repos: reply.repos || [], courses: reply.courses || [], blueberry: reply.blueberry || null, rootPath: reply.rootPath }); setProjectsError(''); } catch (error) { setProjectsError(error instanceof Error ? error.message : 'Could not read projects'); } }
+  async function loadProjects() { try { const reply = await (takePrefetched<Partial<ProjectsData>>('projects') ?? api<Partial<ProjectsData>>('projects')); setProjects({ repos: reply.repos || [], courses: reply.courses || [], blueberry: reply.blueberry || null, rootPath: reply.rootPath }); setProjectsError(''); } catch (error) { setProjectsError(error instanceof Error ? error.message : 'Could not read projects'); } }
   useEffect(() => { void load(); void connect(); }, []);
   useEffect(() => { if (page === 'skills' || installed === null) void loadSkills(); if (page === 'agenda' || page === 'projects') void loadProjects(); }, [page]);
   // Every move to another page, or to another project inside one, starts at the top of it. Opening or closing
@@ -149,6 +161,8 @@ export default function App() {
   useEffect(() => { if (page !== 'skills' || shownPage.current !== 'skills') document.documentElement.scrollTop = 0; shownPage.current = page; }, [page, subPath]);
   useEffect(() => { if (!toast) return; const timeout = setTimeout(() => setToast(null), toast.error ? 10000 : 4500); return () => clearTimeout(timeout); }, [toast]);
   useEffect(() => { const onHash = () => { const next = readHash(); if (next) { setPage(next.page); setSubPath(next.path); } }; const onKey = (event: KeyboardEvent) => { if ((event.metaKey || event.ctrlKey) && event.key === 'k') { event.preventDefault(); setSearchOpen(value => !value); } if (event.ctrlKey && event.key.toLowerCase() === 'b' && !typing(event.target)) { event.preventDefault(); sidebar.toggle(); } if (event.ctrlKey && event.key.toLowerCase() === 'j' && !typing(event.target)) { event.preventDefault(); setAiOpen(value => !value); } }; window.addEventListener('hashchange', onHash); window.addEventListener('keydown', onKey); return () => { window.removeEventListener('hashchange', onHash); window.removeEventListener('keydown', onKey); }; }, []);
+  // Once the first page is idle, the other pages' chunks load one at a time (lib/preload).
+  useEffect(() => preloadWhenIdle(), []);
   function navigate(next: Page, path = '') { setPage(next); setSubPath(path); location.hash = path ? next + '/' + path : next; setMenuOpen(false); }
   // #chat is andliu.ai full screen, so the panel closes there rather than reopening when he leaves it.
   useEffect(() => { if (page === 'chat') setAiOpen(false); }, [page]);
@@ -177,14 +191,14 @@ export default function App() {
   const commands: SearchAction[] = [
     ...navigation.map(({ id, label, icon: Icon }) => ({ id: 'go:' + id, label, icon: <Icon size={14}/>, end: 'Page' })),
     { id: 'go:projects', label: 'Projects', icon: <FolderGit2 size={14}/>, end: 'Page' }, { id: 'go:settings', label: 'Settings', icon: <Gear size={14}/>, end: 'Page' }, { id: 'go:network', label: 'Network map', icon: <Layers3 size={14}/>, end: 'Page' },
-    { id: 'capture', label: 'Capture a thought', icon: <Plus size={14}/>, description: 'new note', end: 'Action' },
+    { id: 'capture', label: 'New note', icon: <Pencil size={14}/>, description: 'a quick note, first line is the title', end: 'Action' },
     { id: 'run:clean-up', label: 'Clean up', icon: <Zap size={14}/>, description: 'stray processes and temp files', end: 'Run' },
     { id: 'run:doctor-plus', label: 'Doctor plus', icon: <Zap size={14}/>, description: 'health check, changes nothing', end: 'Run' },
     { id: 'search', label: 'Search everything', icon: <Search size={14}/>, short: 'Ctrl K', end: 'Search' },
   ];
   async function runCommand(id: string) {
     if (id.startsWith('go:')) return navigate(id.slice(3) as Page);
-    if (id === 'capture') return newDoc();
+    if (id === 'capture') return setNoteOpen(true);
     if (id === 'search') return setSearchOpen(true);
     if (id.startsWith('run:')) { const task = id.slice(4); try { await api('run', { id: task }); notify(`${task === 'clean-up' ? 'Clean up' : 'Doctor plus'} started; output is on Skills`); } catch (error) { notify(error instanceof Error ? error.message : 'Could not start the run', true); } }
   }
@@ -204,12 +218,12 @@ export default function App() {
     {menuOpen && <button aria-label="Close navigation" className="sidebar-scrim" onClick={() => setMenuOpen(false)}/>}
     {sidebar.mode === 'auto' && <div className="sidebar-edge" aria-hidden="true" onPointerEnter={sidebar.reveal}/>}
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`} aria-label="Workspace navigation" {...sidebar.handlers}>
-      <button className="brand" onClick={() => navigate('today')}><span className="brand-icon"><Brain size={22}/></span><span><strong>Second Brain<span className="brand-dot">.</span></strong></span></button>
+      <button className="brand" onClick={() => navigate('today')} {...preloadOn('today')}><span className="brand-icon"><Brain size={22}/></span><span><strong>Second Brain<span className="brand-dot">.</span></strong></span></button>
       <div className="nav-label">WORKSPACE</div>
-      <nav>{navigation.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)}><Icon size={18}/><span>{label}</span>{id === 'skills' && <small>{(installed?.length || 0) + skills.length}</small>}{id === 'chat' && <span className="nav-ai">AI</span>}</button>)}</nav>
+      <nav>{navigation.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} aria-current={page === id ? 'page' : undefined} onClick={() => navigate(id)} {...preloadOn(id)}><Icon size={18}/><span>{label}</span>{id === 'skills' && <small>{(installed?.length || 0) + skills.length}</small>}{id === 'chat' && <span className="nav-ai">AI</span>}</button>)}</nav>
       <div className="sidebar-bottom"><button className={`nav-item ${page === 'settings' ? 'active' : ''}`} onClick={() => navigate('settings')} aria-current={page === 'settings' ? 'page' : undefined}><Gear size={18}/><span>Settings</span></button><button type="button" className="nav-item sidebar-toggle" title="Hide sidebar (Ctrl B)" onClick={() => sidebar.setMode('hidden')}><PanelLeftClose size={18}/><span>Hide sidebar</span></button><button type="button" className="nav-item sidebar-toggle" aria-pressed={sidebar.mode === 'auto'} title="Slide away when the pointer leaves it" onClick={() => sidebar.setMode(sidebar.mode === 'auto' ? 'open' : 'auto')}><PanelLeftDashed size={18}/><span>Auto-hide</span></button></div>
     </aside>
-    <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><IconButton label="Open navigation" className="menu-button" onClick={() => setMenuOpen(true)}><Menu size={20}/></IconButton><IconButton label="Show sidebar" className="sidebar-burger" onClick={sidebar.reveal}><Menu size={20}/></IconButton><span className="breadcrumb-root">Workspace</span><ChevronRight size={13}/><strong>{labels[page]}</strong><span className="local-badge"><span className="status-dot"/>Local</span></div><div className="topbar-actions"><span className="save-status">{saving ? <><Loader2 size={12} className="spin"/> Saving…</> : <><CheckCheck size={13}/> Saved on device</>}</span><ActionSearchbar className="topbar-search" actions={commands} onSelect={action => void runCommand(action.id)} onSubmit={query => { setSearch(query); setSearchOpen(true); }}/>
+    <div className="main-shell"><header className="topbar"><div className="breadcrumbs"><IconButton label="Open navigation" className="menu-button" onClick={() => setMenuOpen(true)}><Menu size={20}/></IconButton><IconButton label="Show sidebar" className="sidebar-burger" onClick={sidebar.reveal}><Menu size={20}/></IconButton><span className="breadcrumb-root">Workspace</span><ChevronRight size={13}/><strong>{labels[page]}</strong><span className="local-badge"><span className="status-dot"/>Local</span></div><div className="topbar-actions"><span className="save-status">{saving ? <><Loader2 size={12} className="spin"/> Saving…</> : <><CheckCheck size={13}/> Saved on device</>}</span><ActionSearchbar className="topbar-search" actions={commands} onHighlight={action => { if (action.id.startsWith('go:')) preloadPage(action.id.slice(3)); }} onSelect={action => void runCommand(action.id)} onSubmit={query => { setSearch(query); setSearchOpen(true); }}/>
       {page !== 'chat' && <button ref={aiButton} type="button" className={`ai-open-button ${aiOpen ? 'active' : ''}`} aria-label="Ask andliu.ai" aria-expanded={aiOpen} aria-controls={aiOpen ? 'ai-panel' : undefined} aria-keyshortcuts="Control+J" title="andliu.ai (Ctrl J)" onClick={() => setAiOpen(value => !value)}><Sparkles size={15}/><span>andliu.ai</span></button>}
       <ProfileButton workspace={workspace} openSettings={() => navigate('settings')}/>
       <FocusTimer/><ThemeButton/><div className="notifications" onKeyDown={event => { if (event.key === 'Escape' && notifOpen) { event.stopPropagation(); setNotifOpen(false); } }}><IconButton label={unread.length ? `Notifications, ${unread.length} unread` : 'Notifications'} className={`notif-button ${unread.length ? 'has-unread' : ''}`} onClick={() => setNotifOpen(v => !v)}><Bell size={17}/>{unread.length > 0 && <span className="notif-ping" aria-hidden="true"/>}</IconButton>
@@ -219,10 +233,12 @@ export default function App() {
         </div>}
       </div></div></header>
       {unread[0] && !notifOpen && <div className="notif-banner" role="note" aria-label="Unread notification"><Bell size={14}/><strong>{unread[0].title}</strong><span>{unread[0].body}</span><button type="button" className="text-button" onClick={() => markRead(unread[0].id)}>Got it</button></div>}
-      <main id="main-content" className={`main-content page-${page}`} tabIndex={-1}><PageSweep index={page} when={sweepsTo}>
-        {page === 'network' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening your network…</p></div>}><Network notify={notify} path={subPath}/></Suspense>}
-        {page === 'today' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening your workspace…</p></div>}><Home notify={notify} openMenu={() => setMenuOpen(true)} openSearch={() => setSearchOpen(true)} newDoc={() => newDoc()} workspace={workspace} commit={commit} capture={captureNote}/></Suspense>}
-        {page === 'agenda' && <Today data={projects} error={projectsError} workspace={workspace} commit={commit} openDoc={openDoc} newDoc={() => newDoc()} capture={captureNote}/>}
+      <main id="main-content" className={`main-content page-${page}`} tabIndex={-1}><PageSweep index={page} when={sweepsTo} skeleton={skeletonFor}>
+        {/* Today and Projects wait on /api/projects the first time, Skills on /api/skills: the band holds for them, at most DATA_WAIT_MS. */}
+        <SweepWait when={((page === 'agenda' || page === 'projects') && !projects && !projectsError) || (page === 'skills' && installed === null)} upTo={DATA_WAIT_MS}/>
+        {page === 'network' && <Suspense fallback={<div className="panel boot-screen"><SweepWait/><Loader2 className="spin"/><p>Opening your network…</p></div>}><Network notify={notify} path={subPath}/></Suspense>}
+        {page === 'today' && <Suspense fallback={<div className="panel boot-screen"><SweepWait/><Loader2 className="spin"/><p>Opening your workspace…</p></div>}><Home notify={notify} openMenu={() => setMenuOpen(true)} openSearch={() => setSearchOpen(true)} newNote={() => setNoteOpen(true)} workspace={workspace} commit={commit} capture={captureNote}/></Suspense>}
+        {page === 'agenda' && <Today data={projects} error={projectsError} workspace={workspace} commit={commit} openDoc={openDoc} capture={captureNote}/>}
         {/* The full month, reached from Today's calendar card; #calendar/<day> opens on that day. Keyed on the day so a new one starts fresh. */}
         {page === 'calendar' && <><a className="text-button project-back" href="#agenda"><ArrowLeft size={15}/>Today</a><PageHeading title="Calendar"/><MonthCalendar key={subPath} focus={subPath} todos={workspace.todos}/></>}
         {page === 'projects' && <Projects path={subPath} data={projects} error={projectsError} refresh={() => { setProjects(null); void loadProjects(); }} workspace={workspace} commit={commit}/>}
@@ -234,9 +250,10 @@ export default function App() {
           <section className="bento-cell bento-wide"><Goals workspace={workspace} commit={commit} confirm={setConfirm} level={2}/></section>
         </div>}
         {page === 'buy' && <><PageHeading title="Buy"/><BuyList workspace={workspace} commit={commit}/></>}
-        {page === 'docs' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening your documents…</p></div>}><Docs workspace={workspace} commit={commit} remove={deleteDoc}/></Suspense>}
+        {page === 'docs' && <Suspense fallback={<div className="panel boot-screen"><SweepWait/><Loader2 className="spin"/><p>Opening your documents…</p></div>}><Docs workspace={workspace} commit={commit} remove={deleteDoc}/></Suspense>}
         {page === 'draw' && <Whiteboard workspace={workspace} commit={commit}/>}
-        {page === 'pdf' && <Suspense fallback={<div className="panel boot-screen"><Loader2 className="spin"/><p>Opening PDF tools…</p></div>}><PdfTools workspace={workspace} commit={commit}/></Suspense>}
+        {page === 'health' && <Suspense fallback={<div className="panel boot-screen"><SweepWait/><Loader2 className="spin"/><p>Opening Health…</p></div>}><Health workspace={workspace} commit={commit} notify={notify} connections={connections}/></Suspense>}
+        {page === 'pdf' && <Suspense fallback={<div className="panel boot-screen"><SweepWait/><Loader2 className="spin"/><p>Opening PDF tools…</p></div>}><PdfTools workspace={workspace} commit={commit}/></Suspense>}
         {page === 'resume' && <><PageHeading title="Resume"/><Resume workspace={workspace} commit={commit}/></>}
         {page === 'skills' &&<Skills path={subPath} installed={installed} error={skillsError} personal={skills} newSkill={() => newDoc('skill')} chat={chatWithSkill} duplicate={duplicateSkill} mine={{ attach: attachDoc, edit: doc => setEditor({ doc, fresh: false }), pin: pinDoc, download: exportDoc, remove: deleteDoc }} favorites={favoritesOf(workspace).skills} toggleFavorite={key => void commit(w => toggleFavorite(w, 'skills', key))} review={favoritesOf(workspace).review} toggleReview={key => void commit(w => toggleFavorite(w, 'review', key))}/>}
         {page === 'goals' && <Goals workspace={workspace} commit={commit} confirm={setConfirm}/>}
@@ -252,6 +269,7 @@ export default function App() {
     </aside>}
     <input ref={importRef} type="file" multiple className="sr-only" aria-label="Import files" onChange={event => void importFiles(event.target.files)}/>
     {editor && <EditorModal editor={editor} close={() => setEditor(null)} save={saveDoc}/>}
+    {noteOpen && <NoteComposer save={captureNote} close={() => setNoteOpen(false)}/>}
     {preview && <Modal title="File details" close={() => setPreview(null)} wide><div className="preview-meta"><div className={`doc-symbol ${preview.kind}`} >{(() => { const Icon = documentIcon(preview); return <Icon size={25}/>; })()}</div><div><h2>{preview.name}</h2><p>{preview.kind === 'note' ? 'Note' : preview.mime || 'File'} · Updated {formatDate(preview.updated)} {preview.size ? `· ${bytes(preview.size)}` : ''}</p></div></div><div className="preview-toolbar"><button className={`button small ${preview.pinned ? 'copper-text' : ''}`} onClick={() => pinDoc(preview)}><Pin size={14}/>{preview.pinned ? 'Unpin' : 'Pin'}</button>{isText(preview) && <button className="button small" onClick={() => { setEditor({ doc: preview, fresh: false }); setPreview(null); }}><Pencil size={14}/>Edit</button>}<button className="button small" onClick={() => exportDoc(preview)}><Download size={14}/>Download</button>{isText(preview) && <button className="button small" onClick={() => attachDoc(preview)}><MessageSquare size={14}/>Use in Chat</button>}<IconButton label="Delete saved copy" onClick={() => deleteDoc(preview)} className="danger-text"><Trash2 size={15}/></IconButton></div><div className="preview-content">{preview.data && preview.mime?.startsWith('image/') ? <img className="file-image" src={preview.data} alt={preview.name}/> : preview.data && preview.mime === 'application/pdf' ? <><iframe title={preview.name} className="pdf-preview" src={preview.data}/><p className="muted">If your browser does not display this PDF, use Download above.</p></> : isText(preview) ? <Markdown content={preview.content || 'This file is empty.'}/> : <Empty icon={File} title="Your original file is safely stored">Download this file to open it in its native application.</Empty>}</div>{preview.tags.length > 0 && <div className="preview-tags">{preview.tags.map(tag => <span className="tag" key={tag}>{tag}</span>)}</div>}{preview.source && <div className="source-path"><Folder size={13}/><span>Copied from {preview.source}</span></div>}</Modal>}
     {confirm && <ConfirmModal value={confirm} close={() => setConfirm(null)}/>}
     {sourcesOpen && <SourcesModal close={() => setSourcesOpen(false)} commit={commit} openDoc={setPreview} notify={notify} navigate={navigate}/>}

@@ -1,0 +1,9 @@
+/* NoteComposer.tsx: the compact New note box. It borrows .modal (styles.css) for the sheet, border and
+   backdrop, and only narrows it and lays out the one text box and its footer. Theme tokens only. */
+.note-composer{width:min(440px,calc(100vw - 32px))}
+.note-composer textarea{display:block;width:100%;min-height:128px;padding:16px 18px 8px;border:0;border-radius:0;background:none;font-size:14px;line-height:1.5;resize:vertical}
+.note-composer textarea:focus{outline-offset:-3px;outline-width:1px}
+.note-composer textarea::placeholder{color:var(--mut)}
+.note-composer-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 14px 14px;border-top:1px solid var(--line)}
+.note-composer-foot .muted{margin-right:auto;font-size:12px}
+.note-composer-foot kbd{font-family:inherit;font-size:12px;color:var(--mut);border:1px solid var(--line);padding:2px 4px;border-radius:3px}

@@ -27,7 +27,7 @@ describe('the redesigned shell', () => {
     window.location.hash = 'board';
     render(<App/>);
     const nav = await screen.findByRole('complementary', { name: 'Workspace navigation' });
-    expect(within(nav).getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI/g, '').trim())).toEqual(['Second Brain.', 'Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard', 'Settings', 'Hide sidebar', 'Auto-hide']); // 2026-09-28: Resume left the nav for Docs (a note of kind Resume; #resume still opens). Docs, Whiteboard and Resume joined the nav; PDF tools joined after them, then folded into Docs (#pdf still opens)
+    expect(within(nav).getAllByRole('button').map(b => b.textContent?.replace(/\d+|AI/g, '').trim())).toEqual(['Second Brain.', 'Today', 'Kanban', 'Skills', 'andliu.ai', 'Docs', 'Whiteboard', 'Health', 'Settings', 'Hide sidebar', 'Auto-hide']); // 2026-09-29: Health joined the nav. 2026-09-28: Resume left the nav for Docs (a note of kind Resume; #resume still opens). Docs, Whiteboard and Resume joined the nav; PDF tools joined after them, then folded into Docs (#pdf still opens)
     // The Kanban page carries the board, the day's todos, the buy list and the goals together.
     expect(await screen.findByRole('heading', { level: 1, name: 'Board' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Read for 15 minutes' })).toBeInTheDocument();

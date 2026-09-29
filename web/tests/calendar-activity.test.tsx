@@ -1,9 +1,9 @@
 // Today's "Calendar and activity" card (MiniCalendar in MonthCalendar.tsx): the small month with each day
-// shaded by its activity, which Show more (kept) expands into the heat calendar and
-// one day's detail. It replaced the separate Activity widget on 2026-09-28.
+// shaded by its activity, the heat calendar and one day's detail. It replaced the separate Activity widget
+// on 2026-09-28. Since 2026-09-29 it is always the full card (Andrew: the "Show more" version "fills in the
+// empty space"), so the Show more and Show less tests became "always expanded" tests.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MiniCalendar } from '../src/MonthCalendar';
 import type { Activity, Todos } from '../src/types';
 
@@ -26,19 +26,14 @@ describe('the calendar and activity card', () => {
     expect(cell(today)).toHaveAttribute('data-level', '4');
     if (first !== today) expect(cell(first)).toHaveAttribute('data-level', '1');
     expect(cell(today).getAttribute('aria-label')).toMatch(/, 4 activities$/);
-    // Collapsed: no heat calendar and no day detail yet.
-    expect(card().querySelector('.heat-grid')).toBeNull();
-    expect(card()).not.toHaveAttribute('data-expanded');
   });
 
-  it('Show more opens the heat calendar and today\'s detail, and is remembered; Show less closes it', async () => {
-    const user = userEvent.setup();
+  // Was "Show more opens the heat calendar and today's detail, and is remembered; Show less closes it".
+  // The requirement changed on 2026-09-29: the same content is asserted, now present from the first render.
+  it('always shows the heat calendar and today\'s detail, with no Show more or Show less', () => {
     const todos: Todos = { day: today, items: [{ id: 'r', text: 'Read for 15 minutes', done: false, category: 'academic' }], history: {}, removedDefaults: [] };
     const { unmount } = render(<MiniCalendar todos={todos} activity={[at(today, 1)]}/>);
-    const more = within(card()).getByRole('button', { name: 'Show more' });
-    expect(more).toHaveAttribute('aria-expanded', 'false');
-    await user.click(more);
-    expect(more).toHaveAttribute('aria-expanded', 'true');
+    expect(within(card()).queryByRole('button', { name: /Show (more|less)/ })).toBeNull();
     expect(card().querySelector('.heat-grid')).not.toBeNull();
     expect(within(card()).getByText(/this week/)).toHaveTextContent('1 this week');
     const detail = card().querySelector('.mini-cal-detail') as HTMLElement;
@@ -46,33 +41,33 @@ describe('the calendar and activity card', () => {
     expect(within(detail).getByText('Read for 15 minutes')).toBeInTheDocument();
     expect(within(detail).getByText('1 thing logged: Did thing 1')).toBeInTheDocument();
     expect(within(detail).getByRole('link', { name: /Open this day/ })).toHaveAttribute('href', '#calendar/' + today);
+    expect(cell(today)).toHaveAttribute('data-shown');
     unmount();
-    render(<MiniCalendar activity={[]}/>);                       // a later visit opens as it was left
-    expect(card()).toHaveAttribute('data-expanded');
+    // A value the old Show less left in this browser changes nothing: the key is no longer read.
+    localStorage.setItem('brain-calendar-expanded', '0');
+    render(<MiniCalendar activity={[]}/>);
     expect(within(card()).getByText('No activity yet; everything you add or change is logged here.')).toBeInTheDocument();
-    await user.click(within(card()).getByRole('button', { name: 'Show less' }));
-    expect(card()).not.toHaveAttribute('data-expanded');
+    expect(card().querySelector('.mini-cal-detail')).not.toBeNull();
   });
 
-  it('a hover changes nothing: only Show more and Show less open and close it', () => {
+  it('a hover changes nothing, and keyboard focus on a day shows that day\'s detail', () => {
     // Andrew, 2026-09-29: "the calendar should not change on hover". This replaced a 200ms hover preview.
     // jsdom has no PointerEvent, so without this every pointer event would arrive with no pointerType.
     vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerType: string; constructor(type: string, init: PointerEventInit = {}) { super(type, init); this.pointerType = init.pointerType ?? ''; } });
     vi.useFakeTimers();
     render(<MiniCalendar activity={[at(today, 1)]}/>);
+    const heading = () => within(card().querySelector('.mini-cal-detail') as HTMLElement).getByRole('heading', { level: 3 });
+    const other = card().querySelector(`.mini-cal-day:not([href="#calendar/${today}"])`) as HTMLElement;
     fireEvent.pointerEnter(card(), { pointerType: 'mouse' });
-    fireEvent.pointerEnter(cell(today), { pointerType: 'mouse' });
+    fireEvent.pointerEnter(other, { pointerType: 'mouse' });     // a day under the pointer does not swap the detail
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(card()).not.toHaveAttribute('data-expanded');
-    expect(card().querySelector('.heat-grid')).toBeNull();
-    fireEvent.click(within(card()).getByRole('button', { name: 'Show more' }));
-    expect(card()).toHaveAttribute('data-expanded');
-    const other = card().querySelector(`.mini-cal-day:not([href="#calendar/${today}"])`)!;
-    fireEvent.pointerEnter(other, { pointerType: 'mouse' });     // nor does a day under the pointer swap the detail
-    expect(within(card().querySelector('.mini-cal-detail') as HTMLElement).getByRole('heading', { level: 3 })).toHaveTextContent(/^Today, /);
-    fireEvent.pointerLeave(card());                            // leaving does not close it either
+    expect(heading()).toHaveTextContent(/^Today, /);
+    fireEvent.pointerLeave(card());
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(card()).toHaveAttribute('data-expanded');
+    expect(card().querySelector('.heat-grid')).not.toBeNull();   // leaving does not collapse anything either
     vi.useRealTimers();
+    act(() => { other.focus(); });
+    expect(heading()).not.toHaveTextContent(/^Today, /);
+    expect(other).toHaveAttribute('data-shown');
   });
 });

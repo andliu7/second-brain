@@ -10,14 +10,16 @@
 // Mount from App.tsx as the #calendar page (#calendar/<day> sets focus):
 //   <MonthCalendar focus={day} todos={workspace.todos}/>
 // MiniCalendar is Today's "Calendar and activity" card (Andrew, 2026-09-28: "calendar combine it with
-// activity just make them expand when you click/hover"). Collapsed it is the month: arrows, today marked,
-// each day shaded by how much was logged that day (the heat calendar's levels) with a dot under days with
-// events or todos, each day a link to #calendar/<day>. Show more (remembered in this browser) expands it: this week's
-// activity count and the heat calendar, and the detail of one day (today, or the day with keyboard focus).
+// activity just make them expand when you click/hover"). It is always the full card since 2026-09-29 (Andrew:
+// the "Show more" version "fills in the empty space"), so Show more, Show less and their remembered state
+// are gone; a stale 'brain-calendar-expanded' value in localStorage is simply never read. Three parts: the
+// month (arrows, today marked, each day shaded by how much was logged that day, the heat calendar's levels,
+// with a dot under days with events or todos, each day a link to #calendar/<day>); this week's activity
+// count and the heat calendar; and the detail of one day (today, or the day with keyboard focus).
 // A hover changes nothing (Andrew, 2026-09-29: "the calendar should not change on hover"). Props:
 //   todos: workspace.todos, whose days (today's list and history) get a dot
 //   activity: workspace.activity, the log the shading and the heat calendar count
-import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type SyntheticEvent } from 'react';
 import { ArrowUpRight, CalendarDays, ChevronLeft, ChevronRight, KeyRound, Loader2, Search, X } from 'lucide-react';
 import { api } from './lib/api';
 import { CATEGORIES, categoryOf, type CategoryId } from './lib/categories';
@@ -214,20 +216,13 @@ function KeyDialog({ close }: { close: () => void }) {
   </dialog>;
 }
 
-// Expanded by Show more and collapsed by Show less, kept in this browser.
-const OPEN_KEY = 'brain-calendar-expanded';
-const readOpen = () => { try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; } };
 const ARROWS = { up: '↑', down: '↓', flat: '→' };
 
 export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity?: Activity[] }) {
   const [month, setMonth] = useState(() => firstOf(new Date()));
   const { status, error, byDay } = useCalendar();
   const today = key(new Date());
-  const [pinned, setPinned] = useState(readOpen);
   const [day, setDay] = useState(today);
-  const more = useId();
-  useEffect(() => { try { localStorage.setItem(OPEN_KEY, pinned ? '1' : '0'); } catch { /* this visit only */ } }, [pinned]);
-  const expanded = pinned;
 
   const todosOn = (k: string): Todo[] => todos ? (k === todos.day ? todos.items : todos.history[k] || []) : [];
   const counts = activityCounts(activity);
@@ -243,13 +238,10 @@ export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity
     ...todosOn(day).map(todo => ({ id: 't:' + todo.id, text: todo.text, time: '', done: todo.done })),
   ];
 
-  return <section className="panel mini-cal" aria-label="Calendar and activity" data-expanded={expanded || undefined}>
+  return <section className="panel mini-cal" aria-label="Calendar and activity">
     <div className="section-heading">
       <h2><CalendarDays size={16}/>Calendar and activity</h2>
-      <span className="mini-cal-actions">
-        <button type="button" className="text-button" aria-expanded={pinned} aria-controls={more} onClick={() => setPinned(v => !v)}>{pinned ? 'Show less' : 'Show more'}</button>
-        <a className="text-button" href="#calendar">Open calendar<ArrowUpRight size={14}/></a>
-      </span>
+      <a className="text-button" href="#calendar">Open calendar<ArrowUpRight size={14}/></a>
     </div>
     <div className="mini-cal-body">
       <div className="mini-cal-month">
@@ -266,14 +258,13 @@ export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity
             const count = counts.get(k) || 0;
             const label = date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) + (marked ? ', has events or todos' : '') + (count ? `, ${count} ${count === 1 ? 'activity' : 'activities'}` : '');
             return <a key={k} href={'#calendar/' + k} className="mini-cal-day" aria-label={label} onFocus={() => setDay(k)}
-              data-today={k === today || undefined} data-outside={date.getMonth() !== month.getMonth() || undefined} data-marked={marked || undefined} data-level={levelOf(count, max)} data-shown={(expanded && k === day) || undefined}>{date.getDate()}</a>;
+              data-today={k === today || undefined} data-outside={date.getMonth() !== month.getMonth() || undefined} data-marked={marked || undefined} data-level={levelOf(count, max)} data-shown={k === day || undefined}>{date.getDate()}</a>;
           })}
         </div>
         {status && !status.connected && <p className="today-note">No calendar is connected. <a href="/api/calendar/connect">Connect</a></p>}
         {error && <p className="today-note error-text" role="alert">{error}</p>}
       </div>
-      {/* Rendered only when expanded, so the collapsed card carries no second calendar for a screen reader to wade through. */}
-      {expanded && <div className="mini-cal-more" id={more}>
+      <div className="mini-cal-more">
         <div className="mini-cal-activity">
           <h3>Activity</h3>
           {activity.length ? <>
@@ -287,7 +278,7 @@ export function MiniCalendar({ todos, activity = [] }: { todos?: Todos; activity
           <p className="mini-cal-logged">{logged.length ? `${logged.length} ${logged.length === 1 ? 'thing' : 'things'} logged: ${logged.slice(0, 3).map(entry => entry.text).join('; ')}${logged.length > 3 ? '; and more' : ''}` : 'Nothing logged.'}</p>
           <a className="text-button" href={'#calendar/' + day}>Open this day<ArrowUpRight size={14}/></a>
         </div>
-      </div>}
+      </div>
     </div>
   </section>;
 }

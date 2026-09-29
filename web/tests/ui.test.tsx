@@ -16,16 +16,16 @@ beforeEach(()=>{
   return new Response(JSON.stringify(reply),{status:200,headers:{'content-type':'application/json'}});
  }));
 });
-async function ready(){await screen.findByRole('button',{name:/Capture a thought/});}
+async function ready(){await screen.findByRole('button',{name:'New note'});} // the home globe's pencil, once 'Capture a thought' (renamed 2026-09-29)
 describe('real workspace flows in a test DOM (not visual QA)',()=>{
  it('creates a note and persists it across application reloads',async()=>{
   const user=userEvent.setup();const app=render(<App/>);await ready();
-  await user.click(screen.getByRole('button',{name:/Capture a thought/}));
-  const dialog=screen.getByRole('dialog');
-  await user.type(within(dialog).getByLabelText('Title'),'Research decision');
-  const body=within(dialog).getByRole('textbox',{name:/Content|Instructions|Note/i});
-  await user.type(body,'Use a small local index before asking the model.');
-  await user.click(within(dialog).getByRole('button',{name:/Save note|Create note|Save skill|Save$/i}));
+  // The pencil opens the concise New note box (NoteComposer), which has no Title field: the first line is the title.
+  await user.click(screen.getByRole('button',{name:'New note'}));
+  const dialog=screen.getByRole('dialog',{name:'New note'});
+  const body=within(dialog).getByRole('textbox',{name:'Note'});
+  await user.type(body,'Research decision{Enter}Use a small local index before asking the model.');
+  await user.click(within(dialog).getByRole('button',{name:'Save'}));
   await waitFor(async()=>expect((await loadWorkspace()).docs.some(d=>d.name==='Research decision')).toBe(true));
   app.unmount();render(<App/>);await ready();
   // Files is no longer a page: a saved note is reached through the workspace search (Ctrl K).

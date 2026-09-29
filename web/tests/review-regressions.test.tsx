@@ -27,7 +27,7 @@ beforeEach(() => {
 // Generate is a mode of Chat: the second button of the Chat | Generate control at the top of that page.
 async function openGenerate() {
   render(<App />);
-  await screen.findByRole('button', { name: /Capture a thought/ });
+  await screen.findByRole('button', { name: 'New note' });
   await userEvent.click(screen.getByRole('button', { name: /^andliu\.ai\s*AI?$/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Generate' }));
 }

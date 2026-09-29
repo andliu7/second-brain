@@ -40,10 +40,13 @@ import { now, uid } from './lib/storage';
 import { DOC_KINDS, TEXT_KINDS, UNTITLED, allUserTags, importPdfs, isListed, journalMonths, kindOf, listDocs, newDocFor, notebookOf, onThisDay, previewOf, userTags, viewDocs, withNotebook, withUserTags, wordCount, type DocKind, type View } from './lib/docs-kinds';
 import { DocsNav } from './DocsNav';
 import { Resume } from './Resume';
-import { PageSweep } from '@/components/ui/page-sweep';
+import { PageSweep, SweepWait } from '@/components/ui/page-sweep';
+import { chunks, lazyPage } from './lib/preload';
 import './docs.css';
 
-export const DocEditor = lazy(() => import('@/components/ui/doc-editor'));
+// Through lib/preload, so the editor preloaded on idle or a Docs hover renders with no spinner, and the
+// SweepWait in its fallback holds the page sweep until it has (page-sweep.tsx).
+export const DocEditor = lazyPage(chunks.docEditor, 'default');
 // React.lazy wants a default export; PdfTools.tsx has a named one, so the promise renames it.
 export const PdfTools = lazy(() => import('./PdfTools').then(m => ({ default: m.PdfTools })));
 
@@ -279,7 +282,7 @@ function DocPane({ doc, notebooks, status, edit, full, back, remove }: { doc: Do
         {remove && <button type="button" className="icon-button" onClick={remove} aria-label="Delete this document" title="Delete"><Trash2 size={15}/></button>}
       </span>
     </div>
-    <Suspense fallback={<div className="docs-loading"><Loader2 className="spin" size={16}/>Opening the editor</div>}>
+    <Suspense fallback={<div className="docs-loading"><SweepWait/><Loader2 className="spin" size={16}/>Opening the editor</div>}>
       <DocEditor markdown={doc.content} onChange={content => { setWords(wordCount(content)); edit({ content }); }}/>
     </Suspense>
   </>;

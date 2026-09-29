@@ -27,13 +27,13 @@ describe('the shell after the restructure', () => {
     // 2026-09-28: the board left Today ("remove kanban from today"); it is on #board only.
     expect(columns()).toEqual([]);
     // 2026-09-28: Today carries a small calendar card; the full month is its own page, #calendar. The same
-    // day the activity heat map joined it ("calendar combine it with activity"): the collapsed card shades its
-    // days by activity, and Show more opens the heat calendar inside the card.
+    // day the activity heat map joined it ("calendar combine it with activity"). Since 2026-09-29 the card is
+    // always expanded, so the heat calendar is there without the Show more click this used to make.
     const calendar = screen.getByRole('region', { name: 'Calendar and activity' });
     expect(calendar).toHaveClass('mini-cal');
     expect(within(calendar).getByText(new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' }))).toBeInTheDocument();
     expect(await within(calendar).findByRole('link', { name: 'Connect' })).toHaveAttribute('href', '/api/calendar/connect');
-    await userEvent.setup().click(within(calendar).getByRole('button', { name: 'Show more' }));
+    expect(within(calendar).queryByRole('button', { name: 'Show more' })).toBeNull();
     expect(calendar.querySelector('.heat-grid')).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.queryByRole('heading', { name: 'Board' })).toBeNull();

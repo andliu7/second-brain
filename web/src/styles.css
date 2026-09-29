@@ -536,7 +536,7 @@ select option{background:var(--soft);color:var(--ink)}
 .today-heading .panel,.today-layout .panel{font-size:13px}
 .today-layout .section-heading{min-height:44px;padding:11px 16px}
 .capture-panel textarea{min-height:72px}
-@media (max-width:900px){.today-heading{grid-template-columns:auto 1fr auto}.today-quote.quote-board{grid-column:1/-1}.today-layout{grid-template-columns:1fr}.today-side{order:-1}}
+@media (max-width:900px){.today-heading{grid-template-columns:auto 1fr auto}.today-quote.quote-board{grid-column:1/-1}.today-layout{grid-template-columns:1fr}}
 
 /* Theme controls (components/ui/theme-controls.tsx): a segmented System / Light / Dark in Settings. The radios
    stay real inputs, clipped out of sight, so the chosen segment is the checked one and keys move between them. */

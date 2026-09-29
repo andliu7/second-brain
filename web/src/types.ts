@@ -2,7 +2,7 @@ import type { CategoryId } from './lib/categories';
 // 'files' and 'generate' are no longer pages of their own (Files left the nav, Generate lives inside Chat)
 // but activity entries still name them, so they stay in the union. 'write' is one note as a page of its
 // own, #write/<docId>, drawn without the app shell (Write.tsx).
-export type Page = 'today' | 'agenda' | 'projects' | 'calendar' | 'board' | 'buy' | 'files' | 'skills' | 'goals' | 'network' | 'chat' | 'generate' | 'settings' | 'docs' | 'draw' | 'resume' | 'write' | 'pdf';
+export type Page = 'today' | 'agenda' | 'projects' | 'calendar' | 'board' | 'buy' | 'files' | 'skills' | 'goals' | 'network' | 'chat' | 'generate' | 'settings' | 'docs' | 'draw' | 'resume' | 'write' | 'pdf' | 'health';
 export type Doc = { id: string; name: string; content: string; kind: 'note' | 'file' | 'skill'; tags: string[]; pinned: boolean; created: string; updated: string; mime?: string; data?: string; size?: number; source?: string };
 export type Goal = { id: string; title: string; description: string; category: string; due: string; archived: boolean; milestones: {id: string; title: string; done: boolean}[]; created: string };
 // How an assistant answer was made (server/trace.mjs, drawn by components/ui/agent-trace.tsx). Times are ms from
@@ -35,7 +35,8 @@ export type Column = { id: string; name: string };
 export type Board = { columns: Column[]; cards: Card[]; view: 'board' | 'sticky' };
 // The daily todo card (TodoCard.tsx). items are today's todos; history holds earlier days' completed
 // ones by date, all of them; removedDefaults names the built-in daily todos the user deleted for good.
-export type Todo = { id: string; text: string; done: boolean; category: CategoryId; minutes?: number; goal?: string; time?: string; defaultKey?: string };
+// urgency and importance are 1 to 5, each optional (a todo saved before them, or never rated, has neither); byPriority in lib/todos.ts orders by them.
+export type Todo = { id: string; text: string; done: boolean; category: CategoryId; minutes?: number; goal?: string; time?: string; defaultKey?: string; urgency?: number; importance?: number };
 export type Todos = { day: string; items: Todo[]; history: Record<string, Todo[]>; removedDefaults: string[] };
 // The long-term to-buy list (BuyList.tsx). image is a URL, or "doc:<id>" for an image doc in this workspace.
 // options are the manual store rows; the card shows their lowest price and highest rating.
@@ -43,7 +44,7 @@ export type BuyOption = { id: string; store: string; price: number | null; curre
 export type BuyItem = { id: string; name: string; category: CategoryId; image: string; links: string[]; notes: string; options: BuyOption[] };
 // board, todos and buyList are optional because workspaces saved before they existed have none;
 // Kanban.tsx fills in defaultBoard(), TodoCard.tsx and BuyList.tsx fill in theirs.
-export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[]; board?: Board; todos?: Todos; buyList?: BuyItem[]; favorites?: Favorites; resume?: Resume; drawing?: Drawing; whiteboards?: Whiteboard[]; currentWhiteboard?: string; misc?: MiscItem[]; todayLayout?: TodayWidget[]; notebooks?: Notebook[]; profile?: Profile };
+export type Workspace = { version: 1; docs: Doc[]; goals: Goal[]; conversations: Conversation[]; generations: Generation[]; activity: Activity[]; relations?: Relation[]; board?: Board; todos?: Todos; buyList?: BuyItem[]; favorites?: Favorites; resume?: Resume; drawing?: Drawing; whiteboards?: Whiteboard[]; currentWhiteboard?: string; misc?: MiscItem[]; todayLayout?: TodayWidget[]; notebooks?: Notebook[]; profile?: Profile; health?: Health };
 // A notebook on the Docs page. Only the name lives here; a note joins one with a "notebook:<id>" tag
 // (lib/docs-kinds.ts), so deleting a notebook drops the tag and keeps every note.
 export type Notebook = { id: string; name: string };
@@ -54,6 +55,31 @@ export type TodayWidget = { id: string; size: 'sm' | 'wide' | 'tall' | 'lg' };
 // saved before it had none; lib/profile.ts reads a missing one as its default.
 export type ProfileColor = 'accent' | 'green' | 'amber' | 'red' | 'ink';
 export type Profile = { name: string; avatar: string; color: ProfileColor; status?: string };
+// The Health page (Health.tsx), added 2026-09-29. Optional, because every workspace saved before it had
+// none; lib/health/nutrition.ts emptyHealth() stands in. Days are YYYY-MM-DD. A food row keeps the numbers
+// for the portion eaten, and source says which rung of the lookup ladder (server/health.mjs) gave them:
+// 'known' is one of his own foods, 'usda' a FoodData Central entry (fdcId), 'guessed' the model's estimate,
+// 'manual' typed by hand. A workout row is one exercise on one day: sets for a lift, distance and minutes
+// for cardio. shared/validate.mjs holds the bounds.
+export type MacroSet = { kcal: number; protein: number; carbs: number; fat: number };
+export type FoodSource = 'known' | 'usda' | 'guessed' | 'manual';
+export type HealthFood = MacroSet & { id: string; name: string; grams: number; quantity?: number; unit?: string; source: FoodSource; fdcId?: number };
+export type MealName = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type HealthMeal = { id: string; day: string; meal: MealName; items: HealthFood[] };
+export type WeightUnit = 'lb' | 'kg';
+export type LiftSet = { reps: number; weight: number; unit: WeightUnit };
+export type HealthWorkout = { id: string; day: string; exercise: string; kind: 'strength' | 'cardio'; sets?: LiftSet[]; distance?: number; distanceUnit?: 'mi' | 'km'; minutes?: number; effort?: 'easy' | 'moderate' | 'hard' };
+export type BodyWeight = { id: string; day: string; weight: number; unit: WeightUnit };
+// One of his own foods, saved from a correction: numbers per 100 g, and optionally what one of his usual
+// unit weighs ("slice", 30 g), so "2 slices" is weighed without asking the model.
+export type KnownFood = { id: string; name: string; per100g: MacroSet; unit?: string; unitGrams?: number };
+// A regime he can save several of and send to a friend (lib/health/regime.ts). reps is a range as typed,
+// "8-12" or "5"; its top is what double progression aims at. rest is seconds.
+export type RegimeExercise = { id: string; name: string; sets: number; reps: string; rest?: number };
+export type RegimeDay = { id: string; name: string; exercises: RegimeExercise[] };
+export type Regime = { id: string; name: string; notes: string; days: RegimeDay[] };
+export type HealthTargets = MacroSet & { goal: 'cut' | 'maintain' | 'bulk'; targetWeight?: number; unit: WeightUnit };
+export type Health = { meals: HealthMeal[]; workouts: HealthWorkout[]; weights: BodyWeight[]; foods: KnownFood[]; regimes: Regime[]; targets?: HealthTargets };
 // The brainstorm list (MiscList.tsx): loose lines that are not cards yet. created is an ISO timestamp.
 export type MiscItem = { id: string; text: string; kind: 'task' | 'idea' | 'note'; done: boolean; created: string };
 // The whiteboard (Whiteboard.tsx). elements are Drawnix's Plait elements exactly as it hands them over

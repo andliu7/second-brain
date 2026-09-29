@@ -1,0 +1,16 @@
+/* PageSkeleton (page-skeleton.tsx). Cards are the app's sheets on the ground; the blocks inside are the
+   band grey. The shimmer is a lighter pass across each block, and stops under reduced motion. */
+.page-skeleton{display:flex;flex-direction:column;gap:16px}
+.sk{display:block;height:10px;border-radius:var(--radius-control);background:var(--grid);position:relative;overflow:hidden}
+.sk-card .sk{background:var(--band)}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,var(--sheet-fade),transparent);animation:sk-shimmer 1.3s ease-in-out infinite}
+@keyframes sk-shimmer{to{transform:translateX(100%)}}
+.sk-heading{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.sk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.sk-card{display:flex;flex-direction:column;gap:12px;padding:20px;background:var(--sheet);border:1px solid var(--line);border-radius:var(--radius);min-height:150px}
+.sk-row{display:flex;align-items:center;gap:12px}
+.sk-docs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:14px}
+.sk-docs .sk-card{min-height:420px}
+.sk-surface{min-height:60vh}
+@media (max-width:700px){.sk-grid,.sk-docs{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none;display:none}}
